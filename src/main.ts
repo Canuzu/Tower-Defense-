@@ -1,6 +1,7 @@
 import './ui/styles.css';
 import { App } from './ui/App';
 import { Capacitor } from '@capacitor/core';
+import { restoreFromNative } from './save/durable';
 
 async function boot() {
   const root = document.getElementById('app')!;
@@ -10,9 +11,17 @@ async function boot() {
   } catch {
     /* ignore */
   }
+  await restoreFromNative();
   const app = new App(root);
   (window as any).__app = app;
   if (Capacitor.isNativePlatform()) {
+    try {
+      const { App: CapApp } = await import('@capacitor/app');
+      CapApp.addListener('backButton', () => app.back());
+      CapApp.addListener('pause', () => app.onBackground());
+    } catch {
+      /* optional */
+    }
     try {
       const { StatusBar } = await import('@capacitor/status-bar');
       await StatusBar.hide();

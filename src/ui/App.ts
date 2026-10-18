@@ -36,7 +36,7 @@ export class App {
   private scene: Scene = 'menu';
   private screen: HTMLElement;
   private last = performance.now();
-  private devUnlock = new URLSearchParams(location.search).has('dev');
+  private devUnlock = new URLSearchParams(location.search).has('dev') || location.hash === '#dev';
   private thumbs = new Map<string, string>();
   private setupDiff: Difficulty = 'easy';
   private xpGainedThisGame = 0;
@@ -72,6 +72,29 @@ export class App {
 
   get level() {
     return levelFromXp(this.profile.xp).level;
+  }
+
+  /** Android back button / Escape-like navigation. */
+  back() {
+    const modal = this.root.querySelector('.modal-wrap');
+    if (this.scene === 'game' && this.hud) {
+      if (this.hud.isModalOpen) this.hud.closeModal();
+      else this.hud.openPause();
+      return;
+    }
+    if (modal) {
+      modal.remove();
+      return;
+    }
+    if (this.scene === 'setup') this.showMaps();
+    else if (this.scene === 'maps') this.showMenu();
+  }
+
+  /** App moved to the background: pause and persist progress. */
+  onBackground() {
+    if (this.game && this.hud && !this.game.over && !this.hud.isModalOpen) this.hud.openPause();
+    if (this.game) this.trackStats(this.game);
+    saveProfile(this.profile);
   }
 
   private applySettings() {
@@ -114,7 +137,7 @@ export class App {
       if (this.statTimer <= 0) {
         this.statTimer = 1.5;
         this.trackStats(this.game);
-        this.claimAchievements(this.game);
+        if (!this.game.sandbox) this.claimAchievements(this.game);
       }
       if (audio.music) {
         audio.music.intensity = this.game.roundActive ? (this.game.enemies.some((e) => e.def.boss) ? 2 : 1) : 0;

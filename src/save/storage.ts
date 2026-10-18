@@ -1,5 +1,6 @@
 import type { SaveState } from '../game/Game';
 import type { Difficulty } from '../game/types';
+import { mirrorToNative } from './durable';
 
 export interface Settings {
   sfx: number;
@@ -67,7 +68,9 @@ function read<T>(key: string): T | null {
 
 function write(key: string, value: unknown) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const raw = JSON.stringify(value);
+    localStorage.setItem(key, raw);
+    mirrorToNative(key, raw);
   } catch {
     /* storage unavailable (private mode) - the game still works, progress is just not kept */
   }
@@ -104,6 +107,7 @@ export function saveGame(s: SaveState) {
 export function clearGame(mapId: string, diff: Difficulty) {
   try {
     localStorage.removeItem(SAVE_PREFIX + mapId + '/' + diff);
+    mirrorToNative(SAVE_PREFIX + mapId + '/' + diff, null);
   } catch {
     /* ignore */
   }

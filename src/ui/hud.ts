@@ -638,7 +638,23 @@ export class Hud {
       foot.append(wd);
     }
     const sellV = t.sellValue(g.sandbox) + Math.floor(t.stash);
-    foot.append(h('button', { class: 'btn small red', title: tr('Sell (Backspace)'), onclick: () => this.sell(t) }, tr('Sell ${n}', { n: formatNum(sellV) })));
+    const sellBtn = h('button', { class: 'btn small red', title: tr('Sell (Backspace)') }, tr('Sell ${n}', { n: formatNum(sellV) })) as HTMLButtonElement;
+    let armed = false;
+    sellBtn.addEventListener('click', () => {
+      // expensive towers need a second tap so they are not sold by accident
+      if (sellV >= 1000 && !armed && !this.game.sandbox) {
+        armed = true;
+        sellBtn.textContent = tr('Tap again to sell');
+        audio.play('click');
+        setTimeout(() => {
+          armed = false;
+          if (sellBtn.isConnected) sellBtn.textContent = tr('Sell ${n}', { n: formatNum(sellV) });
+        }, 2200);
+        return;
+      }
+      this.sell(t);
+    });
+    foot.append(sellBtn);
     panel.append(foot);
 
     this.root.append(panel);
@@ -657,7 +673,38 @@ export class Hud {
       parts.push(tr('${n}/round', { n: formatNum(per) }));
     }
     if (t.camo) parts.push(tr('👁 Camo'));
+    const main = this.mainAttackSummary(t);
+    if (main) parts.push(main);
     setText(el, parts.join(' · '));
+  }
+
+  /** Short "damage / pierce / speed" readout of the primary attack. */
+  private mainAttackSummary(t: Tower): string {
+    const a = t.stats.attacks[0];
+    if (!a) return '';
+    const rate = a.rate / t.rateFactor(this.game.time, this.game.frenzyT > 0);
+    const perSec = rate > 0 ? (1 / rate).toFixed(rate < 1 ? 1 : 2) : '';
+    let dmg = 0;
+    let pierce = 0;
+    if (a.kind === 'shoot' || a.kind === 'radial') {
+      dmg = a.proj.damage || a.proj.explode?.damage || 0;
+      pierce = a.proj.explode ? a.proj.explode.pierce : a.proj.pierce;
+      if (a.kind === 'shoot' && a.count > 1) pierce *= a.count;
+    } else if (a.kind === 'hitscan') {
+      dmg = a.damage;
+      pierce = 1 + (a.ricochet ?? 0);
+    } else if (a.kind === 'chain') {
+      dmg = a.damage;
+      pierce = a.chains;
+    } else if (a.kind === 'pulse') {
+      dmg = a.damage;
+      pierce = a.pierce;
+    } else if (a.kind === 'drone') {
+      dmg = a.proj.damage;
+      pierce = a.proj.pierce;
+      return `⚔ ${dmg + t.buffs.damageAdd} · 🐝 ${a.count}`;
+    } else return '';
+    return `⚔ ${dmg + (dmg > 0 ? t.buffs.damageAdd : 0)} · ➹ ${pierce + t.buffs.pierceAdd} · ⏱ ${perSec}/s`;
   }
 
   private refreshPanel() {

@@ -760,4 +760,5 @@ export const DE: Record<string, string> = {
   Dedicated: 'Hingabe',
   'Complete 7 daily challenges.': 'Schaffe 7 tägliche Herausforderungen.',
   'Perks are off in daily challenges so everyone plays the same game.': 'Perks sind in täglichen Herausforderungen aus, damit alle dasselbe Spiel spielen.',
+  'Tap again to sell': 'Nochmal tippen zum Verkaufen',
 };
