@@ -1211,7 +1211,7 @@ export class Renderer {
 
   /** Comic-book onomatopoeia burst. */
   comic(x: number, y: number, big = false) {
-    const words = big ? ['KA-SPLOOSH!', 'MEGA POP!', 'SPLAT-TASTIC!'] : ['POP!', 'SPLAT!', 'BLORP!', 'PLOP!', 'SPLOOSH!'];
+    const words = big ? ['KA-BLAM!', 'MEGA POP!', 'SHATTER-TASTIC!'] : ['POP!', 'CRACK!', 'SMASH!', 'CLINK!', 'ZING!'];
     const cols = ['#ffe066', '#ff8fab', '#7bdff2', '#b5e48c', '#ffffff', '#ffb347'];
     const w = t(words[Math.floor(Math.random() * words.length)]);
     this.particles.spawn(PK.Text, x + rand(-8, 8), y, { vy: -55, drag: 2.5, life: big ? 1.4 : 0.75, text: w, color: cols[Math.floor(Math.random() * cols.length)], font: big ? 30 : 15 });

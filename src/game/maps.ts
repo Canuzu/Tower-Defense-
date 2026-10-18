@@ -50,10 +50,10 @@ export interface MapDef {
 
 const meadow: MapDef = {
   id: 'meadow',
-  name: 'Meadow Mile',
+  name: 'Raccoon Meadow',
   tier: 'Beginner',
   theme: 'meadow',
-  desc: 'A long, lazy track through Critter Valley. The perfect place to learn.',
+  desc: 'A long, lazy dirt path past a sunny pond. The perfect place to learn.',
   pathWidth: 58,
   seed: 11,
   unlockMedals: 0,
@@ -86,10 +86,10 @@ const meadow: MapDef = {
 
 const caverns: MapDef = {
   id: 'caverns',
-  name: 'Crystal Caverns',
+  name: 'Crystal Mine',
   tier: 'Intermediate',
   theme: 'cave',
-  desc: 'Glittering tunnels where the track doubles back on itself. Mind the pits.',
+  desc: 'Lantern-lit mine tunnels where the track doubles back on itself. Mind the pits.',
   pathWidth: 56,
   seed: 23,
   unlockMedals: 1,
@@ -117,10 +117,10 @@ const caverns: MapDef = {
 
 const forge: MapDef = {
   id: 'forge',
-  name: 'Lava Forge',
+  name: 'Scrap Foundry',
   tier: 'Advanced',
   theme: 'lava',
-  desc: 'A short, scorching track. Lava rivers leave little room to build.',
+  desc: 'A short, scorching junkyard track. Molten metal leaves little room to build.',
   pathWidth: 56,
   seed: 37,
   unlockMedals: 2,
@@ -148,7 +148,7 @@ const rivers: MapDef = {
   name: 'Twin Rivers',
   tier: 'Expert',
   theme: 'river',
-  desc: 'Two short tracks and a river in between. Gloops alternate lanes.',
+  desc: 'Two short forest tracks with creeks in between. Stars alternate lanes.',
   pathWidth: 54,
   seed: 51,
   unlockMedals: 3,
@@ -175,10 +175,10 @@ const rivers: MapDef = {
 
 const fjord: MapDef = {
   id: 'fjord',
-  name: 'Frosty Fjord',
+  name: 'Frozen Lake',
   tier: 'Intermediate',
   theme: 'snow',
-  desc: 'A snowy zig-zag down to the frozen sea. The ice lake leaves odd pockets to build in.',
+  desc: 'A snowy zig-zag between the pines. The frozen lake leaves odd pockets to build in.',
   pathWidth: 56,
   seed: 61,
   unlockMedals: 0,
@@ -209,7 +209,7 @@ const candy: MapDef = {
   name: 'Candy Lane',
   tier: 'Advanced',
   theme: 'candy',
-  desc: 'A sugary track between chocolate rivers. Sweet, short and very dangerous.',
+  desc: "A sugary track through a sweet shop's backyard. Sweet, short and very dangerous.",
   pathWidth: 56,
   seed: 73,
   unlockMedals: 0,

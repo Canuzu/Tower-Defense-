@@ -14,10 +14,10 @@ const base = (partial: Partial<TowerStats> & { range: number }): TowerStats => (
 // ---------------------------------------------------------------------------------------------
 const spike: TowerDef = {
   id: 'spike',
-  name: 'Spike',
-  species: 'Hedgehog',
+  name: 'Slinger',
+  species: 'Slingshot Raccoon',
   role: 'Primary',
-  desc: 'Flicks sharp quills at gloops. Cheap, quick and endlessly upgradable.',
+  desc: 'Slings sharp tin shards at stars. Cheap, quick and endlessly upgradable.',
   cost: 200,
   radius: 20,
   unlock: 1,
@@ -40,38 +40,38 @@ const spike: TowerDef = {
   pathNames: ['Barrage', 'Piercing', 'Precision'],
   paths: [
     [
-      { name: 'Twin Quills', cost: 140, desc: 'Throws 2 quills at once.', apply: (s) => { const a = atk(s, 'quill', 'shoot'); a.count = 2; a.spread = 12; } },
-      { name: 'Triple Threat', cost: 220, desc: '3 quills per throw and slightly faster.', apply: (s) => { const a = atk(s, 'quill', 'shoot'); a.count = 3; a.spread = 20; a.rate *= 0.9; } },
-      { name: 'Quill Fan', cost: 750, desc: 'A fan of 5 quills with +1 pierce.', apply: (s) => { const a = atk(s, 'quill', 'shoot'); a.count = 5; a.spread = 44; a.proj.pierce += 1; } },
+      { name: 'Double Shot', cost: 140, desc: 'Slings 2 shards at once.', apply: (s) => { const a = atk(s, 'quill', 'shoot'); a.count = 2; a.spread = 12; } },
+      { name: 'Triple Shot', cost: 220, desc: '3 shards per shot and slightly faster.', apply: (s) => { const a = atk(s, 'quill', 'shoot'); a.count = 3; a.spread = 20; a.rate *= 0.9; } },
+      { name: 'Shard Fan', cost: 750, desc: 'A fan of 5 shards with +1 pierce.', apply: (s) => { const a = atk(s, 'quill', 'shoot'); a.count = 5; a.spread = 44; a.proj.pierce += 1; } },
       {
-        name: 'Porcupine Burst',
+        name: 'Nail Storm',
         cost: 2400,
-        desc: 'Every 1.6s explodes with 16 quills in all directions.',
+        desc: 'Every 1.6s blasts 16 nails in all directions.',
         apply: (s) => {
           s.attacks.push({ id: 'burst', kind: 'radial', rate: 1.6, count: 16, proj: { visual: 'quill', damage: 2, pierce: 3, dmgType: 'sharp', speed: 780, radius: 7 } });
         },
       },
       {
-        name: 'Thornado',
+        name: 'Junknado',
         cost: 18000,
-        desc: 'Bursts of 24 heavy quills. Ability: become a spinning tornado of thorns.',
+        desc: 'Bursts of 24 heavy nails. Ability: become a spinning tornado of junk.',
         apply: (s) => {
           const b = atk(s, 'burst', 'radial');
           b.rate = 0.7;
           b.count = 24;
           b.proj.damage = 3;
           b.proj.pierce = 6;
-          setAbility(s, { id: 'thornado', name: 'Thornado', icon: '🌪️', desc: 'Attack 4x faster for 8s.', cooldown: 40, params: { duration: 8, mul: 4 } });
+          setAbility(s, { id: 'thornado', name: 'Junknado', icon: '🌪️', desc: 'Attack 4x faster for 8s.', cooldown: 40, params: { duration: 8, mul: 4 } });
         },
       },
     ],
     [
-      { name: 'Sharp Quills', cost: 140, desc: 'Quills pop 1 extra gloop.', apply: (s) => { atk(s, 'quill', 'shoot').proj.pierce += 1; } },
-      { name: 'Razor Quills', cost: 260, desc: '+2 pierce and faster quills.', apply: (s) => { const p = atk(s, 'quill', 'shoot').proj; p.pierce += 2; p.speed *= 1.15; } },
+      { name: 'Sharp Shards', cost: 140, desc: 'Shards hit 1 extra star.', apply: (s) => { atk(s, 'quill', 'shoot').proj.pierce += 1; } },
+      { name: 'Razor Shards', cost: 260, desc: '+2 pierce and faster shards.', apply: (s) => { const p = atk(s, 'quill', 'shoot').proj; p.pierce += 2; p.speed *= 1.15; } },
       {
-        name: 'Javelin Toss',
+        name: 'Harpoon Toss',
         cost: 900,
-        desc: 'Hurls big javelins: 4 damage, 18 pierce and they hit Iron gloops.',
+        desc: 'Hurls big harpoons: 4 damage, 18 pierce and they hit Meteors.',
         apply: (s) => {
           const a = atk(s, 'quill', 'shoot');
           const p = a.proj;
@@ -86,9 +86,9 @@ const spike: TowerDef = {
         },
       },
       {
-        name: 'Ballista Hog',
+        name: 'Scrap Ballista',
         cost: 3200,
-        desc: 'Massive javelins that crush Crystals and wreck Globs.',
+        desc: 'Massive harpoons that crack Diamonds and wreck bosses.',
         apply: (s) => {
           const a = atk(s, 'quill', 'shoot');
           a.proj.damage += 6;
@@ -100,9 +100,9 @@ const spike: TowerDef = {
         },
       },
       {
-        name: 'The Impaler',
+        name: 'The Skewer',
         cost: 26000,
-        desc: 'Legendary javelins that skewer everything and stun on impact.',
+        desc: 'Legendary harpoons that skewer everything and stun on impact.',
         apply: (s) => {
           const a = atk(s, 'quill', 'shoot');
           a.proj.damage += 20;
@@ -115,13 +115,13 @@ const spike: TowerDef = {
       },
     ],
     [
-      { name: 'Keen Eyes', cost: 100, desc: '+30 range and faster quills.', apply: (s) => { s.range += 30; atk(s, 'quill', 'shoot').proj.speed *= 1.2; } },
-      { name: 'Night Goggles', cost: 180, desc: 'Detects Camo gloops. +15 range.', apply: (s) => { s.camo = true; s.range += 15; } },
-      { name: 'Rapid Quills', cost: 600, desc: 'Throws much faster.', apply: (s) => { atk(s, 'quill', 'shoot').rate *= 0.55; } },
+      { name: 'Keen Eyes', cost: 100, desc: '+30 range and faster shards.', apply: (s) => { s.range += 30; atk(s, 'quill', 'shoot').proj.speed *= 1.2; } },
+      { name: 'Night Goggles', cost: 180, desc: 'Detects Camo stars. +15 range.', apply: (s) => { s.camo = true; s.range += 15; } },
+      { name: 'Rapid Fire', cost: 600, desc: 'Slings much faster.', apply: (s) => { atk(s, 'quill', 'shoot').rate *= 0.55; } },
       {
-        name: 'Quill Gunner',
+        name: 'Gatling Slinger',
         cost: 2800,
-        desc: 'A blur of quills. Even faster, +1 damage and +1 pierce.',
+        desc: 'A blur of shards. Even faster, +1 damage and +1 pierce.',
         apply: (s) => {
           const a = atk(s, 'quill', 'shoot');
           a.rate *= 0.45;
@@ -130,9 +130,9 @@ const spike: TowerDef = {
         },
       },
       {
-        name: 'Hedgehog Supreme',
+        name: 'Bandit Supreme',
         cost: 22000,
-        desc: 'Seeking quills, +3 damage and +3 pierce at ludicrous speed.',
+        desc: 'Seeking shards, +3 damage and +3 pierce at ludicrous speed.',
         apply: (s) => {
           const a = atk(s, 'quill', 'shoot');
           a.rate *= 0.5;
@@ -162,9 +162,9 @@ const miniBomb = (damage: number, radius: number, pierce: number): ProjDef => ({
 const boomer: TowerDef = {
   id: 'boomer',
   name: 'Boomer',
-  species: 'Bombardier Beetle',
+  species: 'Mortar Raccoon',
   role: 'Military',
-  desc: 'Lobs bombs that splash whole crowds. Licorice gloops shrug off explosions.',
+  desc: 'Lobs trash-can bombs that blast whole crowds. Black Holes swallow explosions.',
   cost: 525,
   radius: 22,
   unlock: 1,
@@ -192,7 +192,7 @@ const boomer: TowerDef = {
         },
       ],
     }),
-  pathNames: ['Big Bombs', 'Cluster', 'Glob Busters'],
+  pathNames: ['Big Bombs', 'Cluster', 'Comet Busters'],
   paths: [
     [
       { name: 'Bigger Bombs', cost: 300, desc: 'Larger blast radius, +8 pierce.', apply: (s) => { const e = atk(s, 'bomb', 'shoot').proj.explode!; e.radius += 16; e.pierce += 8; } },
@@ -200,7 +200,7 @@ const boomer: TowerDef = {
       {
         name: 'Concussion Blast',
         cost: 1150,
-        desc: '+1 damage, bigger blast and stuns gloops briefly.',
+        desc: '+1 damage, bigger blast and stuns stars briefly.',
         apply: (s) => {
           const e = atk(s, 'bomb', 'shoot').proj.explode!;
           e.damage += 1;
@@ -211,17 +211,17 @@ const boomer: TowerDef = {
       {
         name: 'Earthshaker',
         cost: 3600,
-        desc: 'Devastating blasts. Ability: Quake stuns every gloop on screen.',
+        desc: 'Devastating blasts. Ability: Quake stuns every star on screen.',
         apply: (s) => {
           const e = atk(s, 'bomb', 'shoot').proj.explode!;
           e.damage += 4;
           e.pierce += 40;
           e.statuses = [{ kind: 'stun', duration: 0.6, boss: 0.35 }];
-          setAbility(s, { id: 'quake', name: 'Quake', icon: '💥', desc: 'Stuns all gloops and deals 20 damage.', cooldown: 45, params: { damage: 20, stun: 1.5, bossStun: 0.5 } });
+          setAbility(s, { id: 'quake', name: 'Quake', icon: '💥', desc: 'Stuns all stars and deals 20 damage.', cooldown: 45, params: { damage: 20, stun: 1.5, bossStun: 0.5 } });
         },
       },
       {
-        name: 'Nuclear Beetle',
+        name: 'Atomic Can',
         cost: 28000,
         desc: 'Mushroom-cloud explosions. Quake becomes a 600-damage meltdown.',
         apply: (s) => {
@@ -235,7 +235,7 @@ const boomer: TowerDef = {
           q.params.damage = 600;
           q.params.stun = 3;
           q.params.bossStun = 1;
-          q.desc = 'Meltdown: 600 damage to every gloop and a long stun.';
+          q.desc = 'Meltdown: 600 damage to every star and a long stun.';
           q.name = 'Meltdown';
         },
       },
@@ -302,9 +302,9 @@ const boomer: TowerDef = {
           p.speed += 150;
         },
       },
-      { name: 'Glob Buster', cost: 1000, desc: '+18 damage to boss gloops.', apply: (s) => { const e = atk(s, 'bomb', 'shoot').proj.explode!; e.bossBonus = (e.bossBonus ?? 0) + 18; } },
+      { name: 'Comet Buster', cost: 1000, desc: '+18 damage to bosses.', apply: (s) => { const e = atk(s, 'bomb', 'shoot').proj.explode!; e.bossBonus = (e.bossBonus ?? 0) + 18; } },
       {
-        name: 'Glob Breaker',
+        name: 'Comet Breaker',
         cost: 3400,
         desc: '+60 more boss damage and faster firing.',
         apply: (s) => {
@@ -335,10 +335,10 @@ const boomer: TowerDef = {
 // ---------------------------------------------------------------------------------------------
 const frost: TowerDef = {
   id: 'frost',
-  name: 'Frost',
-  species: 'Penguin',
+  name: 'Frosty',
+  species: 'Frost Raccoon',
   role: 'Primary',
-  desc: 'Blasts out freezing pulses that stop gloops in their tracks.',
+  desc: 'Blasts freezing pulses from a mini-fridge that stop stars in their tracks.',
   cost: 400,
   radius: 20,
   unlock: 1,
@@ -363,11 +363,11 @@ const frost: TowerDef = {
   pathNames: ['Deep Freeze', 'Blizzard', 'Ice Shards'],
   paths: [
     [
-      { name: 'Permafrost', cost: 100, desc: 'Thawed gloops stay slowed for a while.', apply: (s) => { atk(s, 'freeze', 'pulse').statuses.push({ kind: 'slow', value: 0.5, duration: 2.6, boss: 0 }); } },
+      { name: 'Permafrost', cost: 100, desc: 'Thawed stars stay slowed for a while.', apply: (s) => { atk(s, 'freeze', 'pulse').statuses.push({ kind: 'slow', value: 0.5, duration: 2.6, boss: 0 }); } },
       {
         name: 'Cold Snap',
         cost: 300,
-        desc: 'Freezes Frosting, Swirl and Camo gloops too.',
+        desc: 'Freezes Ice Stars, Eclipses and Camo stars too.',
         apply: (s) => {
           const a = atk(s, 'freeze', 'pulse');
           a.ignoreImmune = true;
@@ -377,7 +377,7 @@ const frost: TowerDef = {
       {
         name: 'Shatter',
         cost: 1600,
-        desc: 'Frozen gloops become brittle and take +1 damage from every hit.',
+        desc: 'Frozen stars become brittle and take +1 damage from every hit.',
         apply: (s) => {
           const a = atk(s, 'freeze', 'pulse');
           a.statuses.push({ kind: 'vuln', value: 1, duration: 2.4, boss: 0 });
@@ -400,13 +400,13 @@ const frost: TowerDef = {
       {
         name: 'Absolute Zero',
         cost: 26000,
-        desc: 'Ability: freeze EVERY gloop on screen for 6 seconds.',
+        desc: 'Ability: freeze EVERY star on screen for 6 seconds.',
         apply: (s) => {
           const a = atk(s, 'freeze', 'pulse');
           a.damage = 6;
           a.statuses[0].duration = 2.6;
           s.range += 40;
-          setAbility(s, { id: 'absoluteZero', name: 'Absolute Zero', icon: '❄️', desc: 'Freeze everything for 6s. Frozen gloops take +2 damage.', cooldown: 50, params: { duration: 6, bossMul: 0.4 } });
+          setAbility(s, { id: 'absoluteZero', name: 'Absolute Zero', icon: '❄️', desc: 'Freeze everything for 6s. Frozen stars take +2 damage.', cooldown: 50, params: { duration: 6, bossMul: 0.4 } });
         },
       },
     ],
@@ -414,7 +414,7 @@ const frost: TowerDef = {
       {
         name: 'Chill Aura',
         cost: 200,
-        desc: 'Gloops in range are permanently slowed by 25%.',
+        desc: 'Stars in range are permanently slowed by 25%.',
         apply: (s) => {
           s.attacks.push({ id: 'chill', kind: 'aura', rate: 0.2, slow: 0.75, slowBoss: 0.9, dps: 0, dmgType: 'cold' });
         },
@@ -532,10 +532,10 @@ const frost: TowerDef = {
 // ---------------------------------------------------------------------------------------------
 const hoot: TowerDef = {
   id: 'hoot',
-  name: 'Hoot',
-  species: 'Owl',
+  name: 'Scope',
+  species: 'Sniper Raccoon',
   role: 'Military',
-  desc: 'A sharp-eyed sniper that hits anywhere on the map and pierces armour.',
+  desc: 'A goggled sniper with a telescope rifle. Hits anywhere and pierces armour.',
   cost: 350,
   radius: 20,
   unlock: 1,
@@ -546,15 +546,15 @@ const hoot: TowerDef = {
       range: 4000,
       attacks: [{ id: 'shot', kind: 'hitscan', rate: 1.6, damage: 2, dmgType: 'normal', global: true }],
     }),
-  pathNames: ['Caliber', 'Night Hunter', 'Swift Wings'],
+  pathNames: ['Caliber', 'Night Hunter', 'Quick Paws'],
   paths: [
     [
-      { name: 'Heavy Talons', cost: 350, desc: '4 damage per shot.', apply: (s) => { atk(s, 'shot', 'hitscan').damage = 4; } },
-      { name: 'Piercing Gaze', cost: 1300, desc: '7 damage per shot.', apply: (s) => { atk(s, 'shot', 'hitscan').damage = 7; } },
+      { name: 'Heavy Rounds', cost: 350, desc: '4 damage per shot.', apply: (s) => { atk(s, 'shot', 'hitscan').damage = 4; } },
+      { name: 'Piercing Rounds', cost: 1300, desc: '7 damage per shot.', apply: (s) => { atk(s, 'shot', 'hitscan').damage = 7; } },
       {
         name: 'Armor Breaker',
         cost: 2800,
-        desc: '18 damage, extra vs Crystal/Iron and strips Fortified armour.',
+        desc: '18 damage, extra vs Diamond/Meteor and strips Fortified armour.',
         apply: (s) => {
           const a = atk(s, 'shot', 'hitscan');
           a.damage = 18;
@@ -575,7 +575,7 @@ const hoot: TowerDef = {
         },
       },
       {
-        name: 'Eclipse Owl',
+        name: 'Eclipse Rifle',
         cost: 34000,
         desc: 'Annihilating shots: +210 boss damage and stuns the target.',
         apply: (s) => {
@@ -587,20 +587,20 @@ const hoot: TowerDef = {
       },
     ],
     [
-      { name: 'Night Vision', cost: 300, desc: 'Detects Camo gloops.', apply: (s) => { s.camo = true; } },
+      { name: 'Night Vision', cost: 300, desc: 'Detects Camo stars.', apply: (s) => { s.camo = true; } },
       {
-        name: 'Scatter Feathers',
+        name: 'Scatter Shot',
         cost: 450,
-        desc: 'Shots burst into 5 razor feathers.',
+        desc: 'Shots burst into 5 sharp bottle caps.',
         apply: (s) => {
           atk(s, 'shot', 'hitscan').shrapnel = { count: 5, proj: { visual: 'feather', damage: 1, pierce: 2, dmgType: 'sharp', speed: 520, radius: 6, life: 0.28 } };
         },
       },
-      { name: 'Ricochet', cost: 2400, desc: 'Shots bounce to 3 more gloops.', apply: (s) => { const a = atk(s, 'shot', 'hitscan'); a.ricochet = 3; a.ricochetRange = 140; } },
+      { name: 'Ricochet', cost: 2400, desc: 'Shots bounce to 3 more stars.', apply: (s) => { const a = atk(s, 'shot', 'hitscan'); a.ricochet = 3; a.ricochetRange = 140; } },
       {
         name: "Hunter's Mark",
         cost: 4500,
-        desc: 'Marked gloops take 30% more damage from everything. 6 ricochets.',
+        desc: 'Marked stars take 30% more damage from everything. 6 ricochets.',
         apply: (s) => {
           const a = atk(s, 'shot', 'hitscan');
           a.ricochet = 6;
@@ -608,21 +608,21 @@ const hoot: TowerDef = {
         },
       },
       {
-        name: 'Feather Storm',
+        name: 'Bottlecap Barrage',
         cost: 22000,
-        desc: '12 ricochets, +5 damage. Ability: rain a storm of feathers over the track.',
+        desc: '12 ricochets, +5 damage. Ability: rain bottle caps all over the track.',
         apply: (s) => {
           const a = atk(s, 'shot', 'hitscan');
           a.ricochet = 12;
           a.damage += 5;
-          setAbility(s, { id: 'featherStorm', name: 'Feather Storm', icon: '🪶', desc: '150 feathers rain down along the track.', cooldown: 40, params: { count: 150, damage: 6, pierce: 4 } });
+          setAbility(s, { id: 'featherStorm', name: 'Bottlecap Barrage', icon: '🍾', desc: '150 bottle caps rain down along the track.', cooldown: 40, params: { count: 150, damage: 6, pierce: 4 } });
         },
       },
     ],
     [
       { name: 'Quick Draw', cost: 450, desc: 'Shoots 43% faster.', apply: (s) => { atk(s, 'shot', 'hitscan').rate *= 0.7; } },
       { name: 'Steady Grip', cost: 500, desc: 'Shoots even faster.', apply: (s) => { atk(s, 'shot', 'hitscan').rate *= 0.75; } },
-      { name: 'Semi-Auto Owl', cost: 3500, desc: 'Triple fire rate.', apply: (s) => { atk(s, 'shot', 'hitscan').rate *= 0.35; } },
+      { name: 'Semi-Auto', cost: 3500, desc: 'Triple fire rate.', apply: (s) => { atk(s, 'shot', 'hitscan').rate *= 0.35; } },
       {
         name: 'Supply Drop',
         cost: 7000,
@@ -633,9 +633,9 @@ const hoot: TowerDef = {
         },
       },
       {
-        name: 'Owl Commander',
+        name: 'Sniper Captain',
         cost: 15000,
-        desc: 'All Hoots everywhere shoot 33% faster and deal +2 damage. Bigger drops.',
+        desc: 'All Scopes everywhere shoot 33% faster and deal +2 damage. Bigger drops.',
         apply: (s) => {
           s.buffAura = { global: true, only: 'hoot', rateMul: 1.33, damageAdd: 2 };
           ability(s, 'supplyDrop').params.cash = 3000;
@@ -651,10 +651,10 @@ const hoot: TowerDef = {
 // ---------------------------------------------------------------------------------------------
 const ember: TowerDef = {
   id: 'ember',
-  name: 'Ember',
-  species: 'Fox Mage',
+  name: 'Mystic',
+  species: 'Raccoon Mage',
   role: 'Magic',
-  desc: 'Casts arcane bolts. Learns fire magic or summons spirit foxes.',
+  desc: 'Casts arcane bolts. Learns fire magic or summons spirit raccoons.',
   cost: 450,
   radius: 20,
   unlock: 2,
@@ -673,7 +673,7 @@ const ember: TowerDef = {
       {
         name: 'Fire Bolt',
         cost: 300,
-        desc: 'Bolts set gloops on fire.',
+        desc: 'Bolts set stars on fire.',
         apply: (s) => {
           const p = atk(s, 'bolt', 'shoot').proj;
           p.visual = 'firebolt';
@@ -707,7 +707,7 @@ const ember: TowerDef = {
       {
         name: "Dragon's Breath",
         cost: 2200,
-        desc: 'Breathes a constant stream of fire at nearby gloops.',
+        desc: 'Blasts a constant stream of lantern fire at nearby stars.',
         apply: (s) => {
           s.attacks.push({
             id: 'breath',
@@ -739,15 +739,15 @@ const ember: TowerDef = {
         },
       },
       {
-        name: 'Nine-Tailed Inferno',
+        name: 'Inferno Lord',
         cost: 45000,
-        desc: 'All fire magic massively empowered. Ability: Kitsune Firestorm.',
+        desc: 'All fire magic massively empowered. Ability: Firestorm.',
         apply: (s) => {
           atk(s, 'bolt', 'shoot').proj.damage += 6;
           atk(s, 'breath', 'shoot').proj.damage = 5;
           atk(s, 'fireball', 'shoot').proj.explode!.damage = 12;
           atk(s, 'phoenix', 'drone').proj.damage = 15;
-          setAbility(s, { id: 'firestorm', name: 'Kitsune Firestorm', icon: '🔥', desc: 'Engulf the whole map: 600 damage and a fierce burn.', cooldown: 60, params: { damage: 600, burn: 30, duration: 6 } });
+          setAbility(s, { id: 'firestorm', name: 'Firestorm', icon: '🔥', desc: 'Engulf the whole map: 600 damage and a fierce burn.', cooldown: 60, params: { damage: 600, burn: 30, duration: 6 } });
         },
       },
     ],
@@ -756,7 +756,7 @@ const ember: TowerDef = {
       {
         name: 'Arcane Missiles',
         cost: 400,
-        desc: 'Bolts home in on gloops.',
+        desc: 'Bolts home in on stars.',
         apply: (s) => {
           const p = atk(s, 'bolt', 'shoot').proj;
           p.homing = 6;
@@ -775,9 +775,9 @@ const ember: TowerDef = {
         },
       },
       {
-        name: 'Starfall',
+        name: 'Moonbeams',
         cost: 5500,
-        desc: 'Bolts shatter into 3 seeking stars. +3 damage, +6 pierce.',
+        desc: 'Bolts shatter into 3 seeking moon shards. +3 damage, +6 pierce.',
         apply: (s) => {
           const p = atk(s, 'bolt', 'shoot').proj;
           p.damage += 3;
@@ -799,11 +799,11 @@ const ember: TowerDef = {
       },
     ],
     [
-      { name: 'Spirit Sight', cost: 300, desc: 'Detects Camo gloops.', apply: (s) => { s.camo = true; } },
+      { name: 'Spirit Sight', cost: 300, desc: 'Detects Camo stars.', apply: (s) => { s.camo = true; } },
       {
         name: 'Spirit Wisps',
         cost: 1000,
-        desc: 'Two wisps orbit the fox and burn gloops they touch.',
+        desc: 'Two wisps orbit the mystic and burn stars they touch.',
         apply: (s) => {
           s.attacks.push({ id: 'wisps', kind: 'orbit', rate: 1, count: 2, orbitRadius: 54, angSpeed: 3, damage: 1, dmgType: 'energy', hitCooldown: 0.35, size: 13, visual: 'wisp' });
         },
@@ -825,17 +825,17 @@ const ember: TowerDef = {
         },
       },
       {
-        name: 'Ghost Fox Pack',
+        name: 'Ghost Pack',
         cost: 9000,
-        desc: 'Spirit foxes charge backwards down the track, trampling gloops.',
+        desc: 'Spirit raccoons charge backwards down the track, trampling stars.',
         apply: (s) => {
           s.attacks.push({ id: 'foxes', kind: 'runner', rate: 3.5, damage: 3, dmgType: 'normal', pierce: 30, speed: 260, size: 18, visual: 'foxspirit' });
         },
       },
       {
-        name: 'Spirit Queen',
+        name: 'Spirit King',
         cost: 32000,
-        desc: 'An endless stampede of mighty spirit foxes that shove bosses back.',
+        desc: 'An endless stampede of mighty spirit raccoons that shove bosses back.',
         apply: (s) => {
           const r = atk(s, 'foxes', 'runner');
           r.rate = 1.4;
@@ -858,10 +858,10 @@ const ember: TowerDef = {
 // ---------------------------------------------------------------------------------------------
 const zap: TowerDef = {
   id: 'zap',
-  name: 'Zap',
-  species: 'Thunder Frog',
+  name: 'Sparky',
+  species: 'Tesla Raccoon',
   role: 'Magic',
-  desc: 'Croaks out lightning that chains through packs of gloops.',
+  desc: 'Fires lightning from a tesla backpack that chains through packs of stars.',
   cost: 600,
   radius: 21,
   unlock: 3,
@@ -872,10 +872,10 @@ const zap: TowerDef = {
       range: 140,
       attacks: [{ id: 'zap', kind: 'chain', rate: 1.3, damage: 1, dmgType: 'energy', chains: 4, chainRange: 85 }],
     }),
-  pathNames: ['Storm', 'Tongue', 'Static'],
+  pathNames: ['Storm', 'Claw', 'Static'],
   paths: [
     [
-      { name: 'Charged Up', cost: 300, desc: 'Lightning jumps to 3 more gloops.', apply: (s) => { atk(s, 'zap', 'chain').chains += 3; } },
+      { name: 'Charged Up', cost: 300, desc: 'Lightning jumps to 3 more stars.', apply: (s) => { atk(s, 'zap', 'chain').chains += 3; } },
       {
         name: 'High Voltage',
         cost: 600,
@@ -887,9 +887,9 @@ const zap: TowerDef = {
         },
       },
       {
-        name: 'Thunderhead',
+        name: 'Storm Coil',
         cost: 2200,
-        desc: 'Calls down lightning strikes on gloops in range.',
+        desc: 'Calls down lightning strikes on stars in range.',
         apply: (s) => {
           s.attacks.push({ id: 'storm', kind: 'strike', rate: 1.2, count: 3, damage: 3, dmgType: 'energy', radius: 34, pierce: 12, visual: 'lightning' });
         },
@@ -897,7 +897,7 @@ const zap: TowerDef = {
       {
         name: 'Tempest',
         cost: 6000,
-        desc: '16-gloop chains that stun. More strikes.',
+        desc: '16-star chains that stun. More strikes.',
         apply: (s) => {
           const a = atk(s, 'zap', 'chain');
           a.chains = 16;
@@ -907,7 +907,7 @@ const zap: TowerDef = {
         },
       },
       {
-        name: 'Storm God',
+        name: 'Storm Lord',
         cost: 40000,
         desc: 'Godlike lightning. Ability: Superstorm strikes the whole map.',
         apply: (s) => {
@@ -921,17 +921,17 @@ const zap: TowerDef = {
     ],
     [
       {
-        name: 'Snack Attack',
+        name: 'Grabby Claw',
         cost: 250,
-        desc: 'Lashes out its tongue to gobble a gloop.',
+        desc: 'Shoots out a grabby claw to snatch a star.',
         apply: (s) => {
           s.attacks.push({ id: 'tongue', kind: 'tongue', rate: 1.6, damage: 3, rangeAdd: 0, swallowTier: 0, bossDamage: 0, bossKnockback: 0 });
         },
       },
       {
-        name: 'Long Tongue',
+        name: 'Long Reach',
         cost: 450,
-        desc: 'Longer, faster, hungrier tongue.',
+        desc: 'Longer, faster, grabbier claw.',
         apply: (s) => {
           const t = atk(s, 'tongue', 'tongue');
           t.rangeAdd = 60;
@@ -940,7 +940,7 @@ const zap: TowerDef = {
         },
       },
       {
-        name: 'Glob Grabber',
+        name: 'Comet Grabber',
         cost: 2400,
         desc: 'Grabs bosses, dealing 40 damage and dragging them back.',
         apply: (s) => {
@@ -950,9 +950,9 @@ const zap: TowerDef = {
         },
       },
       {
-        name: 'Gulp!',
+        name: 'Trash Compactor',
         cost: 7500,
-        desc: 'Swallows Globs whole! Bigger bosses take 400 damage.',
+        desc: 'Crushes Comets whole! Bigger bosses take 400 damage.',
         apply: (s) => {
           const t = atk(s, 'tongue', 'tongue');
           t.swallowTier = 10;
@@ -962,9 +962,9 @@ const zap: TowerDef = {
         },
       },
       {
-        name: 'Frog Leviathan',
+        name: 'Mega Compactor',
         cost: 30000,
-        desc: 'Swallows Mega Globs whole and deals 3000 to anything bigger.',
+        desc: 'Crushes Moon Brutes whole and deals 3000 to anything bigger.',
         apply: (s) => {
           const t = atk(s, 'tongue', 'tongue');
           t.swallowTier = 11;
@@ -975,7 +975,7 @@ const zap: TowerDef = {
     ],
     [
       {
-        name: 'Static Skin',
+        name: 'Static Fur',
         cost: 200,
         desc: '+20 range and zaps faster.',
         apply: (s) => {
@@ -986,7 +986,7 @@ const zap: TowerDef = {
       {
         name: 'Ionize',
         cost: 500,
-        desc: 'Detects Camo and zapped gloops lose their camouflage.',
+        desc: 'Detects Camo and zapped stars lose their camouflage.',
         apply: (s) => {
           s.camo = true;
           const a = atk(s, 'zap', 'chain');
@@ -996,7 +996,7 @@ const zap: TowerDef = {
       {
         name: 'Overcharge',
         cost: 1800,
-        desc: 'Shocked gloops take +2 damage from the next hit. +2 chains.',
+        desc: 'Shocked stars take +2 damage from the next hit. +2 chains.',
         apply: (s) => {
           const a = atk(s, 'zap', 'chain');
           a.chains += 2;
@@ -1004,9 +1004,9 @@ const zap: TowerDef = {
         },
       },
       {
-        name: 'Tesla Pads',
+        name: 'Tesla Traps',
         cost: 5000,
-        desc: 'Places electric lily pads on the track that zap passing gloops.',
+        desc: 'Places electric traps on the track that zap passing stars.',
         apply: (s) => {
           s.attacks.push({ id: 'coils', kind: 'trap', rate: 3, max: 4, life: 25, radius: 34, damage: 2, dmgType: 'energy', pierce: 6, tick: 0.5, visual: 'coil' });
         },
@@ -1014,7 +1014,7 @@ const zap: TowerDef = {
       {
         name: 'Power Grid',
         cost: 25000,
-        desc: 'Powers nearby towers: +30% attack speed. Pads hit much harder.',
+        desc: 'Powers nearby towers: +30% attack speed. Traps hit much harder.',
         apply: (s) => {
           s.buffAura = { ...(s.buffAura ?? {}), range: 200, rateMul: 1.3 };
           atk(s, 'zap', 'chain').chains += 10;
@@ -1033,9 +1033,9 @@ const zap: TowerDef = {
 const buzz: TowerDef = {
   id: 'buzz',
   name: 'Buzz',
-  species: 'Bee Hive',
+  species: 'Drone Pilot',
   role: 'Military',
-  desc: 'Sends out bees that hunt gloops anywhere near the hive.',
+  desc: 'Sends out junk drones that hunt stars anywhere nearby.',
   cost: 700,
   radius: 23,
   unlock: 4,
@@ -1048,39 +1048,39 @@ const buzz: TowerDef = {
         { id: 'bees', kind: 'drone', rate: 1, count: 1, speed: 290, droneRate: 0.42, visual: 'bee', proj: { visual: 'stinger', damage: 1, pierce: 2, dmgType: 'sharp', speed: 720, radius: 6 } },
       ],
     }),
-  pathNames: ['Swarm', 'Venom', 'Royal'],
+  pathNames: ['Swarm', 'Acid', 'Command'],
   paths: [
     [
-      { name: 'Worker Bees', cost: 400, desc: '+1 bee.', apply: (s) => { atk(s, 'bees', 'drone').count = 2; } },
-      { name: 'Busy Hive', cost: 800, desc: '+1 bee and faster flight.', apply: (s) => { const b = atk(s, 'bees', 'drone'); b.count = 3; b.speed *= 1.3; } },
-      { name: 'Swarm', cost: 2500, desc: '6 bees with +1 pierce.', apply: (s) => { const b = atk(s, 'bees', 'drone'); b.count = 6; b.proj.pierce += 1; } },
-      { name: 'Bee Legion', cost: 8000, desc: '10 bees with +1 damage.', apply: (s) => { const b = atk(s, 'bees', 'drone'); b.count = 10; b.proj.damage += 1; } },
+      { name: 'Extra Drone', cost: 400, desc: '+1 drone.', apply: (s) => { atk(s, 'bees', 'drone').count = 2; } },
+      { name: 'Drone Hangar', cost: 800, desc: '+1 drone and faster flight.', apply: (s) => { const b = atk(s, 'bees', 'drone'); b.count = 3; b.speed *= 1.3; } },
+      { name: 'Drone Swarm', cost: 2500, desc: '6 drones with +1 pierce.', apply: (s) => { const b = atk(s, 'bees', 'drone'); b.count = 6; b.proj.pierce += 1; } },
+      { name: 'Drone Legion', cost: 8000, desc: '10 drones with +1 damage.', apply: (s) => { const b = atk(s, 'bees', 'drone'); b.count = 10; b.proj.damage += 1; } },
       {
-        name: 'Hive Mind',
+        name: 'Swarm Mind',
         cost: 35000,
-        desc: '18 bees, +2 damage. Ability: Killer Swarm adds 30 bees for 10s.',
+        desc: '18 drones, +2 damage. Ability: Drone Strike adds 30 drones for 10s.',
         apply: (s) => {
           const b = atk(s, 'bees', 'drone');
           b.count = 18;
           b.proj.damage += 2;
-          setAbility(s, { id: 'killerSwarm', name: 'Killer Swarm', icon: '🐝', desc: '+30 bees for 10 seconds.', cooldown: 45, params: { bees: 30, duration: 10 } });
+          setAbility(s, { id: 'killerSwarm', name: 'Drone Strike', icon: '🛸', desc: '+30 drones for 10 seconds.', cooldown: 45, params: { bees: 30, duration: 10 } });
         },
       },
     ],
     [
       {
-        name: 'Venom Stingers',
+        name: 'Acid Darts',
         cost: 300,
-        desc: 'Stings poison gloops (hits every gloop type).',
+        desc: 'Darts corrode stars (hits every star type).',
         apply: (s) => {
           const p = atk(s, 'bees', 'drone').proj;
           p.statuses = [...(p.statuses ?? []), { kind: 'poison', dps: 1, duration: 4, boss: 1, dmgType: 'normal' }];
         },
       },
       {
-        name: 'Toxic Venom',
+        name: 'Toxic Acid',
         cost: 700,
-        desc: 'Stronger, longer poison.',
+        desc: 'Stronger, longer-lasting acid.',
         apply: (s) => {
           const st = atk(s, 'bees', 'drone').proj.statuses!.find((x) => x.kind === 'poison')!;
           st.dps = 2;
@@ -1088,9 +1088,9 @@ const buzz: TowerDef = {
         },
       },
       {
-        name: 'Wasp Squadron',
+        name: 'Jet Squadron',
         cost: 2700,
-        desc: 'Bees become wasps: 2 damage, faster stings, pierce Iron.',
+        desc: 'Drones become jets: 2 damage, faster darts, pierce Meteors.',
         apply: (s) => {
           const b = atk(s, 'bees', 'drone');
           b.visual = 'wasp';
@@ -1100,9 +1100,9 @@ const buzz: TowerDef = {
         },
       },
       {
-        name: 'Hornet Missiles',
+        name: 'Mini Missiles',
         cost: 7000,
-        desc: 'Wasps fire explosive stingers that hurt bosses 3x.',
+        desc: 'Jets fire explosive mini missiles that hurt bosses 3x.',
         apply: (s) => {
           const p = atk(s, 'bees', 'drone').proj;
           p.explode = { radius: 26, damage: 2, pierce: 8, dmgType: 'explosive', visual: 'mini' };
@@ -1110,9 +1110,9 @@ const buzz: TowerDef = {
         },
       },
       {
-        name: 'Murder Hornets',
+        name: 'Doom Drones',
         cost: 30000,
-        desc: 'Terrifying hornets: 8 damage, 5x vs bosses, deadly poison.',
+        desc: 'Terrifying drones: 8 damage, 5x vs bosses, deadly acid.',
         apply: (s) => {
           const p = atk(s, 'bees', 'drone').proj;
           p.damage += 6;
@@ -1123,28 +1123,28 @@ const buzz: TowerDef = {
       },
     ],
     [
-      { name: 'Royal Jelly', cost: 250, desc: 'Bees can find Camo gloops.', apply: (s) => { s.camo = true; } },
+      { name: 'Thermal Cam', cost: 250, desc: 'Drones can find Camo stars.', apply: (s) => { s.camo = true; } },
       {
-        name: 'Honey Trap',
+        name: 'Glue Trap',
         cost: 600,
-        desc: 'Drops sticky honey on the track that slows gloops.',
+        desc: 'Drops sticky glue on the track that slows stars.',
         apply: (s) => {
           s.attacks.push({ id: 'honey', kind: 'trap', rate: 4, max: 3, life: 20, radius: 38, damage: 0, dmgType: 'normal', pierce: 999, tick: 0.2, visual: 'honey', statuses: [{ kind: 'slow', value: 0.55, duration: 0.4, boss: 0.5 }] });
         },
       },
       {
-        name: 'Queen Bee',
+        name: 'Mother Drone',
         cost: 2000,
-        desc: 'A royal queen joins the hunt and hurries the workers.',
+        desc: 'A big mother drone joins the hunt and hurries the others.',
         apply: (s) => {
           s.attacks.push({ id: 'queen', kind: 'drone', rate: 1, count: 1, speed: 230, droneRate: 0.5, visual: 'queen', proj: { visual: 'stinger', damage: 4, pierce: 6, dmgType: 'normal', speed: 820, radius: 8, size: 1.5 } });
           atk(s, 'bees', 'drone').droneRate *= 0.77;
         },
       },
       {
-        name: 'Honey Glaze',
+        name: 'Super Glue',
         cost: 6000,
-        desc: 'Glazed gloops take +1 damage from every hit. More honey.',
+        desc: 'Glued stars take +1 damage from every hit. More glue.',
         apply: (s) => {
           const h = atk(s, 'honey', 'trap');
           h.max = 5;
@@ -1152,15 +1152,15 @@ const buzz: TowerDef = {
         },
       },
       {
-        name: 'Hive Empress',
+        name: 'Mothership',
         cost: 28000,
-        desc: 'An unstoppable queen. Ability: Royal Decree triples hive speed.',
+        desc: 'An unstoppable mothership. Ability: Overclock triples squadron speed.',
         apply: (s) => {
           const q = atk(s, 'queen', 'drone');
           q.proj.damage = 20;
           q.proj.pierce = 20;
           q.proj.size = 2;
-          setAbility(s, { id: 'royalDecree', name: 'Royal Decree', icon: '👑', desc: 'The whole hive attacks 3x faster for 10s.', cooldown: 40, params: { duration: 10, mul: 3 } });
+          setAbility(s, { id: 'royalDecree', name: 'Overclock', icon: '👑', desc: 'The whole squadron attacks 3x faster for 10s.', cooldown: 40, params: { duration: 10, mul: 3 } });
         },
       },
     ],
@@ -1172,10 +1172,10 @@ const buzz: TowerDef = {
 // ---------------------------------------------------------------------------------------------
 const acorn: TowerDef = {
   id: 'acorn',
-  name: 'Nutty',
-  species: 'Squirrel Farmer',
+  name: 'Hoarder',
+  species: 'Treasure Digger',
   role: 'Support',
-  desc: 'Grows golden acorns every round. Tap them to cash in!',
+  desc: 'Digs up shinies every round. Tap them to cash in!',
   cost: 1000,
   radius: 24,
   unlock: 5,
@@ -1186,26 +1186,26 @@ const acorn: TowerDef = {
       range: 80,
       income: { perDrop: 20, drops: 4, autoCollect: false, direct: false, bonusPerRound: 0 },
     }),
-  pathNames: ['Harvest', 'Bank', 'Market'],
+  pathNames: ['Loot', 'Bank', 'Market'],
   paths: [
     [
-      { name: 'More Acorns', cost: 500, desc: '6 acorns per round.', apply: (s) => { s.income!.drops += 2; } },
-      { name: 'Golden Acorns', cost: 700, desc: 'Acorns are worth $30.', apply: (s) => { s.income!.perDrop = 30; } },
-      { name: 'Acorn Orchard', cost: 3000, desc: '10 acorns per round.', apply: (s) => { s.income!.drops += 4; } },
-      { name: 'Mega Grove', cost: 7500, desc: 'Acorns are worth $60.', apply: (s) => { s.income!.perDrop = 60; } },
-      { name: 'World Tree', cost: 50000, desc: '12 enchanted acorns worth $250 each.', apply: (s) => { s.income!.perDrop = 250; s.income!.drops += 2; } },
+      { name: 'More Loot', cost: 500, desc: '6 shinies per round.', apply: (s) => { s.income!.drops += 2; } },
+      { name: 'Golden Loot', cost: 700, desc: 'Shinies are worth $30.', apply: (s) => { s.income!.perDrop = 30; } },
+      { name: 'Treasure Pile', cost: 3000, desc: '10 shinies per round.', apply: (s) => { s.income!.drops += 4; } },
+      { name: 'Treasure Mountain', cost: 7500, desc: 'Shinies are worth $60.', apply: (s) => { s.income!.perDrop = 60; } },
+      { name: "Dragon's Hoard", cost: 50000, desc: '12 dazzling shinies worth $250 each.', apply: (s) => { s.income!.perDrop = 250; s.income!.drops += 2; } },
     ],
     [
-      { name: 'Nut Stash', cost: 400, desc: 'Acorns go into a stash that earns 15% interest each round. Withdraw any time.', apply: (s) => { s.bank = { capacity: 7000, interest: 0.15 }; } },
+      { name: 'Piggy Bank', cost: 400, desc: 'Shinies go into a stash that earns 15% interest each round. Withdraw any time.', apply: (s) => { s.bank = { capacity: 7000, interest: 0.15 }; } },
       { name: 'Deep Vault', cost: 800, desc: 'Stash holds up to $10,000.', apply: (s) => { s.bank!.capacity = 10000; } },
-      { name: 'Squirrel Bank', cost: 3500, desc: '$15,000 capacity and 20% interest.', apply: (s) => { s.bank!.capacity = 15000; s.bank!.interest = 0.2; } },
+      { name: 'Bandit Bank', cost: 3500, desc: '$15,000 capacity and 20% interest.', apply: (s) => { s.bank!.capacity = 15000; s.bank!.interest = 0.2; } },
       { name: 'Golden Hoard', cost: 7000, desc: '+$250 per round and $25,000 capacity.', apply: (s) => { s.income!.bonusPerRound += 250; s.bank!.capacity = 25000; } },
-      { name: 'Nut Empire', cost: 30000, desc: '$60,000 capacity, 25% interest, +$1,500 per round.', apply: (s) => { s.bank!.capacity = 60000; s.bank!.interest = 0.25; s.income!.bonusPerRound += 1500; } },
+      { name: 'Loot Empire', cost: 30000, desc: '$60,000 capacity, 25% interest, +$1,500 per round.', apply: (s) => { s.bank!.capacity = 60000; s.bank!.interest = 0.25; s.income!.bonusPerRound += 1500; } },
     ],
     [
-      { name: 'Long Arms', cost: 250, desc: 'Acorns are collected automatically.', apply: (s) => { s.income!.autoCollect = true; } },
-      { name: 'Haggler', cost: 600, desc: '+2 acorns per round.', apply: (s) => { s.income!.drops += 2; } },
-      { name: 'Acorn Market', cost: 2700, desc: 'Sells the harvest directly for +$5 each.', apply: (s) => { s.income!.direct = true; s.income!.perDrop += 5; } },
+      { name: 'Long Arms', cost: 250, desc: 'Shinies are collected automatically.', apply: (s) => { s.income!.autoCollect = true; } },
+      { name: 'Haggler', cost: 600, desc: '+2 shinies per round.', apply: (s) => { s.income!.drops += 2; } },
+      { name: 'Flea Market', cost: 2700, desc: 'Sells the loot directly for +$5 each.', apply: (s) => { s.income!.direct = true; s.income!.perDrop += 5; } },
       {
         name: 'Trade Hub',
         cost: 15000,
@@ -1217,7 +1217,7 @@ const acorn: TowerDef = {
         },
       },
       {
-        name: 'Nut Exchange',
+        name: 'Stock Exchange',
         cost: 60000,
         desc: '+$5,000 per round. Ability: Jackpot pays $5,000.',
         apply: (s) => {
@@ -1234,10 +1234,10 @@ const acorn: TowerDef = {
 // ---------------------------------------------------------------------------------------------
 const dojo: TowerDef = {
   id: 'dojo',
-  name: 'Dojo',
-  species: 'Panda Master',
+  name: 'Sensei',
+  species: 'Raccoon Master',
   role: 'Support',
-  desc: 'A wise panda that trains every tower nearby. Gets stronger with upgrades.',
+  desc: 'A wise old raccoon who trains every tower nearby. Gets stronger with upgrades.',
   cost: 1100,
   radius: 26,
   unlock: 6,
@@ -1279,11 +1279,11 @@ const dojo: TowerDef = {
     ],
     [
       { name: 'Lantern Watch', cost: 300, desc: 'Nearby towers detect Camo.', apply: (s) => { s.buffAura!.camo = true; } },
-      { name: 'Iron Fists', cost: 1500, desc: 'Nearby towers can damage every gloop type.', apply: (s) => { s.buffAura!.canHitAll = true; } },
+      { name: 'Iron Fists', cost: 1500, desc: 'Nearby towers can damage every star type.', apply: (s) => { s.buffAura!.canHitAll = true; } },
       {
         name: 'Pressure Points',
         cost: 5000,
-        desc: 'Gloops in range lose Camo and take +1 damage from all hits.',
+        desc: 'Stars in range lose Camo and take +1 damage from all hits.',
         apply: (s) => {
           s.attacks.push({ id: 'pressure', kind: 'aura', rate: 0.25, slow: 1, slowBoss: 1, dps: 0, dmgType: 'normal', statuses: [{ kind: 'decamo' }, { kind: 'vuln', value: 1, duration: 0.4, boss: 1 }] });
         },
@@ -1291,7 +1291,7 @@ const dojo: TowerDef = {
       {
         name: 'Tranquil Garden',
         cost: 9000,
-        desc: 'Gloops in range are calmed: slowed and take +2 damage.',
+        desc: 'Stars in range are calmed: slowed and take +2 damage.',
         apply: (s) => {
           const a = atk(s, 'pressure', 'aura');
           a.slow = 0.85;
@@ -1302,7 +1302,7 @@ const dojo: TowerDef = {
       {
         name: 'Zen Master',
         cost: 20000,
-        desc: 'Enlightenment: +60 range, towers gain +2 pierce, gloops take +3 damage.',
+        desc: 'Enlightenment: +60 range, towers gain +2 pierce, stars take +3 damage.',
         apply: (s) => {
           s.range += 60;
           s.buffAura!.pierceAdd = (s.buffAura!.pierceAdd ?? 0) + 2;
@@ -1313,11 +1313,11 @@ const dojo: TowerDef = {
     ],
     [
       { name: 'Bulk Deals', cost: 300, desc: 'Towers and upgrades in range cost 5% less.', apply: (s) => { s.buffAura!.discount = 0.05; } },
-      { name: 'Bamboo Trade', cost: 700, desc: '10% discount in range.', apply: (s) => { s.buffAura!.discount = 0.1; } },
+      { name: 'Barter', cost: 700, desc: '10% discount in range.', apply: (s) => { s.buffAura!.discount = 0.1; } },
       { name: 'Tea House', cost: 3500, desc: 'Earns +$300 every round.', apply: (s) => { s.income = { perDrop: 0, drops: 0, autoCollect: true, direct: true, bonusPerRound: 300 }; } },
-      { name: 'Lucky Cat', cost: 8000, desc: 'Pops by nearby towers earn 25% more cash.', apply: (s) => { s.buffAura!.cashMul = 1.25; } },
+      { name: 'Lucky Charm', cost: 8000, desc: 'Pops by nearby towers earn 25% more cash.', apply: (s) => { s.buffAura!.cashMul = 1.25; } },
       {
-        name: 'Panda Republic',
+        name: 'Raccoon Republic',
         cost: 25000,
         desc: '20% discount, +$2,500 per round, +40% pop cash nearby.',
         apply: (s) => {

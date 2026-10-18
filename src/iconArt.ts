@@ -54,11 +54,11 @@ for (const [dx, dy, r, col] of drops) {
   ctx.strokeStyle = '#2a1b2e';
   ctx.stroke();
 }
-// hero gloop
+// hero star
 const gs = (S * 0.6 * k) / 26;
 const gsp = gloopSprite('red', { camo: false, regrow: false, fortified: false, dmg: 0 }, gs);
 ctx.drawImage(gsp.canvas, cx - (gsp.w * gs) / 2 - S * 0.06 * k, cy - (gsp.h * gs) / 2 - S * 0.08 * k, gsp.w * gs, gsp.h * gs);
-// hedgehog with a javelin, bottom right
+// slinger with a harpoon, bottom right
 const ts = (S * 0.5 * k) / (20 * 3.6);
 const tsp = towerSprite('spike', [0, 3, 2], ts);
 ctx.drawImage(tsp.canvas, cx + S * 0.2 * k - (tsp.w * ts) / 2, cy + S * 0.33 * k - tsp.h * ts * (tsp.ay ?? 0.5), tsp.w * ts, tsp.h * ts);
@@ -71,7 +71,7 @@ if (mode === 'splash') {
   ctx.strokeStyle = '#2a1b2e';
   ctx.fillStyle = '#ffffff';
   const ty = cy + S * 0.36;
-  ctx.strokeText('GLOOP GUARDIANS', cx, ty);
-  ctx.fillText('GLOOP GUARDIANS', cx, ty);
+  ctx.strokeText('STAR BANDITS', cx, ty);
+  ctx.fillText('STAR BANDITS', cx, ty);
 }
 (window as any).__ready = true;

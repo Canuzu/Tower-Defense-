@@ -1,0 +1,168 @@
+{
+ "ids": [
+  "t_boomer_p1_3",
+  "t_boomer_p1_4",
+  "t_boomer_p1_5",
+  "t_boomer_p2_3",
+  "t_boomer_p2_4",
+  "t_boomer_p2_5",
+  "t_boomer_p3_3",
+  "t_boomer_p3_4",
+  "t_boomer_p3_5"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Concussion Blast: a bigger double-barrel trash-can mortar on a heavy spring base; the bomb on top has a glowing blue shockwave ring. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Earthshaker: a huge heavy black iron mortar cannon with rivets; the raccoon wears big ear-muffs over the pot helmet. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Atomic Can: a massive yellow-and-black hazard-striped trash-can mortar glowing radioactive green with a green trefoil symbol (shape only, no letters); the raccoon wears an orange hazmat suit and goggles. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Cluster Bombs: a revolving rack of six small bombs around the mortar barrel, a bandolier of mini bombs across the chest. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 4,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Recursive Clusters: a big rotary drum mortar loaded with many small bombs, goggles on, manic grin. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 5,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Carpet Bomber: a twin-barrel rapid mortar with belts of bombs, wears a leather aviator cap and a long scarf, bombs stacked around. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 6,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Comet Buster: a long shoulder-mounted missile launcher tube with a red-tipped rocket, a targeting monocle over one eye. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 7,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Comet Breaker: a twin missile launcher rack with two big rockets on the platform, wears a green army helmet. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 8,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4a939159-0e43-41a3-8d3a-e014e0a00a1b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Titan Slayer: a gigantic shiny rocket with fins and a flame-painted nose on a launch rail, the raccoon commander wears a red beret. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  }
+ ]
+}

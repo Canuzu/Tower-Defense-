@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.gloopguardians.game',
-  appName: 'Gloop Guardians',
+  appName: 'Star Bandits',
   webDir: 'dist',
   backgroundColor: '#2b1a4b',
   ios: {

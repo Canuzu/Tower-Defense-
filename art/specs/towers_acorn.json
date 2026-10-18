@@ -1,0 +1,168 @@
+{
+ "ids": [
+  "t_acorn_p1_3",
+  "t_acorn_p1_4",
+  "t_acorn_p1_5",
+  "t_acorn_p2_3",
+  "t_acorn_p2_4",
+  "t_acorn_p2_5",
+  "t_acorn_p3_3",
+  "t_acorn_p3_4",
+  "t_acorn_p3_5"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Treasure Pile: a bigger heap of coins, gems and shiny junk, digging with a small shovel. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Treasure Mountain: a tall mound of gold coins, gems and trinkets with the raccoon on top holding the magnet. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Dragon's Hoard: an overflowing hoard of gold, crowns and jewels; the raccoon wears a crown and a royal purple robe on a treasure throne. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Bandit Bank: a small green safe with a dial beside it, a banker's visor, counting coins. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 4,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Golden Hoard: a big round golden vault door behind it, money bags. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 5,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Loot Empire: a tycoon in a top hat and tuxedo with a cane, a golden vault and money bags. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 6,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Flea Market: a small market stall with a striped awning and junk for sale. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 7,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Trade Hub: a little merchant cart stacked with crates, a balance scale and a bell. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 8,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "6250c71d-c2ae-4954-af1b-69f8a16b3f0b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Stock Exchange: a sharp suit, a ticker tape, a small golden bull statue and a rising arrow sign (no text). Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  }
+ ]
+}

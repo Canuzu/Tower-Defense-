@@ -1,0 +1,294 @@
+{
+ "ids": [
+  "e_blue",
+  "e_green",
+  "e_yellow",
+  "e_black",
+  "e_white",
+  "e_purple",
+  "e_zebra",
+  "e_lead",
+  "e_rainbow",
+  "e_ceramic",
+  "e_golden",
+  "e_moab",
+  "e_bfb",
+  "e_zomg",
+  "e_ddt",
+  "e_bad"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: an ORANGE five-pointed star (same shape and size as the reference), glowing warm orange from inside, annoyed face with one raised eyebrow. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: a YELLOW five-pointed star (same shape as the reference), glowing golden yellow, smug sneering face. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: a WHITE five-pointed star (same shape as the reference), pearly white crystal with a warm white-gold glow, excited racing grin with tongue out, eyes narrowed with speed. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: a small BLACK HOLE star: five-pointed star of dark obsidian crystal with a glowing purple swirling vortex spiral in its belly, glowing violet eyes, smug smirk. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 4,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: an ICE STAR: five-pointed star of frosted translucent pale-cyan ice with a crust of frost and small icicles hanging from the lower points, cold smug half-closed eyes. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 5,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: a NEBULA star: five-pointed translucent star filled with swirling violet and magenta cosmic nebula gas and tiny stars inside, dreamy mischievous grin. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 6,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: an ECLIPSE star: five-pointed star split vertically down the middle: the left half is dark obsidian with a purple vortex glow, the right half is frosted icy pale-cyan crystal; determined frown. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 7,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: a METEOR star: a five-pointed star encased in heavy rough grey iron-rock armour plates with rivets and rocky texture, glowing orange cracks between the plates, tough scowling face on the armour. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 8,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: an AURORA star: five-pointed prismatic crystal star with shimmering rainbow aurora bands (red, orange, yellow, green, blue, violet) flowing across it, gleeful laughing face. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 9,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: a DIAMOND star: a bigger chunky five-pointed star with a thick clear faceted diamond outer shell; through the diamond a glowing rainbow star core is visible; confident cocky face. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 10,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: a LUCKY STAR: polished shiny GOLD five-pointed star with glinting highlights and a few tiny sparkles around it, cheeky winking happy face. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 11,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: BOSS \"Comet\": a big round icy-blue comet head (frozen rocky ice sphere with crystal spikes) with a large angry face, and a short flowing blue-white fiery tail streaming out to the LEFT behind it. The comet head is on the right half, the tail fills the left half. Imposing but cute. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 12,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: BOSS \"Moon Brute\": a huge round grey-red cratered moon with deep craters, a band-aid on one crater, small rocks orbiting close to it, a furious grumpy face with gritted teeth. Round silhouette. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 13,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: BOSS \"Ringed Titan\": a giant angry green-and-teal gas planet with swirling storm bands and a tilted glowing golden ring around it (ring stays inside the frame), a menacing face with heavy brows. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 14,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: BOSS \"Shadow Comet\": a sleek dark comet head of glossy black crystal with glowing cyan cracks and cyan glowing eyes, a sharp dark smoky tail with cyan sparks streaming to the LEFT behind it. Sneaky sly grin. Comet head on the right half. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 15,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "0bdeb34a-50f9-434f-86b5-4d0575ea0141",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single enemy character, isolated on a fully transparent background. Match the reference image exactly in art style: glossy stylized 3D cartoon, glowing translucent faceted crystal look with crisp specular highlights and small sparkles, big expressive cartoon face with shiny black eyes and thick eyebrows, viewed from the front and slightly above, chunky readable silhouette, only a faint soft glow hugging the edges (no wide halo, no fog). Subject: FINAL BOSS \"Star Emperor\": a gigantic regal five-pointed star of deep purple crystal with gold trim on the edges, a big golden jewelled crown on top, a glowing gold core, tiny orbiting stars, a proud furious tyrant face with a curled moustache. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  }
+ ]
+}

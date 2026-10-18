@@ -13,12 +13,12 @@ import { t } from '../i18n';
 
 const BRANCHES: { id: PerkDef['branch']; name: string; color: string }[] = [
   { id: 'economy', name: 'Economy', color: '#ffd23c' },
-  { id: 'critters', name: 'Critters', color: '#5ddc6a' },
+  { id: 'critters', name: 'Bandits', color: '#5ddc6a' },
   { id: 'heroes', name: 'Heroes', color: '#c77dff' },
   { id: 'power', name: 'Power', color: '#ff6b6b' },
 ];
 
-/** "Critter Wisdom" perk tree. */
+/** "Bandit Wisdom" perk tree. */
 export function perksModal(p: Profile, close: () => void, onChange: () => void): HTMLElement {
   const body = h('div');
   const render = () => {
@@ -65,7 +65,7 @@ export function perksModal(p: Profile, close: () => void, onChange: () => void):
     body.append(h('div', { class: 'row' }, reset, h('button', { class: 'btn green', onclick: close }, t('Done'))));
   };
   render();
-  return h('div', { class: 'modal', style: 'width:min(980px,96vw)' }, h('h2', null, t('🧠 Critter Wisdom')), body);
+  return h('div', { class: 'modal', style: 'width:min(980px,96vw)' }, h('h2', null, t('🧠 Bandit Wisdom')), body);
 }
 
 export function achievementsModal(p: Profile, g: Game | null, close: () => void): HTMLElement {
@@ -107,7 +107,7 @@ export function dailyModal(p: Profile, thumb: (mapId: string) => string, start: 
   const m = MAP_BY_ID[d.mapId];
   const done = !!p.dailyDone[key];
   const allowed = h('div', { class: 'daily-towers' });
-  for (const id of d.challenge.allowed ?? []) allowed.append(h('img', { src: towerIcon(id as ArtId, [0, 0, 0], 80), alt: TOWERS[id].name, title: TOWERS[id].name }));
+  for (const id of d.challenge.allowed ?? []) allowed.append(h('img', { src: towerIcon(id as ArtId, [0, 0, 0], 80), alt: t(TOWERS[id].name), title: t(TOWERS[id].name) }));
   const diff = DIFFICULTIES[d.difficulty];
   return h(
     'div',
@@ -132,7 +132,7 @@ export function dailyModal(p: Profile, thumb: (mapId: string) => string, start: 
       h('span', null, done ? '✔ ' + t('Completed') : '+500 XP'),
     ),
     h('p', { style: 'margin:6px 0 0;font-size:13px' }, t('Perks are off in daily challenges so everyone plays the same game.')),
-    h('p', { style: 'margin-bottom:4px' }, t('Allowed critters')),
+    h('p', { style: 'margin-bottom:4px' }, t('Allowed bandits')),
     allowed,
     h(
       'div',

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Gloop Guardians</string>
-    <string name="title_activity_main">Gloop Guardians</string>
+    <string name="app_name">Star Bandits</string>
+    <string name="title_activity_main">Star Bandits</string>
     <string name="package_name">com.gloopguardians.game</string>
     <string name="custom_url_scheme">com.gloopguardians.game</string>
 </resources>

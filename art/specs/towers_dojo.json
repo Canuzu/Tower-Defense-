@@ -1,0 +1,168 @@
+{
+ "ids": [
+  "t_dojo_p1_3",
+  "t_dojo_p1_4",
+  "t_dojo_p1_5",
+  "t_dojo_p2_3",
+  "t_dojo_p2_4",
+  "t_dojo_p2_5",
+  "t_dojo_p3_3",
+  "t_dojo_p3_4",
+  "t_dojo_p3_5"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Master Dojo: a small wooden dojo gate frame behind it and a wooden practice dummy. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Grandmaster: a black belt with gold embroidery, two bamboo staves, a small shrine roof behind. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Legendary Dojo: floating in meditation with a golden aura and glowing eyes, a miniature pagoda on the platform. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Pressure Points: fanned acupuncture needles in one paw, a paper lantern hanging from the staff. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 4,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Tranquil Garden: a tiny zen garden with raked sand, a bonsai tree and a stone lantern on the platform. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 5,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Zen Master: levitating cross-legged above a lotus flower, a glowing mandala halo (no text), cherry blossom petals. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 6,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Tea House: a tea set with a steaming teapot on a low table beside it. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 7,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Lucky Charm: a big lucky golden horseshoe and four-leaf-clover charms hanging around. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 8,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "4188c94a-0894-4d0c-9eb3-76d38f064fa1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Raccoon Republic: a statesman in a ceremonial robe with a golden sash, a flag with a paw-print emblem, a tiny palace roof. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  }
+ ]
+}

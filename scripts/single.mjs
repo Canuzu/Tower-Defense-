@@ -11,7 +11,7 @@ const assets = readdirSync(join(dir, 'assets'));
 const js = assets.filter((f) => f.endsWith('.js')).map((f) => readFileSync(join(dir, 'assets', f), 'utf8'));
 const css = assets.filter((f) => f.endsWith('.css')).map((f) => readFileSync(join(dir, 'assets', f), 'utf8'));
 if (js.length !== 1) throw new Error('expected exactly one JS chunk, got ' + js.length);
-const title = (html.match(/<title>(.*?)<\/title>/) ?? [])[1] ?? 'Gloop Guardians';
+const title = (html.match(/<title>(.*?)<\/title>/) ?? [])[1] ?? 'Star Bandits';
 const page = [
   `<title>${title}</title>`,
   '<meta name="theme-color" content="#2b1a4b">',

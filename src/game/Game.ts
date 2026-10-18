@@ -888,7 +888,7 @@ export class Game {
     e.speedMul = speedMul(this.round);
     if (type === 'golden') {
       e.maxHp = e.hp = 6 + this.round * 0.9;
-      this.events.emit('hint', '✨ A Golden Gloop appeared! Pop it before it escapes for bonus cash!');
+      this.events.emit('hint', '✨ A Lucky Star appeared! Shatter it before it escapes for bonus cash!');
     }
     this.placeEnemy(e);
     this.enemies.push(e);
@@ -1027,7 +1027,7 @@ export class Game {
       this.earn(bonus);
       this.stats.goldenPopped++;
       this.fx.cash(e.x, e.y - 20, bonus);
-      this.fx.text(e.x, e.y - 48, 'GOLDEN POP!', '#fff3a8', 24);
+      this.fx.text(e.x, e.y - 48, 'LUCKY POP!', '#fff3a8', 24);
       this.fx.sound('levelup', 0.7);
       this.fx.shake(4);
     }
@@ -1823,7 +1823,7 @@ export class Game {
     const pops = popCount(e.type);
     this.awardPop(e, t, pops);
     this.stats.bossesPopped++;
-    this.fx.text(e.x, e.y - e.radius, 'GULP!', '#ff6fa8', 26);
+    this.fx.text(e.x, e.y - e.radius, 'CRUNCH!', '#ff6fa8', 26);
     this.fx.pop(e);
     this.fx.shake(6);
   }

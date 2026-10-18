@@ -140,7 +140,7 @@ export class Hud {
     const roundPill = h('div', { class: 'pill round' }, h('span', { class: 'ico' }, '🌊'), this.roundEl, this.roundSub);
     this.frenzyFill = h('div', { class: 'fill' });
     this.frenzyLbl = h('span', null, tr('FRENZY'));
-    this.frenzyEl = h('div', { class: 'frenzy', title: tr('Fill the meter by popping gloops, then tap for 10s of FRENZY (+50% attack speed)') }, this.frenzyFill, this.frenzyLbl);
+    this.frenzyEl = h('div', { class: 'frenzy', title: tr('Fill the meter by shattering stars, then tap for 10s of FRENZY (+50% attack speed)') }, this.frenzyFill, this.frenzyLbl);
     this.frenzyEl.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.tryFrenzy();
@@ -155,20 +155,20 @@ export class Hud {
     const shop = h('div', { class: 'shop' });
     if (this.host.heroId) {
       const hid = this.host.heroId;
-      const card = this.makeCard('hero', hid, towerIcon(hid as ArtId, [1], 120), this.game.heroCost(hid), HEROES[hid].name, 'H');
+      const card = this.makeCard('hero', hid, towerIcon(hid as ArtId, [1], 120), this.game.heroCost(hid), tr(HEROES[hid].name), 'H');
       card.classList.add('hero');
       shop.append(card);
     }
     for (const id of TOWER_ORDER) {
       const def = TOWERS[id];
-      const card = this.makeCard('tower', id, towerIcon(id as ArtId, [0, 0, 0], 120), this.game.towerCost(id), def.name, def.hotkey.toUpperCase());
+      const card = this.makeCard('tower', id, towerIcon(id as ArtId, [0, 0, 0], 120), this.game.towerCost(id), tr(def.name), def.hotkey.toUpperCase());
       shop.append(card);
     }
     this.playBtn = h('button', { class: 'btn green play waiting', title: tr('Start round / speed (Space)') }, '▶') as HTMLButtonElement;
     this.playBtn.addEventListener('click', () => this.onPlay());
     this.autoToggle = h('div', { class: 'toggle' + (this.game.autoStart ? ' on' : '') });
     const auto = h('button', { class: 'auto', onclick: () => this.toggleAuto() }, this.autoToggle, tr('Auto-start'));
-    const sb = h('div', { class: 'sidebar' }, h('div', { class: 'title' }, tr('Critters')), shop, auto, this.playBtn);
+    const sb = h('div', { class: 'sidebar' }, h('div', { class: 'title' }, tr('Bandits')), shop, auto, this.playBtn);
     this.root.append(sb);
   }
 
@@ -216,7 +216,7 @@ export class Hud {
       if (hero) hero.addHeroXp(Math.max(0, heroXpFor(hero.heroLevel + 1) - hero.heroXp));
       this.panelKey = '';
     });
-    const clr = h('button', { title: tr('Clear gloops') }, '🧹');
+    const clr = h('button', { title: tr('Clear stars') }, '🧹');
     clr.addEventListener('click', () => {
       for (const e of this.game.enemies) e.alive = false;
     });
@@ -249,7 +249,7 @@ export class Hud {
         this.toast(tr(text), 3800);
       }),
       g.events.on('heroLevel', ({ level }) => {
-        this.toast(tr('{name} reached level {n}!', { name: g.hero?.name ?? '', n: level }), 2200);
+        this.toast(tr('{name} reached level {n}!', { name: tr(g.hero?.name ?? ''), n: level }), 2200);
         this.panelKey = '';
       }),
       g.events.on('frenzyReady', () => {
@@ -496,7 +496,7 @@ export class Hud {
     if (this.tutorialStep === 0) this.tutorial(1);
     if (this.game.towers.length === 2 && t.bonds.length && !this.game.sandbox) {
       const syn = SYNERGIES.find((s) => s.id === t.bonds[0].synergyId);
-      if (syn) this.toast(tr('⚡ BOND: {name}! Paired critters power each other up.', { name: tr(syn.name) }), 3000);
+      if (syn) this.toast(tr('⚡ BOND: {name}! Paired bandits power each other up.', { name: tr(syn.name) }), 3000);
     }
     this.cancelPlacing();
     this.select(t);
@@ -538,7 +538,7 @@ export class Hud {
       'div',
       { class: 'uhead' },
       portrait,
-      h('div', null, h('div', { class: 'name' }, t.name), h('div', { class: 'meta' }, sub), statsLine),
+      h('div', null, h('div', { class: 'name' }, tr(t.name)), h('div', { class: 'meta' }, sub), statsLine),
       h('button', { class: 'btn icon small dark close', title: tr('Close'), onclick: () => this.select(null) }, '✕'),
     );
     panel.append(head);
@@ -702,7 +702,7 @@ export class Hud {
     } else if (a.kind === 'drone') {
       dmg = a.proj.damage;
       pierce = a.proj.pierce;
-      return `⚔ ${dmg + t.buffs.damageAdd} · 🐝 ${a.count}`;
+      return `⚔ ${dmg + t.buffs.damageAdd} · 🛸 ${a.count}`;
     } else return '';
     return `⚔ ${dmg + (dmg > 0 ? t.buffs.damageAdd : 0)} · ➹ ${pierce + t.buffs.pierceAdd} · ⏱ ${perSec}/s`;
   }
@@ -865,7 +865,7 @@ export class Hud {
       this.fpsN++;
       if (this.fpsAcc > 0.5) {
         toggle(this.fpsEl, 'hidden', false);
-        setText(this.fpsEl, `${Math.round(this.fpsN / this.fpsAcc)} fps · ${g.enemies.length} gloops · ${g.projectiles.length} proj`);
+        setText(this.fpsEl, `${Math.round(this.fpsN / this.fpsAcc)} fps · ${g.enemies.length} stars · ${g.projectiles.length} proj`);
         this.fpsAcc = 0;
         this.fpsN = 0;
       }
@@ -968,21 +968,21 @@ export class Hud {
     this.handEl = null;
     const card = this.cards.get('tower:spike');
     if (step === 0 && card) {
-      this.toast(tr('👋 Drag the Hedgehog from the shop onto the grass near the track!'), 999999);
+      this.toast(tr('👋 Drag the Slinger from the shop onto the grass near the track!'), 999999);
       const r = card.getBoundingClientRect();
       this.handEl = h('div', { class: 'hand', style: `left:${r.left + r.width * 0.3}px;top:${r.top + r.height * 0.4}px;--dx:-${Math.round(window.innerWidth * 0.35)}px;--dy:0px` }, '👆');
       this.root.append(this.handEl);
     } else if (step === 1) {
-      this.toast(tr('Nice! Press ▶ to send in the gloops.'), 999999);
+      this.toast(tr('Nice! Press ▶ to bring on the stars.'), 999999);
       const r = this.playBtn.getBoundingClientRect();
       this.handEl = h('div', { class: 'hand', style: `left:${r.left + r.width * 0.35}px;top:${r.top - 30}px;--dx:0px;--dy:14px` }, '👇');
       this.root.append(this.handEl);
     } else if (step === 2) {
-      this.toast(tr('Pop them all! Each layer you pop earns cash. 🪙'), 3500);
+      this.toast(tr('Shatter them all! Every layer you crack earns cash. 🪙'), 3500);
     } else if (step === 3) {
-      this.toast(tr('Tap a tower to upgrade it. Upgrades make critters WAY stronger!'), 6000);
+      this.toast(tr('Tap a raccoon to upgrade it. Upgrades make your bandits WAY stronger!'), 6000);
     } else if (step === 4) {
-      this.toast(tr('🎉 You got it! Tip: place different critters close together to form ⚡ BONDS.'), 5000);
+      this.toast(tr('🎉 You got it! Tip: place different bandits close together to form ⚡ BONDS.'), 5000);
       this.tutorialStep = -1;
       this.host.onTutorialDone();
     }

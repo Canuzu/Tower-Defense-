@@ -1,7 +1,7 @@
 {
-  "name": "Gloop Guardians",
-  "short_name": "Gloop Guardians",
-  "description": "A juicy critter tower defense game. Pop the gloop, save the valley!",
+  "name": "Star Bandits",
+  "short_name": "Star Bandits",
+  "description": "A juicy raccoon tower defense game. Shatter the stars, guard the stash!",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

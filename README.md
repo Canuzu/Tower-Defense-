@@ -1,23 +1,23 @@
-# Gloop Guardians 🟢🦔
+# Star Bandits ⭐🦝
 
-Ein farbenfrohes Tower-Defense-Spiel für iPhone, iPad, Android und den Browser. Es ist inspiriert von Bloons TD 6, hat aber eine **komplett eigene Welt**: Niedliche Tiere („Critters“) verteidigen ihr Tal gegen wabbelige Schleimwesen („Gloops“), die beim Treffer in kleinere Schichten zerplatzen.
+Ein farbenfrohes Tower-Defense-Spiel für iPhone, iPad, Android und den Browser. Es ist inspiriert von Bloons TD 6, hat aber eine **komplett eigene Welt**: Grummelige, lebendige Sterne sind vom Himmel ins Waschbärtal gefallen und marschieren auf das Schatzlager der Waschbären zu. Eine Bande tüftelnder Waschbären (die „Bandits“) baut aus Schrott Gadgets – Schleudern, Mülltonnen-Mörser, Tesla-Rucksäcke, Drohnen – und zerschmettert die Sterne zu Sternenstaub. Jeder Stern zerbricht dabei in kleinere Sterne (das Schichtsystem).
 
-Alle Grafiken werden im Code gezeichnet, alle Sounds und die Musik werden live synthetisiert. Das Spiel braucht also keine fremden Assets und keine Lizenzen.
+Sounds und Musik werden live synthetisiert. Die Grafiken werden aktuell noch im Code gezeichnet; die neuen Star-Bandits-Grafiken (glänzender 3D-Cartoon-Look) entstehen gerade, siehe `art/ART_BIBLE.md`.
 
 ## Was schon drin ist
 
 | Bereich | Inhalt |
 |---|---|
-| **Türme** | 9 Critters mit je 3 Upgrade-Pfaden × 5 Stufen (135 Upgrades), Crosspath-Regel wie in BTD6 (max. 2 Pfade, nur einer über Stufe 2) |
-| **Helden** | Nova die Sternenkatze & Grizz der Bärenhäuptling, Level 1–20, je 2 aktive Fähigkeiten |
-| **Gegner** | 17 Gloop-Typen mit Schichtsystem, Immunitäten (Explosion, Frost, Magie, Spitzes), Camo, Regrow, Fortified und 5 Bosse, dazu der seltene ✨ **Goldene Gloop** (Bonusgeld, wenn man ihn erwischt) |
+| **Türme** | 9 Waschbär-Banditen (Schleuderer, Boomer, Frosti, Späher, Mystiker, Funki, Buzz, Sammler, Sensei) mit je 3 Upgrade-Pfaden × 5 Stufen (135 Upgrades), Crosspath-Regel wie in BTD6 (max. 2 Pfade, nur einer über Stufe 2) |
+| **Helden** | Kosmo, der Weltraumbandit & Rocco, der Schrottplatz-Boss, Level 1–20, je 2 aktive Fähigkeiten |
+| **Gegner** | 17 Sterntypen vom Roten Zwerg bis zum Polarlicht und Diamanten, mit Schichtsystem, Immunitäten (Explosion, Frost, Magie, Spitzes), Camo, Regrow, Fortified und 5 Bossen (Komet, Mondkoloss, Ringtitan, Schattenkomet, Sternenkaiser), dazu der seltene ✨ **Glücksstern** (Bonusgeld, wenn man ihn erwischt) |
 | **Runden** | 100 handgebaute Runden + endloser Freeplay-Modus mit steigender Boss-Stärke |
-| **Karten** | 6 Karten (Anfänger bis Experte): Wiese, Kristallhöhlen, Frostfjord, Lavaschmiede, Zuckergasse und Zwillingsflüsse mit 2 Pfaden |
+| **Karten** | 6 Karten (Anfänger bis Experte): Waschbärwiese, Kristallmine, Frostsee, Schrottschmiede, Zuckergasse und Zwillingsflüsse mit 2 Pfaden |
 | **Modi** | Easy, Medium, Hard, Champion (1 Leben) und Sandbox |
-| **Innovation** | ⚡ **Bonds**: 12 Turm-Paare verstärken sich gegenseitig, wenn sie nah beieinander stehen (mit Vorschau beim Platzieren). 🔥 **Frenzy-Meter**: Pops laden den Balken, dann gibt es 10 s lang +50 % Angriffstempo. **Combo-Zähler** mit Bonusgeld. |
-| **Fähigkeiten** | 17 aktive Fähigkeiten (Thornado, Meltdown, Absolute Zero, Superstorm, Supernova …) |
-| **Wirtschaft** | Eicheln zum Antippen, Bank mit Zinsen, Markt, Rabatt-Auren |
-| **Meta** | Spieler-Level & XP, Freischaltungen, Medaillen pro Karte/Schwierigkeit, 🧠 **Critter-Weisheit** (20 dauerhafte Perks), 🏅 **23 Erfolge**, 📅 **tägliche Herausforderung**, Gloopedia, Autosave, „Runde wiederholen“ |
+| **Innovation** | ⚡ **Bonds**: 12 Turm-Paare verstärken sich gegenseitig, wenn sie nah beieinander stehen (mit Vorschau beim Platzieren). 🔥 **Frenzy-Meter** (im Spiel „Turbo“): Zerschmetterte Sterne laden den Balken, dann gibt es 10 s lang +50 % Angriffstempo. **Combo-Zähler** mit Bonusgeld. |
+| **Fähigkeiten** | 17 aktive Fähigkeiten (Schrottnado, Kernschmelze, Absoluter Nullpunkt, Supersturm, Drohnenangriff, Supernova …) |
+| **Wirtschaft** | Schätze zum Antippen (der Sammler buddelt sie aus), Bank mit Zinsen, Flohmarkt, Rabatt-Auren |
+| **Meta** | Spieler-Level & XP, Freischaltungen, Medaillen pro Karte/Schwierigkeit, 🧠 **Banditen-Weisheit** (20 dauerhafte Perks), 🏅 **23 Erfolge**, 📅 **tägliche Herausforderung**, 📖 Sternenatlas, Autosave, „Runde wiederholen“ |
 | **Sprachen** | Deutsch & Englisch (automatisch nach Gerätesprache, umschaltbar) |
 | **Mobile** | Touch-Drag & Drop, Haptik (nativ über Capacitor), Querformat-Sperre, Safe-Areas (Notch), adaptive Grafikqualität |
 
@@ -67,8 +67,8 @@ App-Icon und Splashscreen liegen in `resources/`. Sie werden mit `node scripts/i
 
 ```
 src/
-  game/      Simulation (unabhängig von der Grafik, testbar): Game, Türme, Gloops, Runden, Karten, Synergien, Helden
-  render/    Canvas-Renderer, prozedurale Grafik (Türme, Gloops, Karten), Partikel
+  game/      Simulation (unabhängig von der Grafik, testbar): Game, Türme, Sterne (gloops.ts), Runden, Karten, Synergien, Helden
+  render/    Canvas-Renderer, prozedurale Grafik (Türme, Sterne, Karten), Partikel
   audio/     Synthetisierte Soundeffekte und Musik (WebAudio)
   ui/        Menüs, HUD, Shop, Upgrade-Panel, Tutorial
   save/      Fortschritt & Spielstände (localStorage)
@@ -78,4 +78,4 @@ scripts/     Screenshot-, QA-, Performance- und Icon-Skripte (Playwright)
 
 ## Rechtliches
 
-„Gloop Guardians“ ist ein Arbeitstitel. Vor dem Release kurz prüfen, ob Name und Marke frei sind. Das Spiel verwendet keine Namen, Figuren oder Grafiken aus Bloons TD 6. Die Spielmechanik eines Tower-Defense-Spiels ist nicht geschützt, Namen und Grafiken dagegen schon. Die Schrift „Baloo 2“ steht unter der SIL Open Font License und darf in Apps verwendet werden.
+„Star Bandits“ ist ein Arbeitstitel. Vor dem Release kurz prüfen, ob Name und Marke frei sind. Das Spiel verwendet keine Namen, Figuren oder Grafiken aus Bloons TD 6. Die Spielmechanik eines Tower-Defense-Spiels ist nicht geschützt, Namen und Grafiken dagegen schon. Die Schrift „Baloo 2“ steht unter der SIL Open Font License und darf in Apps verwendet werden.

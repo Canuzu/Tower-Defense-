@@ -4,7 +4,7 @@ import { makeCanvas } from '../render/draw';
 
 const cache = new Map<string, string>();
 
-/** Gloop portrait as a data URL (used by the sandbox panel and the Gloopedia). */
+/** Star portrait as a data URL (used by the sandbox panel and the Star Atlas). */
 export function gloopIcon(id: GloopId, px = 64): string {
   const key = id + px;
   const hit = cache.get(key);

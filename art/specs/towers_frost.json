@@ -1,0 +1,168 @@
+{
+ "ids": [
+  "t_frost_p1_3",
+  "t_frost_p1_4",
+  "t_frost_p1_5",
+  "t_frost_p2_3",
+  "t_frost_p2_4",
+  "t_frost_p2_5",
+  "t_frost_p3_3",
+  "t_frost_p3_4",
+  "t_frost_p3_5"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Shatter: the frost blaster now has a jagged crystal-ice drill nozzle; sharp ice crystals grow on the fridge backpack. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Glacial Core: the fridge backpack holds a glowing blue ice-core reactor; frost spreads over the platform. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Absolute Zero: surrounded by a swirling crown of floating ice crystals, glowing white-blue eyes, ice armour shoulder pads, the platform frosted over. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Snowstorm: a big snow-making fan sits on top of the fridge, blowing snowflakes; a small snow cloud above. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 4,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Frostbite: an angry little dark-blue blizzard cloud with hail swirls around; the raccoon wears a fur-lined parka. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 5,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Eternal Winter: wears a regal white fur cloak and holds an ice staff, a swirling blizzard vortex of snowflakes circles the platform. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 6,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Cryo Cannon: holds a chunky ice cannon with a fridge-door barrel, an ice ball loaded in the muzzle. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 7,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Ice Lance: holds a long crystal ice-lance spear-gun, icicle spikes on the shoulders. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 8,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3538ac34-a501-403b-91b4-e95588bbec0c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Frost Titan: sits in a hulking ice-crystal mech suit with two giant ice-lance cannons for arms, glowing blue. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  }
+ ]
+}

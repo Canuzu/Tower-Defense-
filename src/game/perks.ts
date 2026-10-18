@@ -1,7 +1,7 @@
 import type { TowerStats } from './towerTypes';
 import type { Tower } from './Tower';
 
-/** Permanent meta-progression perks ("Critter Wisdom"). One point per player level. */
+/** Permanent meta-progression perks ("Bandit Wisdom"). One point per player level. */
 export interface PerkDef {
   id: string;
   name: string;
@@ -25,13 +25,13 @@ export const PERKS: PerkDef[] = [
   { id: 'cash2', name: 'Piggy Bank', desc: 'Start every game with another +$200.', icon: '🐷', branch: 'economy', requires: 'cash1' },
   { id: 'bonus', name: 'Overtime', desc: '+20% end-of-round bonus cash.', icon: '⏰', branch: 'economy', requires: 'cash1' },
   { id: 'thrift', name: 'Haggling', desc: 'All towers and upgrades cost 3% less.', icon: '🏷️', branch: 'economy', requires: 'bonus' },
-  { id: 'acorns', name: 'Green Thumb', desc: 'Nutty farms grow +1 acorn per round.', icon: '🌰', branch: 'economy', requires: 'cash2' },
+  { id: 'acorns', name: 'Treasure Sniffer', desc: 'Hoarders dig up +1 shiny per round.', icon: '💎', branch: 'economy', requires: 'cash2' },
   // critters
   {
     id: 'spike',
     name: 'Sharp Start',
-    desc: 'Spike quills get +1 pierce.',
-    icon: '🦔',
+    desc: 'Slinger shards get +1 pierce.',
+    icon: '🎯',
     branch: 'critters',
     tower: forType('spike', (s) => {
       const a = firstAttack(s);
@@ -52,8 +52,8 @@ export const PERKS: PerkDef[] = [
   {
     id: 'frost',
     name: 'Cold Feet',
-    desc: 'Frost freezes last 20% longer.',
-    icon: '🐧',
+    desc: 'Frosty freezes last 20% longer.',
+    icon: '❄️',
     branch: 'critters',
     requires: 'spike',
     tower: forType('frost', (s) => {
@@ -63,9 +63,9 @@ export const PERKS: PerkDef[] = [
   },
   {
     id: 'hoot',
-    name: 'Owl Eyes',
-    desc: 'Hoot shoots 10% faster.',
-    icon: '🦉',
+    name: 'Quick Scope',
+    desc: 'Scopes shoot 10% faster.',
+    icon: '🔭',
     branch: 'critters',
     requires: 'boomer',
     tower: forType('hoot', (s) => {
@@ -75,9 +75,9 @@ export const PERKS: PerkDef[] = [
   },
   {
     id: 'range',
-    name: 'Tall Grass',
-    desc: 'Every critter gets +5% range.',
-    icon: '🌾',
+    name: 'Lookout',
+    desc: 'Every bandit gets +5% range.',
+    icon: '📡',
     branch: 'critters',
     requires: 'frost',
     tower: (t, s) => {
@@ -87,7 +87,7 @@ export const PERKS: PerkDef[] = [
   {
     id: 'camo',
     name: 'Sharp Senses',
-    desc: 'Spike and Ember see Camo gloops from the start.',
+    desc: 'Slinger and Mystic see Camo stars from the start.',
     icon: '👁️',
     branch: 'critters',
     requires: 'hoot',
@@ -103,7 +103,7 @@ export const PERKS: PerkDef[] = [
   // power
   { id: 'frenzy1', name: 'Hot Streak', desc: 'FRENZY lasts 3 seconds longer.', icon: '🔥', branch: 'power' },
   { id: 'frenzy2', name: 'Fired Up', desc: 'The FRENZY meter fills 20% faster.', icon: '⚡', branch: 'power', requires: 'frenzy1' },
-  { id: 'lives', name: 'Thick Skin', desc: '+15 lives (not in Champion mode).', icon: '❤️', branch: 'power' },
+  { id: 'lives', name: 'Thick Fur', desc: '+15 lives (not in Champion mode).', icon: '❤️', branch: 'power' },
   { id: 'abilities', name: 'Quick Recharge', desc: 'Abilities recharge 10% faster.', icon: '♻️', branch: 'power', requires: 'frenzy1' },
   { id: 'bonds', name: 'Strong Bonds', desc: 'Bond partners can be 20% further apart.', icon: '🔗', branch: 'power', requires: 'lives' },
 ];

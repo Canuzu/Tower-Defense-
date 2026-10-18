@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Gloop Guardians - a juicy critter tower defense game",
+  "description": "Star Bandits - a juicy raccoon tower defense game",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",

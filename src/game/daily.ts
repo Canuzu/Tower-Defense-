@@ -20,7 +20,7 @@ const FLAVOURS = [
   { name: 'Budget Battle', cash: 450 },
   { name: 'Rich Start', cash: 2500 },
   { name: 'Classic Defense', cash: 650 },
-  { name: 'Lean Squad', cash: 800 },
+  { name: 'Small Gang', cash: 800 },
 ];
 
 /** Deterministic challenge for a calendar day: same for every player. */

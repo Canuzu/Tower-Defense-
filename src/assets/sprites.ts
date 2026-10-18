@@ -8,6 +8,10 @@ export interface SpriteInfo {
   /** anchor in 0..1 of the image (default: centre-bottom = feet) */
   ax: number;
   ay: number;
+  /** towers/heroes: spool platform width as a fraction of w (the renderer scales by it) */
+  foot?: number;
+  /** stars: body diameter as a fraction of max(w, h) (default 1) */
+  body?: number;
 }
 
 export interface LoadedSprite extends SpriteInfo {

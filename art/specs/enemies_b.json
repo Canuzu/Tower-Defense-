@@ -1,0 +1,348 @@
+{
+ "ids": [
+  "e_ceramic_d1",
+  "e_ceramic_d2",
+  "e_moab_d1",
+  "e_moab_d2",
+  "e_bfb_d1",
+  "e_bfb_d2",
+  "e_zomg_d1",
+  "e_zomg_d2",
+  "e_ddt_d1",
+  "e_ddt_d2",
+  "e_bad_d1",
+  "e_bad_d2",
+  "e_lead_f",
+  "e_ceramic_f",
+  "e_moab_f",
+  "e_bfb_f",
+  "e_zomg_f",
+  "e_ddt_f",
+  "e_bad_f"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "af87913b-e423-4774-9eb7-339ef95c78ed",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 1 of 2: the SAME character as the reference (same pose, angle, size and framing), but battered: a few visible cracks and chipped edges, a dizzy annoyed expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "af87913b-e423-4774-9eb7-339ef95c78ed",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 2 of 2: the SAME character as the reference (same pose, angle, size and framing), but badly damaged: many deep cracks glowing from inside, chunks missing, dented, a desperate panicked expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "f83515df-9983-4459-a0eb-8ea1f8899372",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 1 of 2: the SAME character as the reference (same pose, angle, size and framing), but battered: a few visible cracks and chipped edges, a dizzy annoyed expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "f83515df-9983-4459-a0eb-8ea1f8899372",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 2 of 2: the SAME character as the reference (same pose, angle, size and framing), but badly damaged: many deep cracks glowing from inside, chunks missing, dented, a desperate panicked expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 4,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "52479cac-77c5-4479-a9ff-1d055e42e80b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 1 of 2: the SAME character as the reference (same pose, angle, size and framing), but battered: a few visible cracks and chipped edges, a dizzy annoyed expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 5,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "52479cac-77c5-4479-a9ff-1d055e42e80b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 2 of 2: the SAME character as the reference (same pose, angle, size and framing), but badly damaged: many deep cracks glowing from inside, chunks missing, dented, a desperate panicked expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 6,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3bffda50-bfa2-4d5f-b7e7-b658bf2c5053",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 1 of 2: the SAME character as the reference (same pose, angle, size and framing), but battered: a few visible cracks and chipped edges, a dizzy annoyed expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 7,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3bffda50-bfa2-4d5f-b7e7-b658bf2c5053",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 2 of 2: the SAME character as the reference (same pose, angle, size and framing), but badly damaged: many deep cracks glowing from inside, chunks missing, dented, a desperate panicked expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 8,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "67b58b66-599c-4220-b074-690b7669ffcd",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 1 of 2: the SAME character as the reference (same pose, angle, size and framing), but battered: a few visible cracks and chipped edges, a dizzy annoyed expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 9,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "67b58b66-599c-4220-b074-690b7669ffcd",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 2 of 2: the SAME character as the reference (same pose, angle, size and framing), but badly damaged: many deep cracks glowing from inside, chunks missing, dented, a desperate panicked expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 10,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "b1db3b82-89be-4977-b517-4c7b5526db7c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 1 of 2: the SAME character as the reference (same pose, angle, size and framing), but battered: a few visible cracks and chipped edges, a dizzy annoyed expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 11,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "b1db3b82-89be-4977-b517-4c7b5526db7c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Damage state 2 of 2: the SAME character as the reference (same pose, angle, size and framing), but badly damaged: many deep cracks glowing from inside, chunks missing, dented, a desperate panicked expression. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 12,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "07039820-8d13-4be2-90ce-8a0a6dbe5533",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Fortified variant: the SAME character as the reference (same pose, angle, size and framing), now reinforced with riveted dark steel armour bands and plates bolted around its body and a steel helmet-like cap, still clearly recognisable underneath. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 13,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "af87913b-e423-4774-9eb7-339ef95c78ed",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Fortified variant: the SAME character as the reference (same pose, angle, size and framing), now reinforced with riveted dark steel armour bands and plates bolted around its body and a steel helmet-like cap, still clearly recognisable underneath. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 14,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "f83515df-9983-4459-a0eb-8ea1f8899372",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Fortified variant: the SAME character as the reference (same pose, angle, size and framing), now reinforced with riveted dark steel armour bands and plates bolted around its body and a steel helmet-like cap, still clearly recognisable underneath. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 15,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "52479cac-77c5-4479-a9ff-1d055e42e80b",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Fortified variant: the SAME character as the reference (same pose, angle, size and framing), now reinforced with riveted dark steel armour bands and plates bolted around its body and a steel helmet-like cap, still clearly recognisable underneath. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 16,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "3bffda50-bfa2-4d5f-b7e7-b658bf2c5053",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Fortified variant: the SAME character as the reference (same pose, angle, size and framing), now reinforced with riveted dark steel armour bands and plates bolted around its body and a steel helmet-like cap, still clearly recognisable underneath. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 17,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "67b58b66-599c-4220-b074-690b7669ffcd",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Fortified variant: the SAME character as the reference (same pose, angle, size and framing), now reinforced with riveted dark steel armour bands and plates bolted around its body and a steel helmet-like cap, still clearly recognisable underneath. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  },
+  {
+   "index": 18,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "b1db3b82-89be-4977-b517-4c7b5526db7c",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style as the reference. Fortified variant: the SAME character as the reference (same pose, angle, size and framing), now reinforced with riveted dark steel armour bands and plates bolted around its body and a steel helmet-like cap, still clearly recognisable underneath. Centred in the frame with some margin, nothing cropped. No text, letters or numbers, no background, no frame."
+   }
+  }
+ ]
+}

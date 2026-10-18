@@ -1,1 +1,130 @@
-{}
+{
+ "e_pink": {
+  "file": "sprites/e_pink.webp",
+  "w": 163,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_red": {
+  "file": "sprites/e_red.webp",
+  "w": 158,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "m_meadow": {
+  "file": "sprites/m_meadow.webp",
+  "w": 2400,
+  "h": 1357,
+  "ax": 0,
+  "ay": 0
+ },
+ "p_bomb": {
+  "file": "sprites/p_bomb.webp",
+  "w": 128,
+  "h": 105,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "t_acorn": {
+  "file": "sprites/t_acorn.webp",
+  "w": 244,
+  "h": 320,
+  "ax": 0.5123,
+  "ay": 0.798,
+  "foot": 0.9508
+ },
+ "t_boomer": {
+  "file": "sprites/t_boomer.webp",
+  "w": 268,
+  "h": 320,
+  "ax": 0.5037,
+  "ay": 0.8214,
+  "foot": 0.7761
+ },
+ "t_buzz": {
+  "file": "sprites/t_buzz.webp",
+  "w": 240,
+  "h": 320,
+  "ax": 0.4833,
+  "ay": 0.8349,
+  "foot": 0.8
+ },
+ "t_dojo": {
+  "file": "sprites/t_dojo.webp",
+  "w": 249,
+  "h": 320,
+  "ax": 0.512,
+  "ay": 0.8273,
+  "foot": 0.8072
+ },
+ "t_ember": {
+  "file": "sprites/t_ember.webp",
+  "w": 284,
+  "h": 320,
+  "ax": 0.4577,
+  "ay": 0.8264,
+  "foot": 0.7113
+ },
+ "t_frost": {
+  "file": "sprites/t_frost.webp",
+  "w": 297,
+  "h": 320,
+  "ax": 0.4663,
+  "ay": 0.8258,
+  "foot": 0.67
+ },
+ "t_hoot": {
+  "file": "sprites/t_hoot.webp",
+  "w": 281,
+  "h": 320,
+  "ax": 0.4573,
+  "ay": 0.8273,
+  "foot": 0.7153
+ },
+ "t_spike": {
+  "file": "sprites/t_spike.webp",
+  "w": 253,
+  "h": 320,
+  "ax": 0.4941,
+  "ay": 0.8267,
+  "foot": 0.7826
+ },
+ "t_zap": {
+  "file": "sprites/t_zap.webp",
+  "w": 271,
+  "h": 320,
+  "ax": 0.4982,
+  "ay": 0.8281,
+  "foot": 0.738
+ },
+ "ui_appicon": {
+  "file": "sprites/ui_appicon.webp",
+  "w": 1024,
+  "h": 1024,
+  "ax": 0,
+  "ay": 0
+ },
+ "ui_coin": {
+  "file": "sprites/ui_coin.webp",
+  "w": 155,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_keyart": {
+  "file": "sprites/ui_keyart.webp",
+  "w": 1920,
+  "h": 1086,
+  "ax": 0,
+  "ay": 0
+ },
+ "ui_logo": {
+  "file": "sprites/ui_logo.webp",
+  "w": 900,
+  "h": 494,
+  "ax": 0.5,
+  "ay": 0.5
+ }
+}

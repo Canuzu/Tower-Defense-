@@ -1,0 +1,168 @@
+{
+ "ids": [
+  "t_hoot_p1_3",
+  "t_hoot_p1_4",
+  "t_hoot_p1_5",
+  "t_hoot_p2_3",
+  "t_hoot_p2_4",
+  "t_hoot_p2_5",
+  "t_hoot_p3_3",
+  "t_hoot_p3_4",
+  "t_hoot_p3_5"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Armor Breaker: a bigger heavy brass rifle with a drill-bit muzzle, an ammo belt of big brass shells. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Deadeye: a long anti-armour rifle with a huge scope and a red laser sight, wears a leafy camouflage hood. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Eclipse Rifle: a giant dark-purple and gold rifle with a glowing eclipse-ring scope, wears a dark hooded cloak and glowing goggles. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Ricochet: the rifle has an angled bent-barrel attachment, a bandolier of shiny bottle caps, tricky grin. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 4,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Hunter's Mark: the rifle projects a glowing red target reticle, wears a hunter's hat with a feather and red face-paint stripes. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 5,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Bottlecap Barrage: a big multi-barrel rifle with a hopper full of shiny bottle caps, bottle caps flying around. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 6,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 3 of 5: clearly upgraded, bigger and better gear than the reference. Upgrade: Semi-Auto: a compact semi-automatic rifle with a drum magazine, a headband and ammo belts. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 7,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 4 of 5: an impressive, powerful-looking big gadget; noticeably more elaborate than tier 3. Upgrade: Supply Drop: the rifle on the back, talking into a walkie-talkie; a wooden supply crate with a parachute beside it. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 8,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "49cf54f2-30dd-4733-86d4-c6eecb3a5081",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game: ONE single character, isolated on a fully transparent background. The reference image shows this tower's base character: keep the SAME raccoon (same face, fur, proportions, outfit colours and accessories unless replaced below), the same glossy stylized 3D cartoon rendering and lighting, the same camera angle and framing, and the same round wooden cable-spool platform fully visible and centred at the bottom at the same size in frame. This is upgrade tier 5 of 5, the LEGENDARY final form: epic and awe-inspiring with glowing accents and small magical particles, and the iron rim of the platform becomes polished gold. Upgrade: Sniper Captain: a captain with a peaked military cap with a star badge, medals, binoculars around the neck and a gold-trimmed rifle; a small flag stands on the platform. Keep the silhouette compact and readable at small size; extra parts may rise upward but must stay inside the frame. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  }
+ ]
+}

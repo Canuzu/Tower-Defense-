@@ -91,7 +91,7 @@ export function makePresentation(r: Renderer): FxSink {
     bossDeath(e: Enemy) {
       r.confetti(e.x, e.y, 40);
       r.explosion(e.x, e.y, e.radius * 1.6, 'boom');
-      r.floatText(e.x, e.y - e.radius, t('{name} POPPED!', { name: t(e.def.name).toUpperCase() }), '#ffffff', 22);
+      r.floatText(e.x, e.y - e.radius, t('{name} SHATTERED!', { name: t(e.def.name).toUpperCase() }), '#ffffff', 22);
       haptic('heavy');
     },
     shake(p) {

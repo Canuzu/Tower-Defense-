@@ -1,0 +1,78 @@
+{
+ "ids": [
+  "h_nova_2",
+  "h_nova_3",
+  "h_grizz_2",
+  "h_grizz_3"
+ ],
+ "requests": [
+  {
+   "index": 0,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "MISSING-h_nova_1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style, camera and framing as the reference. Level 7 upgrade of the SAME hero (same face, suit and platform): now with a rocket jetpack with small blue flames, a bigger glowing blaster, gold trims on the suit. Heroic, charismatic, readable at small size. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 1,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "MISSING-h_nova_1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style, camera and framing as the reference. Level 14 LEGENDARY form of the SAME hero (same face and platform): glowing cosmic armour suit with gold and cyan lights, twin blasters, a flowing cape with stars on it, a tiny satellite orbiting the helmet. Heroic, charismatic, readable at small size. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 2,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "MISSING-h_grizz_1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style, camera and framing as the reference. Level 7 upgrade of the SAME hero (same face and platform): heavier junk armour on both shoulders and arms, the wrench-hammer now has pistons and gears. Heroic, charismatic, readable at small size. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  },
+  {
+   "index": 3,
+   "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect_ratio": "1:1",
+    "background": "transparent",
+    "medias": [
+     {
+      "value": "MISSING-h_grizz_1",
+      "role": "image_references"
+     }
+    ],
+    "prompt": "Game asset for a premium mobile tower defense game, isolated on a fully transparent background, same glossy 3D cartoon style, camera and framing as the reference. Level 14 LEGENDARY form of the SAME hero (same face and platform): full shining scrap armour with gold accents, a huge glowing hydraulic hammer, a champion belt and a crown made of bottle caps. Heroic, charismatic, readable at small size. No text, letters or numbers, no logo, no background, no frame, nothing cropped."
+   }
+  }
+ ]
+}

@@ -4,3 +4,4 @@ dist
 *.log
 screens/
 dist-single
+art/.jobs.lock
