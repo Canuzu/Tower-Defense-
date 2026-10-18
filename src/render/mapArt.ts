@@ -1,0 +1,517 @@
+import type { MapDef, Obstacle, MapTheme } from '../game/maps';
+import { WORLD_H, WORLD_W } from '../game/maps';
+import type { Path } from '../game/path';
+import { shade, rgba } from '../core/math';
+import { makeCanvas, ellipse, circle, fillStroke, ballGrad, gloss, seeded, star, type Ctx } from './draw';
+
+/** Extra terrain rendered around the playfield so letterboxing still shows the map. */
+export const BLEED = 260;
+
+export interface ThemePalette {
+  ground: string;
+  ground2: string;
+  path: string;
+  pathEdge: string;
+  pathInner: string;
+  pebble: string;
+  tuft: string;
+  backdrop: string;
+}
+
+export const THEMES: Record<MapTheme, ThemePalette> = {
+  meadow: { ground: '#7cc95a', ground2: '#69b84b', path: '#e3c48f', pathEdge: '#9b7a4c', pathInner: '#efd6a6', pebble: '#c2a06c', tuft: '#4f9a37', backdrop: '#4f8f3a' },
+  cave: { ground: '#4a4f7a', ground2: '#3d4169', path: '#8d86a8', pathEdge: '#2b2c4a', pathInner: '#a39cbf', pebble: '#6e688c', tuft: '#6f7cc4', backdrop: '#262842' },
+  lava: { ground: '#5a4a48', ground2: '#4b3d3c', path: '#a58a73', pathEdge: '#3a2826', pathInner: '#b99c84', pebble: '#7d6655', tuft: '#ff7a3c', backdrop: '#2e2120' },
+  river: { ground: '#86cf6a', ground2: '#74bf59', path: '#d9c39a', pathEdge: '#94784f', pathInner: '#e8d5b0', pebble: '#bba174', tuft: '#56a43e', backdrop: '#4a8a3b' },
+};
+
+/**
+ * Render the static map (ground, track, obstacles, decorations) to an offscreen canvas.
+ * The canvas covers [-BLEED, W+BLEED] x [-BLEED, H+BLEED] in world units at `res` pixels/unit.
+ */
+export function renderMap(map: MapDef, paths: Path[], res: number): HTMLCanvasElement {
+  const W = WORLD_W + BLEED * 2;
+  const H = WORLD_H + BLEED * 2;
+  const [c, ctx] = makeCanvas(W * res, H * res);
+  ctx.scale(res, res);
+  ctx.translate(BLEED, BLEED);
+  const pal = THEMES[map.theme];
+  const rnd = seeded(map.seed * 7919);
+
+  // --- ground ---
+  ctx.fillStyle = pal.ground;
+  ctx.fillRect(-BLEED, -BLEED, W, H);
+  // big soft patches
+  for (let i = 0; i < 70; i++) {
+    const x = -BLEED + rnd() * W;
+    const y = -BLEED + rnd() * H;
+    const r = 60 + rnd() * 160;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    const col = rnd() > 0.5 ? pal.ground2 : shade(pal.ground, 0.08);
+    g.addColorStop(0, rgba(col, 0.55));
+    g.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  themeGround(ctx, map.theme, pal, rnd, W, H);
+
+  // --- track ---
+  const pw = map.pathWidth;
+  for (const p of paths) strokePath(ctx, p, pw + 14, 'rgba(0,0,0,0.18)', 6);
+  for (const p of paths) strokePath(ctx, p, pw + 8, pal.pathEdge);
+  for (const p of paths) strokePath(ctx, p, pw, pal.path);
+  for (const p of paths) strokePath(ctx, p, pw * 0.55, rgba(pal.pathInner, 0.6));
+  // pebbles & tracks on the path
+  for (const p of paths) {
+    for (let d = 0; d < p.length; d += 9) {
+      if (rnd() > 0.55) continue;
+      const pt = { x: 0, y: 0 };
+      const ang = p.sample(d, pt);
+      const off = (rnd() - 0.5) * pw * 0.85;
+      const x = pt.x - Math.sin(ang) * off;
+      const y = pt.y + Math.cos(ang) * off;
+      ellipse(ctx, x, y, 1.5 + rnd() * 2.5, 1 + rnd() * 1.8, rnd() * 3);
+      ctx.fillStyle = rgba(rnd() > 0.5 ? pal.pebble : pal.pathEdge, 0.35 + rnd() * 0.3);
+      ctx.fill();
+    }
+  }
+  // edge tufts overhanging the path
+  for (const p of paths) {
+    for (let d = 0; d < p.length; d += 14) {
+      const pt = { x: 0, y: 0 };
+      const ang = p.sample(d, pt);
+      for (const side of [-1, 1]) {
+        if (rnd() > 0.5) continue;
+        const off = side * (pw / 2 + 2 + rnd() * 3);
+        const x = pt.x - Math.sin(ang) * off;
+        const y = pt.y + Math.cos(ang) * off;
+        tuft(ctx, x, y, 4 + rnd() * 4, pal.tuft, rnd);
+      }
+    }
+  }
+
+  // --- entrance & exit ---
+  for (const p of paths) {
+    const a = { x: 0, y: 0 };
+    const angA = p.sample(30, a);
+    const b = { x: 0, y: 0 };
+    const angB = p.sample(p.length - 30, b);
+    portal(ctx, a.x, a.y, angA, map.theme, false, pw);
+    portal(ctx, b.x, b.y, angB, map.theme, true, pw);
+  }
+
+  // --- obstacles (sorted by y for depth) ---
+  const obs = [...map.obstacles].sort((o1, o2) => o1.y - o2.y);
+  for (const o of obs) drawObstacle(ctx, o, map.theme, rnd);
+
+  // --- small decorations (non-blocking) ---
+  decorations(ctx, map, paths, pal, rnd);
+
+  // vignette in the bleed zone
+  const vg = ctx.createLinearGradient(-BLEED, 0, 0, 0);
+  vg.addColorStop(0, 'rgba(0,0,0,0.45)');
+  vg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(-BLEED, -BLEED, BLEED, H);
+  const vg2 = ctx.createLinearGradient(WORLD_W + BLEED, 0, WORLD_W, 0);
+  vg2.addColorStop(0, 'rgba(0,0,0,0.45)');
+  vg2.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = vg2;
+  ctx.fillRect(WORLD_W, -BLEED, BLEED, H);
+  const vg3 = ctx.createLinearGradient(0, -BLEED, 0, 0);
+  vg3.addColorStop(0, 'rgba(0,0,0,0.45)');
+  vg3.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = vg3;
+  ctx.fillRect(-BLEED, -BLEED, W, BLEED);
+  const vg4 = ctx.createLinearGradient(0, WORLD_H + BLEED, 0, WORLD_H);
+  vg4.addColorStop(0, 'rgba(0,0,0,0.45)');
+  vg4.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = vg4;
+  ctx.fillRect(-BLEED, WORLD_H, W, BLEED);
+  return c;
+}
+
+function strokePath(ctx: Ctx, p: Path, w: number, color: string, offsetY = 0) {
+  ctx.beginPath();
+  ctx.moveTo(p.xs[0], p.ys[0] + offsetY);
+  for (let i = 1; i < p.count; i++) ctx.lineTo(p.xs[i], p.ys[i] + offsetY);
+  ctx.lineWidth = w;
+  ctx.strokeStyle = color;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function tuft(ctx: Ctx, x: number, y: number, s: number, color: string, rnd: () => number) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const a = -Math.PI / 2 + (i - 1) * 0.5 + (rnd() - 0.5) * 0.3;
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(a) * s, y + Math.sin(a) * s);
+  }
+  ctx.stroke();
+}
+
+function themeGround(ctx: Ctx, theme: MapTheme, pal: ThemePalette, rnd: () => number, W: number, H: number) {
+  const n = 1400;
+  for (let i = 0; i < n; i++) {
+    const x = -BLEED + rnd() * W;
+    const y = -BLEED + rnd() * H;
+    if (theme === 'meadow' || theme === 'river') {
+      tuft(ctx, x, y, 3 + rnd() * 5, rgba(pal.tuft, 0.6 + rnd() * 0.3), rnd);
+    } else if (theme === 'cave') {
+      ellipse(ctx, x, y, 2 + rnd() * 6, 1.5 + rnd() * 4, rnd() * 3);
+      ctx.fillStyle = rgba(rnd() > 0.5 ? '#2f3358' : '#5b6194', 0.4);
+      ctx.fill();
+    } else {
+      ellipse(ctx, x, y, 2 + rnd() * 5, 1.5 + rnd() * 3, rnd() * 3);
+      ctx.fillStyle = rgba(rnd() > 0.85 ? '#ff6a2a' : '#2e2322', 0.35);
+      ctx.fill();
+    }
+  }
+  if (theme === 'meadow' || theme === 'river') {
+    // flowers
+    const cols = ['#ffffff', '#ffe066', '#ff8fab', '#a0c4ff', '#ffadad'];
+    for (let i = 0; i < 260; i++) {
+      const x = -BLEED + rnd() * W;
+      const y = -BLEED + rnd() * H;
+      const c = cols[Math.floor(rnd() * cols.length)];
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2;
+        circle(ctx, x + Math.cos(a) * 2.2, y + Math.sin(a) * 2.2, 1.8);
+        ctx.fillStyle = c;
+        ctx.fill();
+      }
+      circle(ctx, x, y, 1.4);
+      ctx.fillStyle = '#ffb703';
+      ctx.fill();
+    }
+  }
+  if (theme === 'cave') {
+    // glowing veins
+    for (let i = 0; i < 40; i++) {
+      let x = -BLEED + rnd() * W;
+      let y = -BLEED + rnd() * H;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let k = 0; k < 5; k++) {
+        x += (rnd() - 0.5) * 60;
+        y += (rnd() - 0.5) * 60;
+        ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = rgba('#8fd3ff', 0.18);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+  if (theme === 'lava') {
+    // cracks with glow
+    for (let i = 0; i < 60; i++) {
+      let x = -BLEED + rnd() * W;
+      let y = -BLEED + rnd() * H;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let k = 0; k < 4; k++) {
+        x += (rnd() - 0.5) * 50;
+        y += (rnd() - 0.5) * 50;
+        ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = rgba('#ff7a2f', 0.35);
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.strokeStyle = rgba('#ffd166', 0.4);
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+  }
+}
+
+function portal(ctx: Ctx, x: number, y: number, ang: number, theme: MapTheme, exit: boolean, pw: number) {
+  // only draw if on-screen
+  if (x < -20 || x > WORLD_W + 20 || y < -20 || y > WORLD_H + 20) {
+    // clamp to edge so a gate is visible at the screen border
+    x = Math.max(8, Math.min(WORLD_W - 8, x));
+    y = Math.max(8, Math.min(WORLD_H - 8, y));
+  }
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang + Math.PI / 2);
+  const w = pw * 0.75;
+  if (exit) {
+    // Golden acorn vault the gloops are after
+    ctx.restore();
+    ctx.save();
+    ctx.translate(x, y);
+    ellipse(ctx, 0, 0, w * 0.9, w * 0.55);
+    ctx.fillStyle = 'rgba(20,10,30,0.55)';
+    ctx.fill();
+    ellipse(ctx, 0, -2, w * 0.75, w * 0.45);
+    const g = ctx.createRadialGradient(0, -2, 1, 0, -2, w * 0.75);
+    g.addColorStop(0, theme === 'lava' ? '#ffb347' : '#fff3a8');
+    g.addColorStop(1, theme === 'lava' ? '#d7263d' : '#e0a100');
+    fillStroke(ctx, g, 3);
+    star(ctx, 0, -2, w * 0.3, 0.5);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fill();
+  } else {
+    // spawn burrow
+    ellipse(ctx, 0, 0, w, w * 0.6);
+    fillStroke(ctx, theme === 'cave' ? '#1a1a30' : theme === 'lava' ? '#2a1010' : '#3b2a1a', 3, '#1a1022');
+    ellipse(ctx, 0, 2, w * 0.7, w * 0.38);
+    ctx.fillStyle = theme === 'lava' ? 'rgba(255,90,30,0.5)' : 'rgba(120,60,200,0.35)';
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawObstacle(ctx: Ctx, o: Obstacle, theme: MapTheme, rnd: () => number) {
+  switch (o.kind) {
+    case 'tree': {
+      ellipse(ctx, o.x + 6, o.y + o.r * 0.55, o.r * 0.95, o.r * 0.4);
+      ctx.fillStyle = 'rgba(20,30,10,0.3)';
+      ctx.fill();
+      ctx.fillStyle = '#7a4a28';
+      ctx.fillRect(o.x - o.r * 0.12, o.y - o.r * 0.1, o.r * 0.24, o.r * 0.6);
+      const blobs: [number, number, number][] = [
+        [-0.45, -0.1, 0.55],
+        [0.45, -0.05, 0.55],
+        [0, -0.45, 0.62],
+        [0, 0.05, 0.6],
+      ];
+      for (const [bx, by, br] of blobs) {
+        circle(ctx, o.x + bx * o.r, o.y + by * o.r - o.r * 0.35, br * o.r);
+        fillStroke(ctx, ballGrad(ctx, o.x + bx * o.r, o.y + by * o.r - o.r * 0.35, br * o.r, '#3f9a3a', 0.35, -0.35), 3, '#1f4d1d');
+      }
+      for (const [bx, by, br] of blobs) {
+        circle(ctx, o.x + bx * o.r, o.y + by * o.r - o.r * 0.35, br * o.r - 2);
+        ctx.fillStyle = ballGrad(ctx, o.x + bx * o.r, o.y + by * o.r - o.r * 0.35, br * o.r, '#3f9a3a', 0.35, -0.35);
+        ctx.fill();
+      }
+      // apples / blossoms
+      for (let i = 0; i < 5; i++) {
+        circle(ctx, o.x + (rnd() - 0.5) * o.r * 1.4, o.y - o.r * 0.4 + (rnd() - 0.5) * o.r, 2.5);
+        ctx.fillStyle = rnd() > 0.5 ? '#ff6b6b' : '#ffe066';
+        ctx.fill();
+      }
+      gloss(ctx, o.x - o.r * 0.3, o.y - o.r * 0.95, o.r * 0.25, o.r * 0.12, 0.25);
+      break;
+    }
+    case 'rock':
+    case 'boulder': {
+      ellipse(ctx, o.x + 4, o.y + o.r * 0.45, o.r * 1.05, o.r * 0.45);
+      ctx.fillStyle = 'rgba(10,10,20,0.3)';
+      ctx.fill();
+      ctx.beginPath();
+      const n = 8;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const rr = o.r * (0.85 + rnd() * 0.2);
+        const px = o.x + Math.cos(a) * rr;
+        const py = o.y + Math.sin(a) * rr * 0.8;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      const col = theme === 'cave' ? '#6b6f9a' : theme === 'lava' ? '#5d4b48' : '#9aa0a6';
+      fillStroke(ctx, ballGrad(ctx, o.x, o.y, o.r, col, 0.35, -0.4), 3, '#2a2433');
+      gloss(ctx, o.x - o.r * 0.3, o.y - o.r * 0.35, o.r * 0.3, o.r * 0.12, 0.35);
+      break;
+    }
+    case 'bush': {
+      for (const [bx, by, br] of [[-0.45, 0.1, 0.6], [0.45, 0.1, 0.6], [0, -0.25, 0.7]] as [number, number, number][]) {
+        circle(ctx, o.x + bx * o.r, o.y + by * o.r, br * o.r);
+        fillStroke(ctx, ballGrad(ctx, o.x + bx * o.r, o.y + by * o.r, br * o.r, '#4caf50', 0.3), 2.5, '#1f4d1d');
+      }
+      for (let i = 0; i < 3; i++) {
+        circle(ctx, o.x + (rnd() - 0.5) * o.r, o.y + (rnd() - 0.5) * o.r * 0.6, 2.2);
+        ctx.fillStyle = '#ff6b9a';
+        ctx.fill();
+      }
+      break;
+    }
+    case 'stump': {
+      ellipse(ctx, o.x, o.y + o.r * 0.3, o.r, o.r * 0.55);
+      fillStroke(ctx, '#7a4a28', 2.5);
+      ellipse(ctx, o.x, o.y, o.r, o.r * 0.55);
+      fillStroke(ctx, '#d1a26b', 2.5);
+      ellipse(ctx, o.x, o.y, o.r * 0.55, o.r * 0.3);
+      ctx.strokeStyle = '#a77b4a';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      break;
+    }
+    case 'mushroom': {
+      ctx.fillStyle = '#f1e3c8';
+      ctx.fillRect(o.x - o.r * 0.25, o.y - o.r * 0.2, o.r * 0.5, o.r * 0.8);
+      ctx.beginPath();
+      ctx.ellipse(o.x, o.y - o.r * 0.2, o.r, o.r * 0.7, 0, Math.PI, 0);
+      ctx.closePath();
+      fillStroke(ctx, theme === 'cave' ? '#7bdff2' : '#e63946', 2.5);
+      for (const dx of [-0.45, 0.1, 0.5]) {
+        circle(ctx, o.x + dx * o.r, o.y - o.r * 0.5, o.r * 0.15);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
+      break;
+    }
+    case 'pond':
+    case 'water': {
+      ellipse(ctx, o.x, o.y, o.r + 6, (o.ry ?? o.r) + 6, o.rot ?? 0);
+      ctx.fillStyle = theme === 'river' ? '#c9b48a' : '#a58a63';
+      ctx.fill();
+      ellipse(ctx, o.x, o.y, o.r, o.ry ?? o.r, o.rot ?? 0);
+      const g = ctx.createLinearGradient(o.x, o.y - (o.ry ?? o.r), o.x, o.y + (o.ry ?? o.r));
+      g.addColorStop(0, '#5ec8f2');
+      g.addColorStop(1, '#2d7fd1');
+      fillStroke(ctx, g, 3, '#1d4f8a');
+      ellipse(ctx, o.x, o.y + 3, o.r * 0.85, (o.ry ?? o.r) * 0.75, o.rot ?? 0);
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      // lily pads
+      const pads = Math.max(2, Math.floor(o.r / 40));
+      for (let i = 0; i < pads; i++) {
+        const px = o.x + (rnd() - 0.5) * o.r * 1.2;
+        const py = o.y + (rnd() - 0.5) * (o.ry ?? o.r) * 1.0;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.arc(px, py, 9, 0.4, Math.PI * 2 - 0.1);
+        ctx.closePath();
+        fillStroke(ctx, '#4caf50', 1.5, '#1f4d1d');
+      }
+      break;
+    }
+    case 'crystal': {
+      ellipse(ctx, o.x, o.y + o.r * 0.4, o.r * 1.1, o.r * 0.45);
+      ctx.fillStyle = 'rgba(10,10,30,0.35)';
+      ctx.fill();
+      const cols = ['#7bdff2', '#c77dff', '#ff8fab'];
+      const col = cols[Math.floor(rnd() * cols.length)];
+      const shards: [number, number, number, number][] = [
+        [-0.45, 0.15, 0.25, 1.0],
+        [0.4, 0.15, 0.22, 0.9],
+        [0, 0.2, 0.3, 1.4],
+        [-0.15, 0.3, 0.2, 0.7],
+        [0.25, 0.3, 0.18, 0.6],
+      ];
+      for (const [sx, sy, sw, sh] of shards) {
+        const bx = o.x + sx * o.r;
+        const by = o.y + sy * o.r;
+        ctx.beginPath();
+        ctx.moveTo(bx - sw * o.r, by);
+        ctx.lineTo(bx - sw * o.r * 0.6, by - sh * o.r * 0.8);
+        ctx.lineTo(bx, by - sh * o.r);
+        ctx.lineTo(bx + sw * o.r * 0.6, by - sh * o.r * 0.8);
+        ctx.lineTo(bx + sw * o.r, by);
+        ctx.closePath();
+        const g = ctx.createLinearGradient(bx - sw * o.r, by - sh * o.r, bx + sw * o.r, by);
+        g.addColorStop(0, shade(col, 0.6));
+        g.addColorStop(0.5, col);
+        g.addColorStop(1, shade(col, -0.4));
+        fillStroke(ctx, g, 2.5, '#1d1d3a');
+        ctx.beginPath();
+        ctx.moveTo(bx, by - sh * o.r);
+        ctx.lineTo(bx, by);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      // glow
+      const g = ctx.createRadialGradient(o.x, o.y - o.r * 0.4, 0, o.x, o.y - o.r * 0.4, o.r * 2);
+      g.addColorStop(0, rgba(col, 0.25));
+      g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(o.x - o.r * 2, o.y - o.r * 2.4, o.r * 4, o.r * 4);
+      break;
+    }
+    case 'pit': {
+      ellipse(ctx, o.x, o.y, o.r + 8, o.r * 0.75 + 8);
+      ctx.fillStyle = '#2b2c4a';
+      ctx.fill();
+      ellipse(ctx, o.x, o.y, o.r, o.r * 0.75);
+      const g = ctx.createRadialGradient(o.x, o.y + o.r * 0.2, 0, o.x, o.y, o.r);
+      g.addColorStop(0, '#05040c');
+      g.addColorStop(0.7, '#12112a');
+      g.addColorStop(1, '#2f2f55');
+      fillStroke(ctx, g, 3, '#1a1a30');
+      for (let i = 0; i < 6; i++) {
+        circle(ctx, o.x + (rnd() - 0.5) * o.r, o.y + (rnd() - 0.5) * o.r * 0.5, 1.5);
+        ctx.fillStyle = 'rgba(200,220,255,0.6)';
+        ctx.fill();
+      }
+      break;
+    }
+    case 'lava': {
+      ellipse(ctx, o.x, o.y, o.r + 10, (o.ry ?? o.r) + 10, o.rot ?? 0);
+      ctx.fillStyle = '#2a1b1a';
+      ctx.fill();
+      ellipse(ctx, o.x, o.y, o.r, o.ry ?? o.r, o.rot ?? 0);
+      const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      g.addColorStop(0, '#ffe066');
+      g.addColorStop(0.4, '#ff9f1c');
+      g.addColorStop(1, '#d7263d');
+      fillStroke(ctx, g, 4, '#5a1414');
+      for (let i = 0; i < 10; i++) {
+        const px = o.x + (rnd() - 0.5) * o.r * 1.3;
+        const py = o.y + (rnd() - 0.5) * (o.ry ?? o.r) * 1.1;
+        ellipse(ctx, px, py, 8 + rnd() * 14, 4 + rnd() * 6, rnd() * 3);
+        ctx.fillStyle = 'rgba(120,20,20,0.45)';
+        ctx.fill();
+      }
+      break;
+    }
+    case 'vent': {
+      ellipse(ctx, o.x, o.y, o.r, o.r * 0.6);
+      fillStroke(ctx, ballGrad(ctx, o.x, o.y, o.r, '#5d4b48', 0.3), 3, '#2a1b1a');
+      ellipse(ctx, o.x, o.y - 2, o.r * 0.5, o.r * 0.28);
+      ctx.fillStyle = '#ff7a2f';
+      ctx.fill();
+      break;
+    }
+  }
+}
+
+function decorations(ctx: Ctx, map: MapDef, paths: Path[], pal: ThemePalette, rnd: () => number) {
+  const nearPath = (x: number, y: number) => paths.some((p) => p.distanceTo(x, y) < map.pathWidth / 2 + 14);
+  const nearObs = (x: number, y: number) => map.obstacles.some((o) => Math.hypot(o.x - x, o.y - y) < o.r + Math.max(o.ry ?? 0, 0) + 10);
+  for (let i = 0; i < 90; i++) {
+    const x = rnd() * WORLD_W;
+    const y = rnd() * WORLD_H;
+    if (nearPath(x, y) || nearObs(x, y)) continue;
+    const k = rnd();
+    if (map.theme === 'meadow' || map.theme === 'river') {
+      if (k < 0.5) {
+        // tiny pebble
+        ellipse(ctx, x, y, 3 + rnd() * 3, 2 + rnd() * 2);
+        fillStroke(ctx, '#b9bfc4', 1.2, '#6d7378');
+      } else {
+        // clover cluster
+        for (let j = 0; j < 3; j++) {
+          circle(ctx, x + (j - 1) * 4, y + (j % 2) * 3, 3);
+          ctx.fillStyle = rgba(pal.tuft, 0.9);
+          ctx.fill();
+        }
+      }
+    } else if (map.theme === 'cave') {
+      star(ctx, x, y, 2 + rnd() * 2.5, 0.35, 4);
+      ctx.fillStyle = rgba('#bde0fe', 0.6);
+      ctx.fill();
+    } else {
+      circle(ctx, x, y, 2 + rnd() * 2);
+      ctx.fillStyle = rgba('#ffb347', 0.5);
+      ctx.fill();
+    }
+  }
+}
+
+/** Small preview used on the map select cards. */
+export function mapThumbnail(map: MapDef, paths: Path[], px = 320): string {
+  const res = px / WORLD_W;
+  const c = renderMap(map, paths, res);
+  const [t, tctx] = makeCanvas(px, Math.round((px * WORLD_H) / WORLD_W));
+  tctx.drawImage(c, BLEED * res, BLEED * res, WORLD_W * res, WORLD_H * res, 0, 0, t.width, t.height);
+  return t.toDataURL('image/jpeg', 0.85);
+}
