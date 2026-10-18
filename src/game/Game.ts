@@ -13,6 +13,9 @@ import { Tower, defaultBuffs, type Buffs } from './Tower';
 import { Enemy, Projectile, type Drone, type Drop, type Runner, type Scheduled, type Trap } from './entities';
 import { NULL_FX, type FxSink } from './fx';
 import { SYNERGIES, SYNERGY_RANGE, synergyBetween } from './synergy';
+import { PERK_BY_ID } from './perks';
+import { heroXpFor } from './heroes';
+import type { TowerStats } from './towerTypes';
 
 export const SIM_DT = 1 / 60;
 const DEG = Math.PI / 180;
@@ -33,10 +36,22 @@ export interface GameEvents extends Record<string, unknown> {
   lifeLost: number;
 }
 
+export interface ChallengeDef {
+  id: string;
+  name: string;
+  desc: string;
+  allowed?: TowerId[];
+  cash?: number;
+  lastRound?: number;
+  noHero?: boolean;
+}
+
 export interface GameConfig {
   mapId: string;
   difficulty: Difficulty;
   heroId: HeroId | null;
+  perks?: string[];
+  challenge?: ChallengeDef;
 }
 
 export interface SavedTower {
@@ -66,6 +81,8 @@ export interface SaveState {
   towers: SavedTower[];
   stats: GameStats;
   savedAt: number;
+  perks?: string[];
+  challenge?: ChallengeDef;
 }
 
 export interface GameStats {
@@ -122,6 +139,7 @@ export class Game {
   readonly paths: Path[];
   readonly diff: DifficultyDef;
   readonly config: GameConfig;
+  readonly perks: Set<string>;
   fx: FxSink = NULL_FX;
 
   enemies: Enemy[] = [];
@@ -174,6 +192,7 @@ export class Game {
 
   constructor(config: GameConfig) {
     this.config = config;
+    this.perks = new Set(config.perks ?? []);
     this.map = MAP_BY_ID[config.mapId];
     if (!this.map) throw new Error('unknown map ' + config.mapId);
     this.diff = DIFFICULTIES[config.difficulty];
@@ -186,14 +205,34 @@ export class Game {
     this.placeMask = new Uint8Array(this.maskW * this.maskH);
     this.buildPlaceMask();
     if (this.diff.startRound > 1) this.cash += this.startingBonus(this.diff.startRound);
+    if (this.perks.has('cash1')) this.cash += 100;
+    if (this.perks.has('cash2')) this.cash += 200;
+    if (this.perks.has('lives') && config.difficulty !== 'champion' && !this.sandbox) this.lives += 15;
+    if (config.challenge?.cash !== undefined) this.cash = config.challenge.cash;
   }
+
+  /** Whether a tower type may be used (daily challenges restrict the roster). */
+  isAllowed(id: TowerId): boolean {
+    const a = this.config.challenge?.allowed;
+    return !a || a.includes(id);
+  }
+
+  get bondRange() {
+    return SYNERGY_RANGE * (this.perks.has('bonds') ? 1.2 : 1);
+  }
+
+  /** Applies permanent perks to a tower's freshly computed stats. */
+  private towerMod = (t: Tower, s: TowerStats) => {
+    for (const id of this.perks) PERK_BY_ID[id]?.tower?.(t, s);
+    if (this.perks.has('acorns') && t.typeId === 'acorn' && s.income && s.income.drops > 0) s.income.drops += 1;
+  };
 
   get sandbox() {
     return this.config.difficulty === 'sandbox';
   }
 
   get lastRound() {
-    return this.diff.endRound;
+    return this.config.challenge?.lastRound ?? this.diff.endRound;
   }
 
   get hero(): Tower | null {
@@ -202,6 +241,10 @@ export class Game {
 
   get frenzyMax() {
     return 150 + this.round * 25;
+  }
+
+  get frenzyDuration() {
+    return this.perks.has('frenzy1') ? 13 : 10;
   }
 
   private startingBonus(startRound: number) {
@@ -302,7 +345,8 @@ export class Game {
   }
 
   priceOf(base: number, discount = 0) {
-    return Math.max(5, Math.round((base * this.diff.costMul * (1 - discount)) / 5) * 5);
+    const thrift = this.perks.has('thrift') ? 0.97 : 1;
+    return Math.max(5, Math.round((base * this.diff.costMul * thrift * (1 - discount)) / 5) * 5);
   }
 
   towerCost(id: TowerId, x?: number, y?: number): number {
@@ -311,7 +355,7 @@ export class Game {
   }
 
   heroCost(id: HeroId): number {
-    return this.priceOf(HEROES[id].cost);
+    return this.priceOf(HEROES[id].cost * (this.perks.has('herocost') ? 0.85 : 1));
   }
 
   upgradeCost(t: Tower, path: number): number | null {
@@ -326,6 +370,7 @@ export class Game {
   }
 
   placeTower(id: TowerId, x: number, y: number): Tower | null {
+    if (!this.isAllowed(id)) return null;
     const def = TOWERS[id];
     const cost = this.towerCost(id, x, y);
     if (!this.sandbox && this.cash < cost) return null;
@@ -346,6 +391,11 @@ export class Game {
     if (!this.canPlace(def.radius, x, y)) return null;
     this.spend(cost);
     const t = new Tower(this.nextId++, { hero: id }, x, y, cost);
+    const startLevel = this.perks.has('hero3') ? 4 : this.perks.has('hero1') ? 2 : 1;
+    if (startLevel > 1) {
+      t.heroLevel = startLevel;
+      t.heroXp = heroXpFor(startLevel);
+    }
     this.initTower(t);
     this.fx.place(t);
     return t;
@@ -353,6 +403,8 @@ export class Game {
 
   private initTower(t: Tower) {
     t.placedAt = this.time;
+    t.mod = this.towerMod;
+    t.refreshStats();
     this.towers.push(t);
     this.computeTrapSpots(t);
     this.buffsDirty = true;
@@ -435,7 +487,7 @@ export class Game {
       if (!o.def) continue;
       const syn = synergyBetween(id, o.def.id);
       if (!syn) continue;
-      if (dist2(o.x, o.y, x, y) > SYNERGY_RANGE * SYNERGY_RANGE) continue;
+      if (dist2(o.x, o.y, x, y) > this.bondRange * this.bondRange) continue;
       out.push({ tower: o, color: syn.color, name: seen.has(syn.id) ? '' : syn.name });
       seen.add(syn.id);
     }
@@ -486,7 +538,7 @@ export class Game {
       }
     }
     // synergy bonds
-    const r2 = SYNERGY_RANGE * SYNERGY_RANGE;
+    const r2 = this.bondRange * this.bondRange;
     for (let i = 0; i < towers.length; i++) {
       const a = towers[i];
       if (!a.def) continue;
@@ -701,12 +753,12 @@ export class Game {
     }
     for (const d of this.drops) if (d.alive && !d.collecting) this.collectDrop(d, false);
     for (const t of this.towers) for (const tr of t.traps) tr.alive = false;
-    const bonus = 100 + n;
+    const bonus = Math.round((100 + n) * (this.perks.has('bonus') ? 1.2 : 1));
     this.earn(bonus);
     // hero xp
     const hero = this.hero;
     if (hero) {
-      const gained = hero.addHeroXp(60 + 30 * n);
+      const gained = hero.addHeroXp((60 + 30 * n) * (this.perks.has('hero2') ? 1.25 : 1));
       if (gained) {
         this.fx.sound('levelup');
         this.fx.text(hero.x, hero.y - 40, 'LEVEL ' + hero.heroLevel + '!', '#ffe066', 22);
@@ -1045,7 +1097,7 @@ export class Game {
     this.stats.pops += count;
     if (tower) tower.pops += count;
     if (this.roundActive) {
-      this.frenzyMeter += count;
+      this.frenzyMeter += count * (this.perks.has('frenzy2') ? 1.2 : 1);
       if (!this.frenzyReady && this.frenzyT <= 0 && this.frenzyMeter >= this.frenzyMax) {
         this.frenzyReady = true;
         this.frenzyMeter = this.frenzyMax;
@@ -1062,7 +1114,7 @@ export class Game {
     if (!this.frenzyReady) return false;
     this.frenzyReady = false;
     this.frenzyMeter = 0;
-    this.frenzyT = 10;
+    this.frenzyT = this.frenzyDuration;
     this.fx.sound('frenzy');
     this.fx.shake(6);
     this.events.emit('frenzyStart', undefined);
@@ -2087,7 +2139,7 @@ export class Game {
       default:
         return false;
     }
-    t.abilityCd.set(ab.id, ab.cooldown);
+    t.abilityCd.set(ab.id, ab.cooldown * (this.perks.has('abilities') ? 0.9 : 1));
     t.fireAnim = 0;
     this.stats.abilitiesUsed++;
     this.fx.ability(t, ab.id);
@@ -2130,6 +2182,8 @@ export class Game {
       frenzyMeter: this.frenzyMeter,
       stats: { ...this.stats },
       savedAt: Date.now(),
+      perks: this.config.perks,
+      challenge: this.config.challenge,
       towers: this.towers.map((t) => ({
         k: t.isHero ? 'h' : 't',
         id: String(t.typeId),
@@ -2147,7 +2201,7 @@ export class Game {
   }
 
   static restore(s: SaveState): Game {
-    const g = new Game({ mapId: s.mapId, difficulty: s.difficulty, heroId: s.heroId });
+    const g = new Game({ mapId: s.mapId, difficulty: s.difficulty, heroId: s.heroId, perks: s.perks, challenge: s.challenge });
     g.round = s.round;
     g.cash = s.cash;
     g.lives = s.lives;

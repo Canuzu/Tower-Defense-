@@ -148,3 +148,27 @@ describe('simulation', () => {
     expect(g2.cash).toBe(g.cash);
   });
 });
+
+describe('meta progression', () => {
+  it('perks change the starting state and tower stats', () => {
+    const g = new Game({ mapId: 'meadow', difficulty: 'medium', heroId: 'nova', perks: ['cash1', 'cash2', 'spike', 'hero1', 'lives'] });
+    expect(g.cash).toBe(650 + 300);
+    expect(g.lives).toBe(150 + 15);
+    const t = g.placeTower('spike', 560, 220)!;
+    const a = t.stats.attacks[0];
+    expect(a.kind === 'shoot' && a.proj.pierce).toBe(3);
+    const h = g.placeHero('nova', 620, 560)!;
+    expect(h.heroLevel).toBe(2);
+  });
+
+  it('daily challenges are deterministic and restrict towers', async () => {
+    const { dailyFor } = await import('../src/game/daily');
+    const a = dailyFor('2026-10-18');
+    const b = dailyFor('2026-10-18');
+    expect(a).toEqual(b);
+    const g = new Game({ mapId: a.mapId, difficulty: a.difficulty, heroId: null, challenge: a.challenge });
+    expect(g.lastRound).toBe(a.challenge.lastRound);
+    const banned = (['spike', 'boomer', 'frost', 'hoot', 'ember', 'zap', 'buzz'] as const).find((id) => !a.challenge.allowed!.includes(id));
+    if (banned) expect(g.isAllowed(banned)).toBe(false);
+  });
+});

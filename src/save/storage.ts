@@ -18,8 +18,26 @@ export interface Profile {
   medals: Record<string, Partial<Record<Difficulty, boolean>>>;
   settings: Settings;
   tutorialDone: boolean;
-  stats: { games: number; wins: number; pops: number; bossesPopped: number; bestRound: number };
+  stats: {
+    games: number;
+    wins: number;
+    pops: number;
+    bossesPopped: number;
+    bestRound: number;
+    golden?: number;
+    tier5?: string[];
+    maxBonds?: number;
+    bestCombo?: number;
+    frenzies?: number;
+    heroMax?: number;
+    flawless?: number;
+    maxCash?: number;
+    dailies?: number;
+  };
   heroId: 'nova' | 'grizz';
+  perks: string[];
+  achievements: Record<string, number>;
+  dailyDone: Record<string, boolean>;
 }
 
 const KEY = 'gloop-guardians/profile/v1';
@@ -33,6 +51,9 @@ export const defaultProfile = (): Profile => ({
   tutorialDone: false,
   stats: { games: 0, wins: 0, pops: 0, bossesPopped: 0, bestRound: 0 },
   heroId: 'nova',
+  perks: [],
+  achievements: {},
+  dailyDone: {},
 });
 
 function read<T>(key: string): T | null {
@@ -56,7 +77,16 @@ export function loadProfile(): Profile {
   const p = read<Profile>(KEY);
   const d = defaultProfile();
   if (!p || p.v !== 1) return d;
-  return { ...d, ...p, settings: { ...d.settings, ...p.settings }, stats: { ...d.stats, ...p.stats }, medals: p.medals ?? {} };
+  return {
+    ...d,
+    ...p,
+    settings: { ...d.settings, ...p.settings },
+    stats: { ...d.stats, ...p.stats },
+    medals: p.medals ?? {},
+    perks: p.perks ?? [],
+    achievements: p.achievements ?? {},
+    dailyDone: p.dailyDone ?? {},
+  };
 }
 
 export function saveProfile(p: Profile) {
@@ -92,6 +122,11 @@ export function latestSave(): SaveState | null {
     /* ignore */
   }
   return best;
+}
+
+/** Wisdom points: one per level gained. */
+export function wisdomPoints(p: Profile): number {
+  return levelFromXp(p.xp).level - 1 - p.perks.length;
 }
 
 /** Player level from XP: each level needs a bit more. */

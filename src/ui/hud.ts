@@ -179,6 +179,11 @@ export class Hud {
     card.dataset.id = id;
     card.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      if (card.classList.contains('banned')) {
+        audio.play('error');
+        this.toast(tr("Not allowed in today's challenge"), 1600);
+        return;
+      }
       if (card.classList.contains('locked')) {
         audio.play('error');
         const lvl = kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock;
@@ -408,7 +413,7 @@ export class Hud {
     }
     for (const id of TOWER_ORDER) {
       if (TOWERS[id].hotkey === k) {
-        if (!this.isUnlocked('tower', id)) return;
+        if (!this.isUnlocked('tower', id) || !this.game.isAllowed(id)) return;
         this.startPlacing('tower', id, null, false);
         return;
       }
@@ -775,7 +780,7 @@ export class Hud {
     toggle(this.frenzyEl, 'ready', ready);
     toggle(this.frenzyEl, 'active', g.frenzyT > 0);
     if (g.frenzyT > 0) {
-      this.frenzyFill.style.width = `${(g.frenzyT / 10) * 100}%`;
+      this.frenzyFill.style.width = `${(g.frenzyT / g.frenzyDuration) * 100}%`;
       setText(this.frenzyLbl, tr('FRENZY {n}s', { n: Math.ceil(g.frenzyT) }));
     } else {
       this.frenzyFill.style.width = `${Math.min(100, (g.frenzyMeter / g.frenzyMax) * 100)}%`;
@@ -825,8 +830,10 @@ export class Hud {
     for (const [key, card] of this.cards) {
       const [kind, id] = key.split(':') as ['tower' | 'hero', string];
       const unlocked = this.isUnlocked(kind, id);
+      const banned = kind === 'tower' && !g.isAllowed(id as TowerId);
       const cost = kind === 'tower' ? g.towerCost(id as TowerId) : g.heroCost(id as HeroId);
-      toggle(card, 'locked', !unlocked);
+      toggle(card, 'locked', !unlocked || banned);
+      toggle(card, 'banned', banned);
       const placedHero = kind === 'hero' && !!g.hero;
       toggle(card, 'poor', unlocked && !placedHero && !g.sandbox && g.cash < cost);
       const price = card.querySelector('.price') as HTMLElement;

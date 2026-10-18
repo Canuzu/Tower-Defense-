@@ -1,4 +1,4 @@
-import { Game, type SaveState } from '../game/Game';
+import { Game, type SaveState, type ChallengeDef } from '../game/Game';
 import { MAPS, type MapDef } from '../game/maps';
 import { DIFFICULTIES, type Difficulty } from '../game/types';
 import { HEROES, HERO_ORDER, type HeroId } from '../game/heroes';
@@ -14,7 +14,10 @@ import { Hud } from './hud';
 import { h, clear } from './dom';
 import { setHaptics } from './haptics';
 import { gloopIcon } from './icons';
-import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, type Profile } from '../save/storage';
+import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, wisdomPoints, type Profile } from '../save/storage';
+import { perksModal, achievementsModal, dailyModal } from './meta';
+import { newlyUnlocked, bondCount } from '../game/achievements';
+import { dailyFor, todayKey } from '../game/daily';
 import type { TowerId } from '../game/towerTypes';
 import { SYNERGIES } from '../game/synergy';
 import { t, setLang, type LangSetting } from '../i18n';
@@ -91,6 +94,7 @@ export class App {
   }
 
   private slowFrames = 0;
+  private statTimer = 0;
   private frame = (now: number) => {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
@@ -106,6 +110,12 @@ export class App {
     if (this.scene === 'game' && this.game) {
       this.game.update(dt);
       this.hud?.update(dt);
+      this.statTimer -= dt;
+      if (this.statTimer <= 0) {
+        this.statTimer = 1.5;
+        this.trackStats(this.game);
+        this.claimAchievements(this.game);
+      }
       if (audio.music) {
         audio.music.intensity = this.game.roundActive ? (this.game.enemies.some((e) => e.def.boss) ? 2 : 1) : 0;
         audio.music.frenzy = this.game.frenzyT > 0;
@@ -206,6 +216,7 @@ export class App {
         h('div', null, h('div', { style: 'font-weight:800;font-size:15px;text-shadow:0 2px 0 #2a1b2e' }, t('Player level {n}', { n: lv.level })), h('div', { class: 'xpbar' }, h('div', { style: `width:${Math.round((lv.into / lv.need) * 100)}%` }))),
       ),
       h('div', { class: 'corner-right' }, h('button', { class: 'btn icon dark', title: t('Settings'), onclick: () => this.openSettings() }, '⚙️')),
+      this.sideMenu(),
       logo,
       h('div', { class: 'tagline' }, t('Pop the gloop. Save the valley.')),
       buttons,
@@ -336,10 +347,95 @@ export class App {
   // Game
   // -------------------------------------------------------------------------------------------
 
-  startGame(mapId: string, diff: Difficulty, heroId: HeroId | null) {
-    clearGame(mapId, diff);
-    const g = new Game({ mapId, difficulty: diff, heroId });
+  startGame(mapId: string, diff: Difficulty, heroId: HeroId | null, challenge?: ChallengeDef) {
+    if (!challenge) clearGame(mapId, diff);
+    // daily challenges are the same for everyone, so permanent perks are switched off there
+    const perks = diff === 'sandbox' || challenge ? [] : [...this.profile.perks];
+    const g = new Game({ mapId, difficulty: diff, heroId: challenge?.noHero ? null : heroId, perks, challenge });
     this.enterGame(g);
+  }
+
+  private startDaily() {
+    const d = dailyFor(todayKey());
+    this.startGame(d.mapId, d.difficulty, this.profile.heroId, d.challenge);
+  }
+
+  private sideMenu(): HTMLElement {
+    const pts = wisdomPoints(this.profile);
+    const unseen = newlyUnlocked(this.profile, null).length;
+    const dailyDone = !!this.profile.dailyDone[todayKey()];
+    const btn = (label: string, cls: string, badge: string | null, fn: () => void) => {
+      const b = h('button', { class: 'btn small ' + cls }, label, badge ? h('span', { class: 'badge' }, badge) : null);
+      b.addEventListener('click', () => {
+        audio.play('click');
+        fn();
+      });
+      return b;
+    };
+    return h(
+      'div',
+      { class: 'side-menu' },
+      btn(t('📅 Daily'), 'blue', dailyDone ? null : '!', () => this.openDaily()),
+      btn(t('🧠 Wisdom'), 'gold', pts > 0 ? String(pts) : null, () => this.openPerks()),
+      btn(t('🏅 Achievements'), 'dark', unseen > 0 ? String(unseen) : null, () => this.openAchievements()),
+    );
+  }
+
+  private openPerks() {
+    const host = this.modalHost();
+    host.open(perksModal(this.profile, () => {
+      host.close();
+      if (this.scene === 'menu') this.showMenu();
+    }, () => {}));
+  }
+
+  private openAchievements() {
+    this.claimAchievements(null);
+    const host = this.modalHost();
+    host.open(achievementsModal(this.profile, this.game, () => {
+      host.close();
+      if (this.scene === 'menu') this.showMenu();
+    }));
+  }
+
+  private openDaily() {
+    const host = this.modalHost();
+    host.open(dailyModal(this.profile, (id) => this.thumb(MAPS.find((m) => m.id === id)!), () => {
+      host.close();
+      this.startDaily();
+    }, () => host.close()));
+  }
+
+  /** Records unlocked achievements, grants their XP and announces them. */
+  private claimAchievements(g: Game | null) {
+    const fresh = newlyUnlocked(this.profile, g);
+    if (!fresh.length) return;
+    for (const a of fresh) {
+      this.profile.achievements[a.id] = Date.now();
+      this.addXp(a.xp);
+      this.hud?.toast(t('🏅 Achievement unlocked: {name} (+{xp} XP)', { name: t(a.name), xp: a.xp }), 3200);
+    }
+    audio.play('levelup', 0.8);
+    saveProfile(this.profile);
+  }
+
+  /** Copies live game stats into the profile (deltas since the last call). */
+  private recorded = { pops: 0, bosses: 0, golden: 0 };
+  private trackStats(g: Game) {
+    if (g.sandbox) return;
+    const st = this.profile.stats;
+    st.pops += g.stats.pops - this.recorded.pops;
+    st.bossesPopped += g.stats.bossesPopped - this.recorded.bosses;
+    st.golden = (st.golden ?? 0) + g.stats.goldenPopped - this.recorded.golden;
+    this.recorded = { pops: g.stats.pops, bosses: g.stats.bossesPopped, golden: g.stats.goldenPopped };
+    st.bestCombo = Math.max(st.bestCombo ?? 0, g.stats.bestCombo, g.combo);
+    st.maxBonds = Math.max(st.maxBonds ?? 0, bondCount(g));
+    st.maxCash = Math.max(st.maxCash ?? 0, Math.floor(g.cash));
+    const hero = g.hero;
+    if (hero) st.heroMax = Math.max(st.heroMax ?? 1, hero.heroLevel);
+    const t5 = new Set(st.tier5 ?? []);
+    for (const tw of g.towers) if (tw.def && tw.tiers.includes(5)) t5.add(tw.def.id);
+    st.tier5 = [...t5];
   }
 
   resume(s: SaveState) {
@@ -359,6 +455,14 @@ export class App {
     this.endGame();
     this.game = g;
     this.xpGainedThisGame = 0;
+    this.recorded = { pops: g.stats.pops, bosses: g.stats.bossesPopped, golden: g.stats.goldenPopped };
+    this.statTimer = 0;
+    g.events.on('frenzyStart', () => {
+      if (!g.sandbox) this.profile.stats.frenzies = (this.profile.stats.frenzies ?? 0) + 1;
+    });
+    g.events.on('roundStart', () => {
+      if (!g.sandbox && g.roundSnapshot && !g.config.challenge) saveGame(g.roundSnapshot);
+    });
     g.fx = makePresentation(this.renderer);
     g.autoStart = this.profile.settings.autoStart;
     this.scene = 'game';
@@ -366,7 +470,7 @@ export class App {
     this.renderer.setGame(g);
     this.profile.stats.games++;
     saveProfile(this.profile);
-    const tutorial = !this.profile.tutorialDone && g.config.difficulty !== 'sandbox' && g.round === g.diff.startRound && g.towers.length === 0;
+    const tutorial = !this.profile.tutorialDone && g.config.difficulty !== 'sandbox' && !g.config.challenge && g.round === g.diff.startRound && g.towers.length === 0;
     this.hud = new Hud(
       g,
       this.renderer,
@@ -376,7 +480,7 @@ export class App {
         tutorial,
         heroId: g.config.heroId,
         onQuit: () => this.showMenu(),
-        onRestart: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId),
+        onRestart: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge),
         onRetryRound: () => {
           if (g.roundSnapshot) this.resume(g.roundSnapshot);
         },
@@ -403,7 +507,8 @@ export class App {
     const xp = Math.round((20 + round * 2) * g.diff.xpMul);
     this.addXp(xp);
     this.profile.stats.bestRound = Math.max(this.profile.stats.bestRound, round);
-    if (!g.won || g.freeplay) saveGame(g.serialize());
+    if ((!g.won || g.freeplay) && !g.config.challenge) saveGame(g.serialize());
+    this.trackStats(g);
     saveProfile(this.profile);
   }
 
@@ -425,12 +530,25 @@ export class App {
 
   private onVictory(g: Game) {
     const p = this.profile;
-    if (!p.medals[g.map.id]) p.medals[g.map.id] = {};
-    const first = !p.medals[g.map.id][g.config.difficulty];
-    p.medals[g.map.id][g.config.difficulty] = true;
+    this.trackStats(g);
+    let first = false;
+    if (g.config.challenge) {
+      const key = todayKey();
+      if (!p.dailyDone[key] && g.config.challenge.id === 'daily-' + key) {
+        p.dailyDone[key] = true;
+        p.stats.dailies = (p.stats.dailies ?? 0) + 1;
+        this.addXp(500);
+        first = true;
+      }
+    } else {
+      if (!p.medals[g.map.id]) p.medals[g.map.id] = {};
+      first = !p.medals[g.map.id][g.config.difficulty];
+      p.medals[g.map.id][g.config.difficulty] = true;
+      if (first) this.addXp(Math.round(300 * g.diff.xpMul));
+    }
     p.stats.wins++;
-    p.stats.pops += g.stats.pops;
-    if (first) this.addXp(Math.round(300 * g.diff.xpMul));
+    if (g.stats.leaked === 0) p.stats.flawless = (p.stats.flawless ?? 0) + 1;
+    this.claimAchievements(g);
     saveProfile(p);
     clearGame(g.map.id, g.config.difficulty);
     const hud = this.hud!;
@@ -440,7 +558,7 @@ export class App {
         { class: 'modal' },
         h('div', { style: 'font-size:64px;line-height:1' }, '🏆'),
         h('h2', null, t('VICTORY!')),
-        h('p', null, t('{map} on {diff}', { map: t(g.map.name), diff: t(g.diff.name) }) + (first ? t(' · New medal!') : '')),
+        h('p', null, g.config.challenge ? t('Daily challenge complete!') + (first ? ' +500 XP' : '') : t('{map} on {diff}', { map: t(g.map.name), diff: t(g.diff.name) }) + (first ? t(' · New medal!') : '')),
         this.statsGrid(g),
         h(
           'div',
@@ -467,7 +585,7 @@ export class App {
 
   private onDefeat(g: Game) {
     const p = this.profile;
-    p.stats.pops += g.stats.pops;
+    this.trackStats(g);
     saveProfile(p);
     clearGame(g.map.id, g.config.difficulty);
     const hud = this.hud!;
@@ -484,7 +602,7 @@ export class App {
             'div',
             { class: 'row' },
             g.roundSnapshot ? h('button', { class: 'btn gold', onclick: () => this.resume(g.roundSnapshot!) }, t('↺ Retry round {n}', { n: g.roundSnapshot.round })) : null,
-            h('button', { class: 'btn green', onclick: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId) }, t('↻ Restart')),
+            h('button', { class: 'btn green', onclick: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge) }, t('↻ Restart')),
             h('button', { class: 'btn dark', onclick: () => this.showMenu() }, t('🏠 Home')),
           ),
         ),

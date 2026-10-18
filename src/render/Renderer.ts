@@ -5,7 +5,7 @@ import { WORLD_H, WORLD_W } from '../game/maps';
 import { TOWERS } from '../game/towers';
 import { HEROES, type HeroId } from '../game/heroes';
 import type { TowerId, OrbitAttack } from '../game/towerTypes';
-import { SYNERGIES, SYNERGY_RANGE } from '../game/synergy';
+import { SYNERGIES } from '../game/synergy';
 import { TAU, rand } from '../core/math';
 import { renderMap, BLEED, THEMES } from './mapArt';
 import { gloopSprite, iceSprite, clearGloopCache } from './gloopArt';
@@ -1107,7 +1107,7 @@ export class Renderer {
       }
       // faint synergy radius
       ctx.beginPath();
-      ctx.arc(gh.x, gh.y, SYNERGY_RANGE, 0, TAU);
+      ctx.arc(gh.x, gh.y, g.bondRange, 0, TAU);
       ctx.strokeStyle = 'rgba(255,230,120,0.25)';
       ctx.setLineDash([3, 9]);
       ctx.lineWidth = 1.5;

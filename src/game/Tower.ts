@@ -70,6 +70,8 @@ export class Tower {
 
   readonly def: TowerDef | null;
   readonly hero: HeroDef | null;
+  /** extra stat modifier applied after upgrades (permanent perks) */
+  mod: ((t: Tower, s: TowerStats) => void) | null = null;
 
   constructor(
     public id: number,
@@ -121,6 +123,7 @@ export class Tower {
   refreshStats() {
     const prevAbilities = this.stats?.abilities.map((a) => a.id) ?? [];
     this.stats = this.def ? computeStats(this.def, this.tiers) : heroStats(this.hero!, this.heroLevel);
+    this.mod?.(this, this.stats);
     for (const ab of this.stats.abilities) {
       if (!prevAbilities.includes(ab.id) && !this.abilityCd.has(ab.id)) this.abilityCd.set(ab.id, 0);
     }
