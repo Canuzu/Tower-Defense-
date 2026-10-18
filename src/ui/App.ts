@@ -20,7 +20,7 @@ import { SYNERGIES } from '../game/synergy';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
 
-const MAP_LEVEL: Record<string, number> = { meadow: 1, caverns: 2, forge: 4, rivers: 6 };
+const MAP_LEVEL: Record<string, number> = { meadow: 1, caverns: 2, fjord: 3, forge: 4, candy: 5, rivers: 6 };
 const TIER_COLOR: Record<string, string> = { Beginner: '#5ddc6a', Intermediate: '#ffd23c', Advanced: '#ff9f43', Expert: '#ff4d6d' };
 
 export class App {

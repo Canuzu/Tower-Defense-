@@ -1,10 +1,29 @@
 export const WORLD_W = 1600;
 export const WORLD_H = 900;
 
-export type MapTheme = 'meadow' | 'cave' | 'lava' | 'river';
+export type MapTheme = 'meadow' | 'cave' | 'lava' | 'river' | 'snow' | 'candy';
 
 export interface Obstacle {
-  kind: 'tree' | 'rock' | 'pond' | 'bush' | 'crystal' | 'pit' | 'lava' | 'mushroom' | 'stump' | 'water' | 'boulder' | 'vent';
+  kind:
+    | 'tree'
+    | 'rock'
+    | 'pond'
+    | 'bush'
+    | 'crystal'
+    | 'pit'
+    | 'lava'
+    | 'mushroom'
+    | 'stump'
+    | 'water'
+    | 'boulder'
+    | 'vent'
+    | 'pine'
+    | 'snowman'
+    | 'ice'
+    | 'lollipop'
+    | 'gumdrop'
+    | 'cupcake'
+    | 'choco';
   x: number;
   y: number;
   r: number;
@@ -154,5 +173,68 @@ const rivers: MapDef = {
   ],
 };
 
-export const MAPS: MapDef[] = [meadow, caverns, forge, rivers];
+const fjord: MapDef = {
+  id: 'fjord',
+  name: 'Frosty Fjord',
+  tier: 'Intermediate',
+  theme: 'snow',
+  desc: 'A snowy zig-zag down to the frozen sea. The ice lake leaves odd pockets to build in.',
+  pathWidth: 56,
+  seed: 61,
+  unlockMedals: 0,
+  paths: [
+    [
+      [-60, 625], [255, 625], [340, 540], [342, 232], [425, 150], [640, 150], [722, 232], [724, 520], [805, 602],
+      [1020, 602], [1102, 520], [1104, 300], [1186, 218], [1418, 218], [1500, 300], [1505, 980],
+    ],
+  ],
+  obstacles: [
+    { kind: 'ice', x: 535, y: 400, r: 105, ry: 70, blocks: true, rot: 0.1 },
+    { kind: 'ice', x: 1310, y: 560, r: 100, ry: 64, blocks: true, rot: -0.2 },
+    { kind: 'pine', x: 150, y: 330, r: 40, blocks: true },
+    { kind: 'pine', x: 90, y: 180, r: 34, blocks: true },
+    { kind: 'pine', x: 900, y: 120, r: 38, blocks: true },
+    { kind: 'pine', x: 960, y: 820, r: 40, blocks: true },
+    { kind: 'pine', x: 600, y: 820, r: 36, blocks: true },
+    { kind: 'pine', x: 1560, y: 120, r: 34, blocks: true },
+    { kind: 'pine', x: 1230, y: 800, r: 38, blocks: true },
+    { kind: 'snowman', x: 910, y: 380, r: 26, blocks: true },
+    { kind: 'rock', x: 190, y: 800, r: 26, blocks: true },
+    { kind: 'rock', x: 1300, y: 380, r: 22, blocks: true },
+  ],
+};
+
+const candy: MapDef = {
+  id: 'candy',
+  name: 'Candy Lane',
+  tier: 'Advanced',
+  theme: 'candy',
+  desc: 'A sugary track between chocolate rivers. Sweet, short and very dangerous.',
+  pathWidth: 56,
+  seed: 73,
+  unlockMedals: 0,
+  paths: [
+    [
+      [-60, 180], [515, 180], [600, 262], [602, 638], [684, 720], [916, 720], [998, 638], [1000, 262], [1082, 180],
+      [1660, 180],
+    ],
+  ],
+  obstacles: [
+    { kind: 'choco', x: 290, y: 580, r: 210, ry: 92, blocks: true, rot: -0.12 },
+    { kind: 'choco', x: 1320, y: 580, r: 220, ry: 98, blocks: true, rot: 0.12 },
+    { kind: 'lollipop', x: 800, y: 300, r: 34, blocks: true },
+    { kind: 'lollipop', x: 120, y: 330, r: 30, blocks: true },
+    { kind: 'lollipop', x: 1500, y: 330, r: 30, blocks: true },
+    { kind: 'cupcake', x: 800, y: 520, r: 32, blocks: true },
+    { kind: 'cupcake', x: 300, y: 70, r: 26, blocks: true },
+    { kind: 'cupcake', x: 1300, y: 70, r: 26, blocks: true },
+    { kind: 'gumdrop', x: 700, y: 440, r: 22, blocks: true },
+    { kind: 'gumdrop', x: 900, y: 440, r: 22, blocks: true },
+    { kind: 'gumdrop', x: 800, y: 840, r: 24, blocks: true },
+    { kind: 'gumdrop', x: 60, y: 840, r: 22, blocks: true },
+    { kind: 'gumdrop', x: 1550, y: 850, r: 22, blocks: true },
+  ],
+};
+
+export const MAPS: MapDef[] = [meadow, caverns, fjord, forge, candy, rivers];
 export const MAP_BY_ID: Record<string, MapDef> = Object.fromEntries(MAPS.map((m) => [m.id, m]));

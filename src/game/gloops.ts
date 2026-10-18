@@ -17,7 +17,8 @@ export type GloopId =
   | 'bfb'
   | 'zomg'
   | 'ddt'
-  | 'bad';
+  | 'bad'
+  | 'golden';
 
 export interface GloopDef {
   id: GloopId;
@@ -62,11 +63,12 @@ export const GLOOPS: Record<GloopId, GloopDef> = {
   bfb: { id: 'bfb', name: 'Mega Glob', color: '#ff4d4d', accent: '#ffb3b3', hp: 700, speed: 0.25, radius: 60, children: ['moab', 'moab', 'moab', 'moab'], immune: [], boss: true, fortifiable: true, tier: 11, desc: 'Slow. Enormous. Carries 4 Globs.' },
   zomg: { id: 'zomg', name: 'Titan Glob', color: '#6fdc3a', accent: '#1f3d14', hp: 4000, speed: 0.18, radius: 76, children: ['bfb', 'bfb', 'bfb', 'bfb'], immune: [], boss: true, fortifiable: true, tier: 12, desc: 'An unstoppable titan. Carries 4 Mega Globs.' },
   ddt: { id: 'ddt', name: 'Phantom', color: '#3a3f4a', accent: '#5bffe1', hp: 400, speed: 2.75, radius: 44, children: ['ceramic', 'ceramic', 'ceramic', 'ceramic', 'ceramic', 'ceramic'], immune: ['sharp', 'explosive'], boss: true, fortifiable: true, camo: true, tier: 12, desc: 'Fast, camouflaged and armoured.' },
+  golden: { id: 'golden', name: 'Golden Gloop', color: '#ffc61a', accent: '#fff3a8', hp: 8, speed: 2.4, radius: 15, children: [], immune: [], tier: 5, desc: 'A rare shiny gloop. Pop it before it escapes for a big cash bonus!' },
   bad: { id: 'bad', name: 'Gloop Overlord', color: '#8a2be2', accent: '#ffd23c', hp: 20000, speed: 0.18, radius: 96, children: ['zomg', 'zomg', 'ddt', 'ddt', 'ddt'], immune: [], boss: true, fortifiable: true, tier: 13, desc: 'The ruler of all gloops. Good luck.' },
 };
 
 export const GLOOP_ORDER: GloopId[] = [
-  'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'purple', 'zebra', 'lead', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad',
+  'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'purple', 'zebra', 'lead', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad', 'golden',
 ];
 
 const rbeCache = new Map<string, number>();

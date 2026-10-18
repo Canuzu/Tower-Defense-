@@ -43,10 +43,12 @@ export function makePresentation(r: Renderer): FxSink {
       }
       if (e.def.boss) {
         r.splat(e.x, e.y, e.def.color, e.radius, true);
+        r.comic(e.x, e.y - e.radius, true);
         audio.play('bigpop', 1);
         return;
       }
       if (popBudget-- > 0) r.splat(e.x, e.y, e.def.color, e.radius);
+      if (!r.reducedEffects && Math.random() < (e.def.hp > 1 ? 0.5 : 0.035)) r.comic(e.x, e.y - e.radius);
       audio.play('pop', 0.5, 1 + (5 - Math.min(5, e.def.tier)) * 0.06);
     },
     immune(x, y) {

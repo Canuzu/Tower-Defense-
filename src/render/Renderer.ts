@@ -260,12 +260,12 @@ export class Renderer {
   private drawMapAnim(ctx: CanvasRenderingContext2D, g: Game) {
     const t = this.time;
     for (const o of g.map.obstacles) {
-      if (o.kind === 'pond' || o.kind === 'water') {
+      if (o.kind === 'pond' || o.kind === 'water' || o.kind === 'choco') {
         ctx.save();
         ctx.beginPath();
         ctx.ellipse(o.x, o.y, o.r, o.ry ?? o.r, o.rot ?? 0, 0, TAU);
         ctx.clip();
-        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.strokeStyle = o.kind === 'choco' ? 'rgba(255,220,190,0.3)' : 'rgba(255,255,255,0.35)';
         ctx.lineWidth = 2;
         for (let i = 0; i < 6; i++) {
           const ph = (t * 0.25 + i / 6) % 1;
@@ -289,6 +289,14 @@ export class Renderer {
         if (Math.random() < 0.04 && !this.reducedEffects) {
           this.particles.spawn(PK.Flame, o.x + rand(-o.r, o.r) * 0.6, o.y + rand(-1, 1) * (o.ry ?? o.r) * 0.5, { vy: -30, life: 0.8, size: 10, color: '#ff9f1c' });
         }
+      } else if (o.kind === 'ice') {
+        const a = 0.15 + Math.sin(t * 1.3 + o.x) * 0.1;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = a;
+        const sx = o.x + Math.sin(t * 0.7 + o.y) * o.r * 0.5;
+        ctx.drawImage(glowSprite('#ffffff'), sx - 30, o.y - 18, 60, 36);
+        ctx.restore();
       } else if (o.kind === 'crystal') {
         const a = 0.12 + Math.sin(t * 2 + o.x * 0.1) * 0.08;
         ctx.save();
@@ -512,6 +520,14 @@ export class Renderer {
       ctx.setLineDash([4, 4]);
       ctx.stroke();
       ctx.setLineDash([]);
+    }
+    if (e.type === 'golden') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.55 + Math.sin(t * 9) * 0.2;
+      ctx.drawImage(glowSprite('#ffd23c'), e.x - e.radius * 2.4, e.y - e.radius * 2.4, e.radius * 4.8, e.radius * 4.8);
+      ctx.restore();
+      if (Math.random() < 0.5) this.particles.spawn(PK.Star, e.x + rand(-e.radius, e.radius), e.y + rand(-e.radius, e.radius), { life: 0.5, size: 5, color: '#fff3a8', vy: -20 });
     }
     if (!this.reducedEffects) {
       if (e.burnT > 0 && Math.random() < 0.25) {
@@ -1190,6 +1206,14 @@ export class Renderer {
         this.particles.spawn(PK.Smoke, x + Math.cos(a) * radius * 0.6, y + Math.sin(a) * radius * 0.4, { vx: Math.cos(a) * 40, vy: Math.sin(a) * 20, life: 0.5, size: 6, size2: 14 });
       }
     }
+  }
+
+  /** Comic-book onomatopoeia burst. */
+  comic(x: number, y: number, big = false) {
+    const words = big ? ['KA-SPLOOSH!', 'MEGA POP!', 'SPLAT-TASTIC!'] : ['POP!', 'SPLAT!', 'BLORP!', 'PLOP!', 'SPLOOSH!'];
+    const cols = ['#ffe066', '#ff8fab', '#7bdff2', '#b5e48c', '#ffffff', '#ffb347'];
+    const w = words[Math.floor(Math.random() * words.length)];
+    this.particles.spawn(PK.Text, x + rand(-8, 8), y, { vy: -55, drag: 2.5, life: big ? 1.4 : 0.75, text: w, color: cols[Math.floor(Math.random() * cols.length)], font: big ? 30 : 15 });
   }
 
   floatText(x: number, y: number, text: string, color: string, size = 16) {

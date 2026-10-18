@@ -76,6 +76,7 @@ export interface GameStats {
   bestCombo: number;
   bossesPopped: number;
   abilitiesUsed: number;
+  goldenPopped: number;
 }
 
 interface SpawnItem {
@@ -154,7 +155,7 @@ export class Game {
   combo = 0;
   comboLast = -10;
 
-  stats: GameStats = { pops: 0, leaked: 0, cashEarned: 0, towersPlaced: 0, bestCombo: 0, bossesPopped: 0, abilitiesUsed: 0 };
+  stats: GameStats = { pops: 0, leaked: 0, cashEarned: 0, towersPlaced: 0, bestCombo: 0, bossesPopped: 0, abilitiesUsed: 0, goldenPopped: 0 };
 
   private grid = new SpatialGrid<Enemy>(64);
   private tmp: Enemy[] = [];
@@ -580,6 +581,10 @@ export class Game {
         this.spawnQueue.push({ t: gr.delay + i * gr.gap, type: gr.type, camo: !!gr.camo, regrow: !!gr.regrow, fortified: !!gr.fortified });
       }
     }
+    if (this.round >= 6 && !this.sandbox && Math.random() < 0.28) {
+      const dur = Math.max(4, roundDuration(def));
+      this.spawnQueue.push({ t: dur * rand(0.25, 0.75), type: 'golden', camo: false, regrow: false, fortified: false });
+    }
     this.spawnQueue.sort((a, b) => a.t - b.t);
     this.roundActive = true;
     this.roundTime = 0;
@@ -829,6 +834,10 @@ export class Game {
       lane: def.boss ? 0 : rand(-laneMax, laneMax) * 0.8,
     });
     e.speedMul = speedMul(this.round);
+    if (type === 'golden') {
+      e.maxHp = e.hp = 6 + this.round * 0.9;
+      this.events.emit('hint', '✨ A Golden Gloop appeared! Pop it before it escapes for bonus cash!');
+    }
     this.placeEnemy(e);
     this.enemies.push(e);
     this.enemyById.set(e.id, e);
@@ -908,6 +917,10 @@ export class Game {
 
   private leak(e: Enemy) {
     e.alive = false;
+    if (e.type === 'golden') {
+      this.fx.text(e.x - 60, e.y, 'It got away!', '#ffe066', 18);
+      return;
+    }
     let lives = Math.ceil(e.hp);
     for (const c of e.def.children) lives += rbe(c);
     if (this.sandbox) {
@@ -957,6 +970,15 @@ export class Game {
     e.alive = false;
     this.awardPop(e, ctx.tower, 1);
     this.fx.pop(e);
+    if (e.type === 'golden') {
+      const bonus = 40 + this.round * 8;
+      this.earn(bonus);
+      this.stats.goldenPopped++;
+      this.fx.cash(e.x, e.y - 20, bonus);
+      this.fx.text(e.x, e.y - 48, 'GOLDEN POP!', '#fff3a8', 24);
+      this.fx.sound('levelup', 0.7);
+      this.fx.shake(4);
+    }
     if (e.def.boss) {
       this.stats.bossesPopped++;
       this.fx.bossDeath(e);

@@ -125,7 +125,16 @@ function drawGloop(ctx: Ctx, type: GloopId, r: number, look: GloopLook) {
   if (type === 'ceramic') fill = bodyGradient(ctx, r, def.color, 0.45, -0.45);
   if (type === 'white') fill = bodyGradient(ctx, r, '#eef4ff', 0.2, -0.25);
   if (type === 'black') fill = bodyGradient(ctx, r, '#3a3047', 0.35, -0.5);
-  fillStroke(ctx, fill, lw);
+  if (type === 'golden') {
+    const g = ctx.createLinearGradient(-r, -r, r, r);
+    g.addColorStop(0, '#fff7c2');
+    g.addColorStop(0.35, '#ffd23c');
+    g.addColorStop(0.6, '#f5a623');
+    g.addColorStop(0.8, '#ffe680');
+    g.addColorStop(1, '#c47f00');
+    fill = g;
+  }
+  fillStroke(ctx, fill, lw, type === 'golden' ? '#5a3a00' : OUTLINE);
 
   ctx.save();
   blobPath(ctx, r * 0.999);
@@ -168,6 +177,13 @@ function drawGloop(ctx: Ctx, type: GloopId, r: number, look: GloopLook) {
     }
   }
   if (type === 'ceramic') crystalFacets(ctx, r, look.dmg);
+  if (type === 'golden') {
+    for (const [sx, sy, ss] of [[0.5, -0.45, 0.22], [-0.55, 0.35, 0.16], [0.45, 0.5, 0.12]]) {
+      star(ctx, sx * r, sy * r, ss * r, 0.3, 4, 0);
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fill();
+    }
+  }
   if (type === 'lead') {
     // rivets
     for (let i = 0; i < 7; i++) {
