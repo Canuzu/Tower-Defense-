@@ -12,6 +12,7 @@ import { gloopSprite, iceSprite, clearGloopCache } from './gloopArt';
 import { towerSprite, beeShape, acornShape, ART_RADIUS, type ArtId } from './towerArt';
 import { Particles, PK, glowSprite } from './particles';
 import { star } from './draw';
+import { t } from '../i18n';
 
 export interface Ghost {
   kind: 'tower' | 'hero';
@@ -1099,9 +1100,9 @@ export class Renderer {
           ctx.textAlign = 'center';
           ctx.lineWidth = 3 / this.scale;
           ctx.strokeStyle = '#2a1b2e';
-          ctx.strokeText('⚡ ' + b.name, mx, my);
+          ctx.strokeText('⚡ ' + t(b.name), mx, my);
           ctx.fillStyle = b.color;
-          ctx.fillText('⚡ ' + b.name, mx, my);
+          ctx.fillText('⚡ ' + t(b.name), mx, my);
         }
       }
       // faint synergy radius
@@ -1212,7 +1213,7 @@ export class Renderer {
   comic(x: number, y: number, big = false) {
     const words = big ? ['KA-SPLOOSH!', 'MEGA POP!', 'SPLAT-TASTIC!'] : ['POP!', 'SPLAT!', 'BLORP!', 'PLOP!', 'SPLOOSH!'];
     const cols = ['#ffe066', '#ff8fab', '#7bdff2', '#b5e48c', '#ffffff', '#ffb347'];
-    const w = words[Math.floor(Math.random() * words.length)];
+    const w = t(words[Math.floor(Math.random() * words.length)]);
     this.particles.spawn(PK.Text, x + rand(-8, 8), y, { vy: -55, drag: 2.5, life: big ? 1.4 : 0.75, text: w, color: cols[Math.floor(Math.random() * cols.length)], font: big ? 30 : 15 });
   }
 

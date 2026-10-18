@@ -8,6 +8,7 @@ export interface Settings {
   reducedEffects: boolean;
   autoStart: boolean;
   showFps: boolean;
+  lang?: 'auto' | 'en' | 'de';
 }
 
 export interface Profile {
@@ -28,7 +29,7 @@ export const defaultProfile = (): Profile => ({
   v: 1,
   xp: 0,
   medals: {},
-  settings: { sfx: 0.8, music: 0.45, haptics: true, reducedEffects: false, autoStart: false, showFps: false },
+  settings: { sfx: 0.8, music: 0.45, haptics: true, reducedEffects: false, autoStart: false, showFps: false, lang: 'auto' },
   tutorialDone: false,
   stats: { games: 0, wins: 0, pops: 0, bossesPopped: 0, bestRound: 0 },
   heroId: 'nova',

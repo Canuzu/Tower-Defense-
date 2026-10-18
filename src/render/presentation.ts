@@ -6,6 +6,7 @@ import { audio } from '../audio/audio';
 import { formatNum } from '../core/math';
 import { haptic } from '../ui/haptics';
 import { PK } from './particles';
+import { t } from '../i18n';
 
 /** Bridges simulation events to visuals, sound and haptics. */
 export function makePresentation(r: Renderer): FxSink {
@@ -72,7 +73,7 @@ export function makePresentation(r: Renderer): FxSink {
       if (kind === 'tracer') audio.play('snipe', 0.3);
     },
     text(x, y, str, color, size) {
-      r.floatText(x, y, str, color, size);
+      r.floatText(x, y, t(str), color, size);
     },
     cash(x, y, amount) {
       r.floatText(x, y, '+$' + formatNum(Math.round(amount)), '#ffe066', amount >= 1000 ? 22 : 16);
@@ -90,7 +91,7 @@ export function makePresentation(r: Renderer): FxSink {
     bossDeath(e: Enemy) {
       r.confetti(e.x, e.y, 40);
       r.explosion(e.x, e.y, e.radius * 1.6, 'boom');
-      r.floatText(e.x, e.y - e.radius, e.def.name.toUpperCase() + ' POPPED!', '#ffffff', 22);
+      r.floatText(e.x, e.y - e.radius, t('{name} POPPED!', { name: t(e.def.name).toUpperCase() }), '#ffffff', 22);
       haptic('heavy');
     },
     shake(p) {

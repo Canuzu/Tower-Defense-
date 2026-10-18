@@ -17,6 +17,7 @@ import { gloopIcon } from './icons';
 import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, type Profile } from '../save/storage';
 import type { TowerId } from '../game/towerTypes';
 import { SYNERGIES } from '../game/synergy';
+import { t, setLang, type LangSetting } from '../i18n';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
 
@@ -39,12 +40,13 @@ export class App {
 
   constructor(private root: HTMLElement) {
     this.profile = loadProfile();
+    setLang(this.profile.settings.lang ?? 'auto');
     const canvas = h('canvas', { id: 'game' });
     root.append(canvas);
     this.renderer = new Renderer(canvas);
     this.screen = h('div', { class: 'layer' });
     root.append(this.screen);
-    root.append(h('div', { class: 'rotate' }, h('div', null, h('div', { class: 'phone' }, '📱'), h('p', null, 'Rotate your device to landscape to play'))));
+    root.append(h('div', { class: 'rotate' }, h('div', null, h('div', { class: 'phone' }, '📱'), h('p', null, t('Rotate your device to landscape to play')))));
     this.applySettings();
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
@@ -71,6 +73,7 @@ export class App {
 
   private applySettings() {
     const s = this.profile.settings;
+    setLang(s.lang ?? 'auto');
     audio.sfxVolume = s.sfx;
     audio.musicVolume = s.music;
     audio.applyVolumes();
@@ -97,7 +100,7 @@ export class App {
       if (this.slowFrames > 180) {
         this.renderer.reducedEffects = true;
         this.renderer.particles.reduced = true;
-        this.hud?.toast('Effects reduced to keep the game smooth', 2200);
+        this.hud?.toast(t('Effects reduced to keep the game smooth'), 2200);
       }
     }
     if (this.scene === 'game' && this.game) {
@@ -189,10 +192,10 @@ export class App {
     const buttons = h('div', { class: 'menu-buttons' });
     if (save) {
       const m = MAPS.find((x) => x.id === save.mapId);
-      buttons.append(h('button', { class: 'btn blue', onclick: () => this.resume(save) }, `↺ Continue`, h('small', { style: 'font-size:0.6em;opacity:0.85' }, ` ${m?.name ?? ''} · R${save.round}`)));
+      buttons.append(h('button', { class: 'btn blue', onclick: () => this.resume(save) }, t('↺ Continue'), h('small', { style: 'font-size:0.6em;opacity:0.85' }, ` ${t(m?.name ?? '')} · R${save.round}`)));
     }
-    buttons.append(h('button', { class: 'btn green big', onclick: () => this.showMaps() }, '▶ PLAY'));
-    buttons.append(h('button', { class: 'btn gold', onclick: () => this.openCodex() }, '📖 Gloopedia'));
+    buttons.append(h('button', { class: 'btn green big', onclick: () => this.showMaps() }, t('▶ PLAY')));
+    buttons.append(h('button', { class: 'btn gold', onclick: () => this.openCodex() }, t('📖 Gloopedia')));
     const s = h(
       'div',
       { class: 'screen dim' },
@@ -200,11 +203,11 @@ export class App {
         'div',
         { class: 'profile' },
         h('div', { class: 'lvl' }, String(lv.level)),
-        h('div', null, h('div', { style: 'font-weight:800;font-size:15px;text-shadow:0 2px 0 #2a1b2e' }, `Player level ${lv.level}`), h('div', { class: 'xpbar' }, h('div', { style: `width:${Math.round((lv.into / lv.need) * 100)}%` }))),
+        h('div', null, h('div', { style: 'font-weight:800;font-size:15px;text-shadow:0 2px 0 #2a1b2e' }, t('Player level {n}', { n: lv.level })), h('div', { class: 'xpbar' }, h('div', { style: `width:${Math.round((lv.into / lv.need) * 100)}%` }))),
       ),
-      h('div', { class: 'corner-right' }, h('button', { class: 'btn icon dark', title: 'Settings', onclick: () => this.openSettings() }, '⚙️')),
+      h('div', { class: 'corner-right' }, h('button', { class: 'btn icon dark', title: t('Settings'), onclick: () => this.openSettings() }, '⚙️')),
       logo,
-      h('div', { class: 'tagline' }, 'Pop the gloop. Save the valley.'),
+      h('div', { class: 'tagline' }, t('Pop the gloop. Save the valley.')),
       buttons,
     );
     this.setScreen(s);
@@ -232,15 +235,15 @@ export class App {
       const medals = h('div', { class: 'medals' });
       for (const d of ['easy', 'medium', 'hard', 'champion'] as Difficulty[]) {
         const got = this.profile.medals[m.id]?.[d];
-        medals.append(h('div', { class: 'medal', title: DIFFICULTIES[d].name, style: got ? `background:${DIFFICULTIES[d].color}` : '' }, got ? '★' : ''));
+        medals.append(h('div', { class: 'medal', title: t(DIFFICULTIES[d].name), style: got ? `background:${DIFFICULTIES[d].color}` : '' }, got ? '★' : ''));
       }
       const card = h(
         'button',
         { class: 'mapcard' + (unlocked ? '' : ' locked') },
         h('img', { src: this.thumb(m), alt: m.name }),
-        h('div', { class: 'mc-tier', style: `background:${TIER_COLOR[m.tier]}` }, m.tier),
-        h('div', { class: 'mc-body' }, h('div', { class: 'mc-name' }, m.name), medals),
-        unlocked ? null : h('div', { class: 'lock' }, `🔒 Reach player level ${MAP_LEVEL[m.id]}`),
+        h('div', { class: 'mc-tier', style: `background:${TIER_COLOR[m.tier]}` }, t(m.tier)),
+        h('div', { class: 'mc-body' }, h('div', { class: 'mc-name' }, t(m.name)), medals),
+        unlocked ? null : h('div', { class: 'lock' }, t('🔒 Reach player level {n}', { n: MAP_LEVEL[m.id] })),
       );
       card.addEventListener('click', () => {
         if (!unlocked) {
@@ -254,14 +257,16 @@ export class App {
     const s = h(
       'div',
       { class: 'screen dim' },
-      h('div', { class: 'header' }, h('button', { class: 'btn icon dark', onclick: () => this.showMenu() }, '←'), h('h1', null, 'Choose a map')),
+      h('div', { class: 'header' }, h('button', { class: 'btn icon dark', onclick: () => this.showMenu() }, '←'), h('h1', null, t('Choose a map'))),
       grid,
     );
     this.setScreen(s);
   }
 
+  private lastSetupMap: MapDef = MAPS[0];
   showSetup(m: MapDef) {
     this.scene = 'setup';
+    this.lastSetupMap = m;
     audio.play('click');
     const diffs = h('div', { class: 'diffs' });
     const heroEl = h('div', { class: 'heroes' });
@@ -271,7 +276,7 @@ export class App {
       for (const d of ['easy', 'medium', 'hard', 'champion', 'sandbox'] as Difficulty[]) {
         const def = DIFFICULTIES[d];
         const got = this.profile.medals[m.id]?.[d];
-        const b = h('button', { class: 'diff' + (this.setupDiff === d ? ' sel' : ''), style: `background:linear-gradient(180deg, ${def.color}, ${def.color}aa)` }, h('b', { style: 'color:#1c1230' }, def.name + (got ? ' ★' : '')), h('span', { style: 'color:#1c1230' }, def.desc));
+        const b = h('button', { class: 'diff' + (this.setupDiff === d ? ' sel' : ''), style: `background:linear-gradient(180deg, ${def.color}, ${def.color}aa)` }, h('b', { style: 'color:#1c1230' }, t(def.name) + (got ? ' ★' : '')), h('span', { style: 'color:#1c1230' }, t(def.desc)));
         b.addEventListener('click', () => {
           this.setupDiff = d;
           audio.play('click');
@@ -288,7 +293,7 @@ export class App {
           { class: 'herocard' + (this.profile.heroId === id ? ' sel' : '') + (locked ? ' locked' : '') },
           h('img', { src: towerIcon(id as ArtId, [1], 140), alt: def.name }),
           h('b', null, def.name),
-          h('span', null, locked ? `🔒 Player level ${def.unlock}` : def.desc),
+          h('span', null, locked ? t('🔒 Player level {n}', { n: def.unlock }) : t(def.desc)),
         );
         c.addEventListener('click', () => {
           if (locked) {
@@ -304,14 +309,14 @@ export class App {
       }
       clear(startRow);
       const existing = loadGame(m.id, this.setupDiff);
-      if (existing && this.setupDiff !== 'sandbox') startRow.append(h('button', { class: 'btn blue', onclick: () => this.resume(existing) }, `↺ Continue round ${existing.round}`));
-      startRow.append(h('button', { class: 'btn green', style: 'min-width:200px', onclick: () => this.startGame(m.id, this.setupDiff, this.profile.heroId) }, existing ? 'New game' : '▶ Start'));
+      if (existing && this.setupDiff !== 'sandbox') startRow.append(h('button', { class: 'btn blue', onclick: () => this.resume(existing) }, t('↺ Continue round {n}', { n: existing.round })));
+      startRow.append(h('button', { class: 'btn green', style: 'min-width:200px', onclick: () => this.startGame(m.id, this.setupDiff, this.profile.heroId) }, t(existing ? 'New game' : '▶ Start')));
     };
     render();
     const s = h(
       'div',
       { class: 'screen dim' },
-      h('div', { class: 'header' }, h('button', { class: 'btn icon dark', onclick: () => this.showMaps() }, '←'), h('h1', null, m.name)),
+      h('div', { class: 'header' }, h('button', { class: 'btn icon dark', onclick: () => this.showMaps() }, '←'), h('h1', null, t(m.name))),
       h(
         'div',
         { class: 'setup' },
@@ -319,9 +324,9 @@ export class App {
           'div',
           { class: 'panel' },
           h('img', { src: this.thumb(m), alt: '', style: 'width:100%;border-radius:14px;border:3px solid #2a1b2e;display:block' }),
-          h('p', { style: 'margin:8px 2px 0;font-weight:600;color:#e6defa' }, m.desc),
+          h('p', { style: 'margin:8px 2px 0;font-weight:600;color:#e6defa' }, t(m.desc)),
         ),
-        h('div', null, h('div', { class: 'panel' }, h('h3', null, 'Difficulty'), diffs), h('div', { class: 'panel', style: 'margin-top:12px' }, h('h3', null, 'Hero'), heroEl), startRow),
+        h('div', null, h('div', { class: 'panel' }, h('h3', null, t('Difficulty')), diffs), h('div', { class: 'panel', style: 'margin-top:12px' }, h('h3', null, t('Hero')), heroEl), startRow),
       ),
     );
     this.setScreen(s);
@@ -412,7 +417,7 @@ export class App {
         ...TOWER_ORDER.filter((id) => TOWERS[id].unlock > before && TOWERS[id].unlock <= after).map((id) => TOWERS[id].name),
         ...HERO_ORDER.filter((id) => HEROES[id].unlock > before && HEROES[id].unlock <= after).map((id) => HEROES[id].name),
       ];
-      this.hud.banner(`LEVEL ${after}!`, unlocked.length ? `Unlocked: ${unlocked.join(', ')}` : 'Player level up', false);
+      this.hud.banner(t('LEVEL {n}!', { n: after }), unlocked.length ? t('Unlocked: {list}', { list: unlocked.join(', ') }) : t('Player level up'), false);
       audio.play('levelup');
       this.hud.setPlayerLevel(after);
     }
@@ -434,8 +439,8 @@ export class App {
         'div',
         { class: 'modal' },
         h('div', { style: 'font-size:64px;line-height:1' }, '🏆'),
-        h('h2', null, 'VICTORY!'),
-        h('p', null, `${g.map.name} on ${g.diff.name}${first ? ' · New medal!' : ''}`),
+        h('h2', null, t('VICTORY!')),
+        h('p', null, t('{map} on {diff}', { map: t(g.map.name), diff: t(g.diff.name) }) + (first ? t(' · New medal!') : '')),
         this.statsGrid(g),
         h(
           'div',
@@ -447,13 +452,13 @@ export class App {
               onclick: () => {
                 g.continueFreeplay();
                 hud.closeModal();
-                hud.toast('Freeplay! Rounds keep getting harder…', 3000);
+                hud.toast(t('Freeplay! Rounds keep getting harder…'), 3000);
               },
             },
-            '∞ Freeplay',
+            t('∞ Freeplay'),
           ),
-          h('button', { class: 'btn green', onclick: () => this.showMaps() }, '🗺 Maps'),
-          h('button', { class: 'btn dark', onclick: () => this.showMenu() }, '🏠 Home'),
+          h('button', { class: 'btn green', onclick: () => this.showMaps() }, t('🗺 Maps')),
+          h('button', { class: 'btn dark', onclick: () => this.showMenu() }, t('🏠 Home')),
         ),
       ),
     );
@@ -472,15 +477,15 @@ export class App {
           'div',
           { class: 'modal' },
           h('div', { style: 'font-size:64px;line-height:1' }, '💔'),
-          h('h2', null, 'GAME OVER'),
-          h('p', null, `The gloops broke through on round ${g.round}.`),
+          h('h2', null, t('GAME OVER')),
+          h('p', null, t('The gloops broke through on round {n}.', { n: g.round })),
           this.statsGrid(g),
           h(
             'div',
             { class: 'row' },
-            g.roundSnapshot ? h('button', { class: 'btn gold', onclick: () => this.resume(g.roundSnapshot!) }, `↺ Retry round ${g.roundSnapshot.round}`) : null,
-            h('button', { class: 'btn green', onclick: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId) }, '↻ Restart'),
-            h('button', { class: 'btn dark', onclick: () => this.showMenu() }, '🏠 Home'),
+            g.roundSnapshot ? h('button', { class: 'btn gold', onclick: () => this.resume(g.roundSnapshot!) }, t('↺ Retry round {n}', { n: g.roundSnapshot.round })) : null,
+            h('button', { class: 'btn green', onclick: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId) }, t('↻ Restart')),
+            h('button', { class: 'btn dark', onclick: () => this.showMenu() }, t('🏠 Home')),
           ),
         ),
       );
@@ -492,15 +497,17 @@ export class App {
     return h(
       'div',
       { class: 'stats' },
-      h('span', null, 'Gloops popped'),
+      h('span', null, t('Gloops popped')),
       h('span', null, s.pops.toLocaleString('en-US')),
-      h('span', null, 'Bosses popped'),
+      h('span', null, t('Bosses popped')),
       h('span', null, String(s.bossesPopped)),
-      h('span', null, 'Best combo'),
+      h('span', null, t('Best combo')),
       h('span', null, `${s.bestCombo}x`),
-      h('span', null, 'Cash earned'),
+      h('span', null, t('Cash earned')),
       h('span', null, '$' + Math.floor(s.cashEarned).toLocaleString('en-US')),
-      h('span', null, 'XP earned'),
+      h('span', null, t('Golden gloops')),
+      h('span', null, String(s.goldenPopped ?? 0)),
+      h('span', null, t('XP earned')),
       h('span', null, '+' + this.xpGainedThisGame),
     );
   }
@@ -551,16 +558,34 @@ export class App {
       });
       return b;
     };
+    const langRow = h('div', { class: 'setting' }, t('🌐 Language'));
+    const langBtns = h('div', { style: 'display:flex;gap:6px' });
+    for (const [code, label] of [['auto', t('Auto')], ['en', 'English'], ['de', 'Deutsch']] as [LangSetting, string][]) {
+      const b = h('button', { class: 'btn small ' + ((s.lang ?? 'auto') === code ? 'gold' : 'dark') }, label);
+      b.addEventListener('click', () => {
+        s.lang = code;
+        save();
+        host.close();
+        if (this.scene === 'game') this.hud?.openPause();
+        else if (this.scene === 'menu') this.showMenu();
+        else if (this.scene === 'maps') this.showMaps();
+        else if (this.scene === 'setup') this.showSetup(this.lastSetupMap);
+        this.openSettings();
+      });
+      langBtns.append(b);
+    }
+    langRow.append(langBtns);
     const m = h(
       'div',
       { class: 'modal' },
-      h('h2', null, 'Settings'),
-      slider('🔊 Sound effects', s.sfx, (x) => (s.sfx = x)),
-      slider('🎵 Music', s.music, (x) => (s.music = x)),
-      sw('📳 Haptics', s.haptics, (x) => (s.haptics = x)),
-      sw('✨ Reduced effects (better battery)', s.reducedEffects, (x) => (s.reducedEffects = x)),
-      sw('⏩ Auto-start rounds by default', s.autoStart, (x) => (s.autoStart = x)),
-      sw('📈 Show FPS', s.showFps, (x) => (s.showFps = x)),
+      h('h2', null, t('Settings')),
+      slider(t('🔊 Sound effects'), s.sfx, (x) => (s.sfx = x)),
+      slider(t('🎵 Music'), s.music, (x) => (s.music = x)),
+      sw(t('📳 Haptics'), s.haptics, (x) => (s.haptics = x)),
+      sw(t('✨ Reduced effects (better battery)'), s.reducedEffects, (x) => (s.reducedEffects = x)),
+      sw(t('⏩ Auto-start rounds by default'), s.autoStart, (x) => (s.autoStart = x)),
+      sw(t('📈 Show FPS'), s.showFps, (x) => (s.showFps = x)),
+      langRow,
       h(
         'div',
         { class: 'row' },
@@ -573,10 +598,10 @@ export class App {
               if (this.hud) this.hud.openPause();
             },
           },
-          'Done',
+          t('Done'),
         ),
       ),
-      h('p', { style: 'font-size:12px;margin-top:14px' }, 'Gloop Guardians v0.1 · Made with ❤️'),
+      h('p', { style: 'font-size:12px;margin-top:14px' }, t('Gloop Guardians v0.1 · Made with ❤️')),
     );
     host.open(m);
   }
@@ -586,16 +611,16 @@ export class App {
     const towers = h('div', { class: 'codex' });
     for (const id of TOWER_ORDER) {
       const d = TOWERS[id];
-      towers.append(h('div', { class: 'entry' }, h('img', { src: towerIcon(id as ArtId, [0, 0, 0], 96), alt: '' }), h('div', null, h('b', null, `${d.name} · ${d.species}`), h('span', null, d.desc))));
+      towers.append(h('div', { class: 'entry' }, h('img', { src: towerIcon(id as ArtId, [0, 0, 0], 96), alt: '' }), h('div', null, h('b', null, `${d.name} · ${t(d.species)}`), h('span', null, t(d.desc)))));
     }
     for (const id of HERO_ORDER) {
       const d = HEROES[id];
-      towers.append(h('div', { class: 'entry' }, h('img', { src: towerIcon(id as ArtId, [1], 96), alt: '' }), h('div', null, h('b', null, `${d.name} ${d.title}`), h('span', null, d.desc))));
+      towers.append(h('div', { class: 'entry' }, h('img', { src: towerIcon(id as ArtId, [1], 96), alt: '' }), h('div', null, h('b', null, `${d.name} ${t(d.title)}`), h('span', null, t(d.desc)))));
     }
     const gloops = h('div', { class: 'codex' });
     for (const id of GLOOP_ORDER) {
       const d = GLOOPS[id];
-      gloops.append(h('div', { class: 'entry' }, h('img', { src: gloopIcon(id, 96), alt: '' }), h('div', null, h('b', null, d.name), h('span', null, d.desc))));
+      gloops.append(h('div', { class: 'entry' }, h('img', { src: gloopIcon(id, 96), alt: '' }), h('div', null, h('b', null, t(d.name)), h('span', null, t(d.desc)))));
     }
     const bonds = h('div', { class: 'codex' });
     for (const syn of SYNERGIES) {
@@ -605,7 +630,7 @@ export class App {
           { class: 'entry', style: `border:2px solid ${syn.color}` },
           h('img', { src: towerIcon(syn.a as ArtId, [0, 0, 0], 64), alt: '', style: 'width:36px;height:36px' }),
           h('img', { src: towerIcon(syn.b as ArtId, [0, 0, 0], 64), alt: '', style: 'width:36px;height:36px;margin-left:-14px' }),
-          h('div', null, h('b', { style: `color:${syn.color}` }, '⚡ ' + syn.name), h('span', null, `${TOWERS[syn.a].name}: ${syn.descA} · ${TOWERS[syn.b].name}: ${syn.descB}`)),
+          h('div', null, h('b', { style: `color:${syn.color}` }, '⚡ ' + t(syn.name)), h('span', null, `${TOWERS[syn.a].name}: ${t(syn.descA)} · ${TOWERS[syn.b].name}: ${t(syn.descB)}`)),
         ),
       );
     }
@@ -613,13 +638,13 @@ export class App {
       'div',
       { class: 'modal', style: 'width:min(900px,94vw)' },
       h('h2', null, 'Gloopedia'),
-      h('p', null, 'Critters'),
+      h('p', null, t('Critters')),
       towers,
-      h('p', { style: 'margin-top:14px' }, '⚡ Bonds: place these pairs close together and both get stronger'),
+      h('p', { style: 'margin-top:14px' }, t('⚡ Bonds: place these pairs close together and both get stronger')),
       bonds,
-      h('p', { style: 'margin-top:14px' }, 'Gloops'),
+      h('p', { style: 'margin-top:14px' }, t('Gloops')),
       gloops,
-      h('div', { class: 'row' }, h('button', { class: 'btn green', onclick: () => host.close() }, 'Close')),
+      h('div', { class: 'row' }, h('button', { class: 'btn green', onclick: () => host.close() }, t('Close'))),
     );
     host.open(m);
   }

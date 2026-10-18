@@ -1,0 +1,26 @@
+// German UI screenshots
+import { chromium } from 'playwright-core';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale: 'de-DE' });
+const page = await ctx.newPage();
+const logs = [];
+page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message));
+await page.goto('http://localhost:5173/?dev=1');
+await page.evaluate(() => localStorage.clear());
+await page.reload();
+await page.waitForTimeout(1200);
+await page.screenshot({ path: 'screens/de-menu.png' });
+await page.locator('.btn.big').click();
+await page.locator('.mapcard').nth(2).click();
+await page.waitForTimeout(300);
+await page.screenshot({ path: 'screens/de-setup.png' });
+await page.locator('.startrow .btn.green').click();
+await page.waitForTimeout(600);
+await page.evaluate(() => { const g = window.__app.game; g.cash = 50000; const t = g.placeTower('frost', 520, 230); g.upgrade(t, 0); g.upgrade(t, 0); g.upgrade(t, 2); window.__app.hud.select(t); });
+await page.waitForTimeout(400);
+await page.screenshot({ path: 'screens/de-panel.png' });
+await page.evaluate(() => window.__app.openCodex());
+await page.waitForTimeout(400);
+await page.screenshot({ path: 'screens/de-codex.png' });
+if (logs.length) console.log(logs.join('\n'));
+await browser.close();

@@ -13,6 +13,7 @@ import { audio } from '../audio/audio';
 import { h, clear, setText, toggle } from './dom';
 import { haptic } from './haptics';
 import { gloopIcon } from './icons';
+import { t as tr } from '../i18n';
 
 export interface HudHost {
   playerLevel: number;
@@ -41,6 +42,7 @@ interface Placing {
 }
 
 const PRIORITY_LABEL: Record<TargetPriority, string> = { first: 'First', last: 'Last', strong: 'Strong', close: 'Close' };
+const prio = (p: TargetPriority) => tr(PRIORITY_LABEL[p]);
 
 export class Hud {
   readonly root: HTMLElement;
@@ -137,16 +139,16 @@ export class Hud {
     this.roundSub = h('span', { class: 'sub' }, '');
     const roundPill = h('div', { class: 'pill round' }, h('span', { class: 'ico' }, '🌊'), this.roundEl, this.roundSub);
     this.frenzyFill = h('div', { class: 'fill' });
-    this.frenzyLbl = h('span', null, 'FRENZY');
-    this.frenzyEl = h('div', { class: 'frenzy', title: 'Fill the meter by popping gloops, then tap for 10s of FRENZY (+50% attack speed)' }, this.frenzyFill, this.frenzyLbl);
+    this.frenzyLbl = h('span', null, tr('FRENZY'));
+    this.frenzyEl = h('div', { class: 'frenzy', title: tr('Fill the meter by popping gloops, then tap for 10s of FRENZY (+50% attack speed)') }, this.frenzyFill, this.frenzyLbl);
     this.frenzyEl.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.tryFrenzy();
     });
     const top = h('div', { class: 'hud-top' }, this.livesPill, this.cashPill, roundPill, this.frenzyEl);
-    const pause = h('button', { class: 'btn icon dark', title: 'Pause (Esc)', onclick: () => this.openPause() }, '⏸');
-    const tr = h('div', { class: 'top-right' }, pause);
-    this.root.append(top, tr);
+    const pause = h('button', { class: 'btn icon dark', title: tr('Pause (Esc)'), onclick: () => this.openPause() }, '⏸');
+    const topRight = h('div', { class: 'top-right' }, pause);
+    this.root.append(top, topRight);
   }
 
   private buildSidebar() {
@@ -162,11 +164,11 @@ export class Hud {
       const card = this.makeCard('tower', id, towerIcon(id as ArtId, [0, 0, 0], 120), this.game.towerCost(id), def.name, def.hotkey.toUpperCase());
       shop.append(card);
     }
-    this.playBtn = h('button', { class: 'btn green play waiting', title: 'Start round / speed (Space)' }, '▶') as HTMLButtonElement;
+    this.playBtn = h('button', { class: 'btn green play waiting', title: tr('Start round / speed (Space)') }, '▶') as HTMLButtonElement;
     this.playBtn.addEventListener('click', () => this.onPlay());
     this.autoToggle = h('div', { class: 'toggle' + (this.game.autoStart ? ' on' : '') });
-    const auto = h('button', { class: 'auto', onclick: () => this.toggleAuto() }, this.autoToggle, 'Auto-start');
-    const sb = h('div', { class: 'sidebar' }, h('div', { class: 'title' }, 'Critters'), shop, auto, this.playBtn);
+    const auto = h('button', { class: 'auto', onclick: () => this.toggleAuto() }, this.autoToggle, tr('Auto-start'));
+    const sb = h('div', { class: 'sidebar' }, h('div', { class: 'title' }, tr('Critters')), shop, auto, this.playBtn);
     this.root.append(sb);
   }
 
@@ -180,7 +182,7 @@ export class Hud {
       if (card.classList.contains('locked')) {
         audio.play('error');
         const lvl = kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock;
-        this.toast(`Reach player level ${lvl} to unlock ${name}!`);
+        this.toast(tr('Reach player level {n} to unlock {name}!', { n: lvl, name }));
         return;
       }
       if (kind === 'hero' && this.game.hero) {
@@ -196,20 +198,20 @@ export class Hud {
   private buildSandbox() {
     const p = h('div', { class: 'sandbox-panel' });
     for (const id of GLOOP_ORDER) {
-      const b = h('button', { title: 'Spawn ' + GLOOPS[id].name }, h('img', { src: gloopIcon(id as GloopId), alt: '' }));
+      const b = h('button', { title: tr('Spawn') + ' ' + tr(GLOOPS[id].name) }, h('img', { src: gloopIcon(id as GloopId), alt: '' }));
       b.addEventListener('click', (e) => {
         const n = (e as MouseEvent).shiftKey ? 10 : 1;
         for (let i = 0; i < n; i++) this.game.spawn(id as GloopId, { dist: i * 14 });
       });
       p.append(b);
     }
-    const lvl = h('button', { title: 'Hero +1 level' }, '⭐');
+    const lvl = h('button', { title: tr('Hero +1 level') }, '⭐');
     lvl.addEventListener('click', () => {
       const hero = this.game.hero;
       if (hero) hero.addHeroXp(Math.max(0, heroXpFor(hero.heroLevel + 1) - hero.heroXp));
       this.panelKey = '';
     });
-    const clr = h('button', { title: 'Clear gloops' }, '🧹');
+    const clr = h('button', { title: tr('Clear gloops') }, '🧹');
     clr.addEventListener('click', () => {
       for (const e of this.game.enemies) e.alive = false;
     });
@@ -225,33 +227,33 @@ export class Hud {
     const g = this.game;
     this.unsub.push(
       g.events.on('roundStart', (n) => {
-        this.banner(`Round ${n}`, null, false, true);
+        this.banner(tr('Round {n}', { n }), null, false, true);
         if (this.tutorialStep === 1) this.tutorial(2);
       }),
       g.events.on('roundEnd', ({ round, bonus }) => {
-        this.toast(`Round ${round} complete! +$${bonus}`, 1800);
+        this.toast(tr('Round {n} complete! +${bonus}', { n: round, bonus }), 1800);
         this.host.onRoundEnd(round);
         if (this.tutorialStep === 2 && round >= 1) this.tutorial(3);
       }),
       g.events.on('boss', (e) => {
-        this.banner(e.def.name.toUpperCase(), e.def.desc, true);
+        this.banner(tr(e.def.name).toUpperCase(), tr(e.def.desc), true);
         haptic('heavy');
       }),
       g.events.on('hint', (text) => {
         if (this.tutorialStep >= 0 && this.tutorialStep < 2 && g.round === 1) return;
-        this.toast(text, 3800);
+        this.toast(tr(text), 3800);
       }),
       g.events.on('heroLevel', ({ level }) => {
-        this.toast(`${g.hero?.name} reached level ${level}!`, 2200);
+        this.toast(tr('{name} reached level {n}!', { name: g.hero?.name ?? '', n: level }), 2200);
         this.panelKey = '';
       }),
       g.events.on('frenzyReady', () => {
-        this.toast('FRENZY is ready! Tap the meter!', 2000);
+        this.toast(tr('FRENZY is ready! Tap the meter!'), 2000);
         audio.play('levelup', 0.5);
       }),
-      g.events.on('frenzyStart', () => this.banner('FRENZY!', '+50% attack speed', false)),
+      g.events.on('frenzyStart', () => this.banner(tr('FRENZY!'), tr('+50% attack speed'), false)),
       g.events.on('combo', (n) => {
-        if (n >= 100) this.renderer.floatText(800, 200, `${n}x COMBO!`, '#ffe066', 30);
+        if (n >= 100) this.renderer.floatText(800, 200, tr('{n}x COMBO!', { n }), '#ffe066', 30);
       }),
       g.events.on('victory', () => this.host.onVictory()),
       g.events.on('gameOver', () => this.host.onDefeat()),
@@ -360,7 +362,7 @@ export class Hud {
       else this.cancelPlacing();
     } else {
       // simple tap on a card: now tap/drag on the map to place
-      this.toast(e.pointerType === 'mouse' ? 'Click on the map to place it' : 'Touch the map and drag to place it', 1600);
+      this.toast(tr(e.pointerType === 'mouse' ? 'Click on the map to place it' : 'Touch the map and drag to place it'), 1600);
     }
   };
 
@@ -446,7 +448,7 @@ export class Hud {
     if (!this.game.sandbox && this.game.cash < cost) {
       audio.play('error');
       this.flashCash();
-      this.toast(`Need $${formatNum(cost - this.game.cash)} more`, 1200);
+      this.toast(tr('Need ${n} more', { n: formatNum(cost - this.game.cash) }), 1200);
       return;
     }
     this.select(null);
@@ -489,7 +491,7 @@ export class Hud {
     if (this.tutorialStep === 0) this.tutorial(1);
     if (this.game.towers.length === 2 && t.bonds.length && !this.game.sandbox) {
       const syn = SYNERGIES.find((s) => s.id === t.bonds[0].synergyId);
-      if (syn) this.toast(`⚡ BOND: ${syn.name}! Paired critters power each other up.`, 3000);
+      if (syn) this.toast(tr('⚡ BOND: {name}! Paired critters power each other up.', { name: tr(syn.name) }), 3000);
     }
     this.cancelPlacing();
     this.select(t);
@@ -525,14 +527,14 @@ export class Hud {
     const art = t.hero ? (t.hero.id as ArtId) : (t.def!.id as ArtId);
     const tiers = t.hero ? [t.heroLevel >= 20 ? 20 : t.heroLevel >= 10 ? 10 : 1] : [...t.tiers];
     const portrait = h('div', { class: 'portrait' }, h('img', { src: towerIcon(art, tiers, 140), alt: '' }));
-    const sub = t.hero ? `${t.hero.title}` : `${t.def!.species} · ${t.def!.role}`;
+    const sub = t.hero ? tr(t.hero.title) : `${tr(t.def!.species)} · ${tr(t.def!.role)}`;
     const statsLine = h('div', { class: 'stats-line' });
     const head = h(
       'div',
       { class: 'uhead' },
       portrait,
       h('div', null, h('div', { class: 'name' }, t.name), h('div', { class: 'meta' }, sub), statsLine),
-      h('button', { class: 'btn icon small dark close', title: 'Close', onclick: () => this.select(null) }, '✕'),
+      h('button', { class: 'btn icon small dark close', title: tr('Close'), onclick: () => this.select(null) }, '✕'),
     );
     panel.append(head);
 
@@ -548,12 +550,12 @@ export class Hud {
         if (tier >= 5) {
           row.classList.add('maxed');
           const u = t.def.paths[p][4];
-          row.append(h('div', { class: 'upg' }, h('div', { class: 'info' }, h('div', { class: 'pname' }, t.def.pathNames[p] + ' · MAX'), h('div', { class: 'uname' }, '★ ' + u.name), h('div', { class: 'udesc' }, u.desc))));
+          row.append(h('div', { class: 'upg' }, h('div', { class: 'info' }, h('div', { class: 'pname' }, tr(t.def.pathNames[p]) + ' · MAX'), h('div', { class: 'uname' }, '★ ' + tr(u.name)), h('div', { class: 'udesc' }, tr(u.desc)))));
         } else {
           const u = t.def.paths[p][tier];
           const cost = g.upgradeCost(t, p)!;
           const icon = towerIcon(art, t.tiers.map((x, i) => (i === p ? x + 1 : x)), 90);
-          const buy = h('button', { class: 'btn small gold buy' }, can ? '$' + formatNum(cost) : '🔒', h('small', null, can ? `Tier ${tier + 1}` : 'Path closed')) as HTMLButtonElement;
+          const buy = h('button', { class: 'btn small gold buy' }, can ? '$' + formatNum(cost) : '🔒', h('small', null, can ? tr('Tier {n}', { n: tier + 1 }) : tr('Path closed'))) as HTMLButtonElement;
           buy.dataset.cost = String(cost);
           buy.dataset.can = can ? '1' : '0';
           buy.addEventListener('click', () => this.buyUpgrade(t, p));
@@ -563,7 +565,7 @@ export class Hud {
               'div',
               { class: 'upg' },
               h('img', { src: icon, alt: '', style: 'width:clamp(40px,8vh,56px);flex:none' }),
-              h('div', { class: 'info' }, h('div', { class: 'pname' }, t.def.pathNames[p]), h('div', { class: 'uname' }, u.name), h('div', { class: 'udesc' }, can ? u.desc : 'Only 2 paths, and only one past tier 2.')),
+              h('div', { class: 'info' }, h('div', { class: 'pname' }, tr(t.def.pathNames[p])), h('div', { class: 'uname' }, tr(u.name)), h('div', { class: 'udesc' }, can ? tr(u.desc) : tr('Only 2 paths, and only one past tier 2.'))),
               buy,
             ),
           );
@@ -586,10 +588,10 @@ export class Hud {
             h(
               'div',
               { class: 'info' },
-              h('div', { class: 'pname' }, `Level ${lvl}${lvl >= MAX_HERO_LEVEL ? ' · MAX' : ''}`),
-              h('div', { class: 'uname' }, next ? 'Next: ' + next.desc : 'Fully powered!'),
+              h('div', { class: 'pname' }, tr('Level {n}', { n: lvl }) + (lvl >= MAX_HERO_LEVEL ? ' · MAX' : '')),
+              h('div', { class: 'uname' }, next ? tr('Next: ') + tr(next.desc) : tr('Fully powered!')),
               next ? h('div', { class: 'xpbar', style: 'width:100%;margin-top:4px' }, h('div', { style: `width:${Math.round((xpInto / xpNeed) * 100)}%` })) : null,
-              h('div', { class: 'udesc', style: 'margin-top:4px' }, 'Heroes level up automatically every round.'),
+              h('div', { class: 'udesc', style: 'margin-top:4px' }, tr('Heroes level up automatically every round.')),
             ),
           ),
         ),
@@ -605,7 +607,7 @@ export class Hud {
         seen.add(b.synergyId);
         const syn = SYNERGIES.find((s) => s.id === b.synergyId)!;
         const isA = t.def?.id === syn.a;
-        bonds.append(h('span', { class: 'bond', style: `background:${syn.color}`, title: isA ? syn.descA : syn.descB }, `⚡ ${syn.name}: ${isA ? syn.descA : syn.descB}`));
+        bonds.append(h('span', { class: 'bond', style: `background:${syn.color}`, title: tr(isA ? syn.descA : syn.descB) }, `⚡ ${tr(syn.name)}: ${tr(isA ? syn.descA : syn.descB)}`));
       }
       panel.append(bonds);
     }
@@ -614,7 +616,7 @@ export class Hud {
     const foot = h('div', { class: 'ufoot' });
     const hasTarget = t.stats.attacks.some((a) => ['shoot', 'hitscan', 'chain'].includes(a.kind));
     if (hasTarget) {
-      const lbl = h('div', { class: 'lbl' }, PRIORITY_LABEL[t.priority]);
+      const lbl = h('div', { class: 'lbl' }, prio(t.priority));
       foot.append(
         h(
           'div',
@@ -626,12 +628,12 @@ export class Hud {
       );
     }
     if (t.stats.bank) {
-      const wd = h('button', { class: 'btn small green', onclick: () => this.game.withdraw(t) }, 'Withdraw') as HTMLButtonElement;
+      const wd = h('button', { class: 'btn small green', onclick: () => this.game.withdraw(t) }, tr('Withdraw')) as HTMLButtonElement;
       wd.dataset.role = 'withdraw';
       foot.append(wd);
     }
     const sellV = t.sellValue(g.sandbox) + Math.floor(t.stash);
-    foot.append(h('button', { class: 'btn small red', title: 'Sell (Backspace)', onclick: () => this.sell(t) }, 'Sell $' + formatNum(sellV)));
+    foot.append(h('button', { class: 'btn small red', title: tr('Sell (Backspace)'), onclick: () => this.sell(t) }, tr('Sell ${n}', { n: formatNum(sellV) })));
     panel.append(foot);
 
     this.root.append(panel);
@@ -642,14 +644,14 @@ export class Hud {
   }
 
   private updateStatsLine(t: Tower, el: HTMLElement) {
-    const parts = [`Pops ${formatNum(t.pops)}`];
-    if (t.stats.bank) parts.push(`Stash $${formatNum(t.stash)} / ${formatNum(t.stats.bank.capacity)}`);
+    const parts = [tr('Pops {n}', { n: formatNum(t.pops) })];
+    if (t.stats.bank) parts.push(tr('Stash ${a} / {b}', { a: formatNum(t.stash), b: formatNum(t.stats.bank.capacity) }));
     if (t.stats.income && !t.stats.bank) {
       const inc = t.stats.income;
       const per = inc.perDrop * inc.drops * t.buffs.incomeMul + inc.bonusPerRound;
-      parts.push(`$${formatNum(per)}/round`);
+      parts.push(tr('${n}/round', { n: formatNum(per) }));
     }
-    if (t.camo) parts.push('👁 Camo');
+    if (t.camo) parts.push(tr('👁 Camo'));
     setText(el, parts.join(' · '));
   }
 
@@ -692,7 +694,7 @@ export class Hud {
       audio.play('upgrade');
       if (this.tutorialStep === 3) this.tutorial(4);
       const tier = t.tiers[p];
-      if (tier === 5) this.banner(t.def.paths[p][4].name.toUpperCase(), 'Tier 5 unlocked!', false);
+      if (tier === 5) this.banner(tr(t.def.paths[p][4].name).toUpperCase(), tr('Tier 5 unlocked!'), false);
     }
   }
 
@@ -767,22 +769,22 @@ export class Hud {
       this.lastLives = g.lives;
     }
     setText(this.roundEl, String(g.round));
-    setText(this.roundSub, g.sandbox ? '' : g.freeplay ? ' freeplay' : `/${g.lastRound}`);
+    setText(this.roundSub, g.sandbox ? '' : g.freeplay ? tr(' freeplay') : `/${g.lastRound}`);
     // frenzy
     const ready = g.frenzyReady;
     toggle(this.frenzyEl, 'ready', ready);
     toggle(this.frenzyEl, 'active', g.frenzyT > 0);
     if (g.frenzyT > 0) {
       this.frenzyFill.style.width = `${(g.frenzyT / 10) * 100}%`;
-      setText(this.frenzyLbl, `FRENZY ${Math.ceil(g.frenzyT)}s`);
+      setText(this.frenzyLbl, tr('FRENZY {n}s', { n: Math.ceil(g.frenzyT) }));
     } else {
       this.frenzyFill.style.width = `${Math.min(100, (g.frenzyMeter / g.frenzyMax) * 100)}%`;
-      setText(this.frenzyLbl, ready ? 'TAP: FRENZY!' : 'FRENZY');
+      setText(this.frenzyLbl, tr(ready ? 'TAP: FRENZY!' : 'FRENZY'));
     }
     // combo
     if (g.combo >= 10) {
       toggle(this.comboEl, 'hidden', false);
-      setText(this.comboEl, `${g.combo}x combo`);
+      setText(this.comboEl, tr('{n}x combo', { n: g.combo }));
       if (g.combo > this.lastCombo + 5) {
         this.comboEl.classList.remove('bump');
         void this.comboEl.offsetWidth;
@@ -828,8 +830,8 @@ export class Hud {
       const placedHero = kind === 'hero' && !!g.hero;
       toggle(card, 'poor', unlocked && !placedHero && !g.sandbox && g.cash < cost);
       const price = card.querySelector('.price') as HTMLElement;
-      if (!unlocked) setText(price, `Lvl ${kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock}`);
-      else if (placedHero) setText(price, `Lv ${g.hero!.heroLevel}`);
+      if (!unlocked) setText(price, tr('Lvl {n}', { n: kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock }));
+      else if (placedHero) setText(price, tr('Lv {n}', { n: g.hero!.heroLevel }));
       else setText(price, '$' + formatNum(cost));
     }
   }
@@ -852,7 +854,7 @@ export class Hud {
       for (const [id, gr] of groups) {
         const cd = h('div', { class: 'cd' });
         const n = h('div', { class: 'n' }, gr.towers.length > 1 ? `x${gr.towers.length}` : '');
-        const el = h('button', { class: 'ability', title: `${gr.ab.name}: ${gr.ab.desc}` }, gr.ab.icon, cd, n);
+        const el = h('button', { class: 'ability', title: `${tr(gr.ab.name)}: ${tr(gr.ab.desc)}` }, gr.ab.icon, cd, n);
         el.addEventListener('pointerdown', (e) => {
           e.stopPropagation();
           this.useAbility(id);
@@ -886,7 +888,7 @@ export class Hud {
       return;
     }
     const ab = t.stats.abilities.find((a) => a.id === id)!;
-    if (this.game.useAbility(t, ab)) this.banner(ab.name.toUpperCase(), null, false, true);
+    if (this.game.useAbility(t, ab)) this.banner(tr(ab.name).toUpperCase(), null, false, true);
   }
 
   // -------------------------------------------------------------------------------------------
@@ -912,21 +914,21 @@ export class Hud {
     this.handEl = null;
     const card = this.cards.get('tower:spike');
     if (step === 0 && card) {
-      this.toast('👋 Drag the Hedgehog from the shop onto the grass near the track!', 999999);
+      this.toast(tr('👋 Drag the Hedgehog from the shop onto the grass near the track!'), 999999);
       const r = card.getBoundingClientRect();
       this.handEl = h('div', { class: 'hand', style: `left:${r.left + r.width * 0.3}px;top:${r.top + r.height * 0.4}px;--dx:-${Math.round(window.innerWidth * 0.35)}px;--dy:0px` }, '👆');
       this.root.append(this.handEl);
     } else if (step === 1) {
-      this.toast('Nice! Press ▶ to send in the gloops.', 999999);
+      this.toast(tr('Nice! Press ▶ to send in the gloops.'), 999999);
       const r = this.playBtn.getBoundingClientRect();
       this.handEl = h('div', { class: 'hand', style: `left:${r.left + r.width * 0.35}px;top:${r.top - 30}px;--dx:0px;--dy:14px` }, '👇');
       this.root.append(this.handEl);
     } else if (step === 2) {
-      this.toast('Pop them all! Each layer you pop earns cash. 🪙', 3500);
+      this.toast(tr('Pop them all! Each layer you pop earns cash. 🪙'), 3500);
     } else if (step === 3) {
-      this.toast('Tap a tower to upgrade it. Upgrades make critters WAY stronger!', 6000);
+      this.toast(tr('Tap a tower to upgrade it. Upgrades make critters WAY stronger!'), 6000);
     } else if (step === 4) {
-      this.toast('🎉 You got it! Tip: place different critters close together to form ⚡ BONDS.', 5000);
+      this.toast(tr('🎉 You got it! Tip: place different critters close together to form ⚡ BONDS.'), 5000);
       this.tutorialStep = -1;
       this.host.onTutorialDone();
     }
@@ -961,19 +963,19 @@ export class Hud {
     const m = h(
       'div',
       { class: 'modal' },
-      h('h2', null, 'Paused'),
-      h('p', null, `${this.game.map.name} · ${this.game.diff.name} · Round ${this.game.round}`),
+      h('h2', null, tr('Paused')),
+      h('p', null, tr('{map} · {diff} · Round {n}', { map: tr(this.game.map.name), diff: tr(this.game.diff.name), n: this.game.round })),
       h(
         'div',
         { class: 'row' },
-        h('button', { class: 'btn green', onclick: () => this.closeModal() }, '▶ Resume'),
-        h('button', { class: 'btn blue', onclick: () => this.host.onSettings() }, '⚙️ Settings'),
+        h('button', { class: 'btn green', onclick: () => this.closeModal() }, tr('▶ Resume')),
+        h('button', { class: 'btn blue', onclick: () => this.host.onSettings() }, tr('⚙️ Settings')),
       ),
       h(
         'div',
         { class: 'row' },
-        h('button', { class: 'btn dark small', onclick: () => this.host.onRestart() }, '↻ Restart'),
-        h('button', { class: 'btn dark small', onclick: () => this.host.onQuit() }, '🏠 Home'),
+        h('button', { class: 'btn dark small', onclick: () => this.host.onRestart() }, tr('↻ Restart')),
+        h('button', { class: 'btn dark small', onclick: () => this.host.onQuit() }, tr('🏠 Home')),
       ),
     );
     this.openModal(m);
