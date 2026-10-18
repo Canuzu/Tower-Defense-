@@ -1,0 +1,46 @@
+// Mobile touch QA: drag from shop to map with real touch events at phone size.
+import { chromium } from 'playwright-core';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
+const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+const page = await ctx.newPage();
+const logs = [];
+page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message));
+await page.goto('http://localhost:5173/?dev=1');
+await page.waitForTimeout(1000);
+const cdp = await ctx.newCDPSession(page);
+const touch = async (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+const tap = async (x, y) => { await touch('touchStart', x, y); await touch('touchEnd', x, y); await page.waitForTimeout(150); };
+const center = async (sel, i = 0) => { const b = await page.locator(sel).nth(i).boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+await page.screenshot({ path: 'screens/m-1-menu.png' });
+await tap(...(await center('.btn.big')));
+await page.waitForTimeout(300);
+await page.screenshot({ path: 'screens/m-2-maps.png' });
+await tap(...(await center('.mapcard')));
+await page.waitForTimeout(300);
+await page.screenshot({ path: 'screens/m-3-setup.png' });
+await page.evaluate(() => { const b = document.querySelector('.startrow .btn.green'); b.scrollIntoView(); });
+await tap(...(await center('.startrow .btn.green')));
+await page.waitForTimeout(700);
+// drag spike
+const [cx, cy] = await center('.card[data-id="spike"]');
+const tgt = await page.evaluate(() => window.__app.renderer.worldToScreen(560, 225));
+await touch('touchStart', cx, cy);
+for (let i = 1; i <= 10; i++) await touch('touchMove', cx + ((tgt.x - cx) * i) / 10, cy + ((tgt.y + 16 - cy) * i) / 10);
+await page.screenshot({ path: 'screens/m-4-drag.png' });
+await touch('touchEnd', tgt.x, tgt.y);
+await page.waitForTimeout(400);
+console.log('towers after touch drag:', await page.evaluate(() => window.__app.game.towers.length));
+await page.screenshot({ path: 'screens/m-5-placed.png' });
+// tap card then touch-drag on map
+await tap(cx, cy);
+const t2 = await page.evaluate(() => window.__app.renderer.worldToScreen(330, 470));
+await touch('touchStart', t2.x, t2.y);
+await touch('touchMove', t2.x + 2, t2.y + 2);
+await touch('touchEnd', t2.x + 2, t2.y + 2);
+await page.waitForTimeout(300);
+console.log('towers after tap+touch:', await page.evaluate(() => window.__app.game.towers.length));
+await tap(...(await center('.play')));
+await page.waitForTimeout(3000);
+await page.screenshot({ path: 'screens/m-6-round.png' });
+if (logs.length) console.log(logs.join('\n'));
+await browser.close();

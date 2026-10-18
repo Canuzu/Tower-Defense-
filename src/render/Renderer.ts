@@ -69,7 +69,7 @@ export class Renderer {
   }
 
   resize(w: number, h: number, dpr: number) {
-    this.dpr = Math.min(dpr, 2.5);
+    this.dpr = Math.min(dpr, 2);
     this.viewW = w;
     this.viewH = h;
     this.canvas.width = Math.round(w * this.dpr);
@@ -424,21 +424,24 @@ export class Renderer {
 
   private drawEnemies(ctx: CanvasRenderingContext2D, g: Game, res: number, tx: number, ty: number) {
     const list = g.enemies;
-    // shadows
+    const crowded = list.length > 350;
+    // shadows (skipped for small gloops in huge crowds)
     ctx.fillStyle = 'rgba(20,10,30,0.25)';
     ctx.beginPath();
     for (const e of list) {
-      if (!e.alive) continue;
+      if (!e.alive || (crowded && !e.def.boss) || e.x < -40) continue;
       const r = e.radius;
       ctx.moveTo(e.x + r * 0.9, e.y + r * 0.8);
       ctx.ellipse(e.x, e.y + r * 0.8, r * 0.9, r * 0.32, 0, 0, TAU);
     }
     ctx.fill();
+    ctx.imageSmoothingQuality = crowded ? 'low' : 'medium';
     const t = this.time;
     // bosses last so they're on top
     for (let pass = 0; pass < 2; pass++) {
       for (const e of list) {
         if (!e.alive || !!e.def.boss !== (pass === 1)) continue;
+        if (e.x < -e.radius * 2 || e.x > WORLD_W + e.radius * 2) continue;
         this.drawEnemy(ctx, e, res, tx, ty, t);
       }
     }
@@ -451,7 +454,16 @@ export class Renderer {
       const f = e.hp / e.maxHp;
       dmg = f > 0.75 ? 0 : f > 0.5 ? 1 : f > 0.25 ? 2 : 3;
     }
-    const spr = gloopSprite(e.type, { camo: e.camo, regrow: !!e.regrowMax, fortified: e.fortified, dmg }, res);
+    // cache the sprite on the gloop; only rebuild the lookup when its look changes
+    const lookKey = (dmg << 3) | (e.camo ? 4 : 0) | (e.regrowMax ? 2 : 0) | (e.fortified ? 1 : 0);
+    const cache = e as Enemy & { _spr?: ReturnType<typeof gloopSprite>; _sprKey?: string; _sprRes?: number; _sprLook?: number };
+    if (cache._sprKey !== e.type || cache._sprLook !== lookKey || cache._sprRes !== res) {
+      cache._spr = gloopSprite(e.type, { camo: e.camo, regrow: !!e.regrowMax, fortified: e.fortified, dmg }, res);
+      cache._sprKey = e.type;
+      cache._sprLook = lookKey;
+      cache._sprRes = res;
+    }
+    const spr = cache._spr!;
     const frozen = e.freezeT > 0;
     const stunned = e.stunT > 0;
     const moving = !frozen && !stunned;
@@ -1114,14 +1126,15 @@ export class Renderer {
   // -------------------------------------------------------------------------------------------
 
   splat(x: number, y: number, color: string, r: number, big = false) {
-    const n = this.reducedEffects ? 3 : big ? 26 : 7;
+    const busy = this.particles.list.length > 1200;
+    const n = this.reducedEffects ? 3 : big ? 26 : busy ? 3 : 6;
     for (let i = 0; i < n; i++) {
       const a = Math.random() * TAU;
       const sp = (big ? 160 : 70) + Math.random() * (big ? 260 : 120);
       this.particles.spawn(PK.Drop, x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, gravity: 420, drag: 2, life: 0.35 + Math.random() * 0.3, size: (big ? 7 : 3.2) + Math.random() * (big ? 6 : 2.5), color });
     }
-    this.particles.spawn(PK.Ring, x, y, { life: 0.25, size: r * 0.5, size2: r * (big ? 3 : 1.7), color: '#ffffff' });
-    if (!this.reducedEffects) this.particles.spawn(PK.Stain, x, y + r * 0.6, { ground: true, life: big ? 6 : 2.5, size: r * (big ? 1.6 : 0.9), color });
+    if (!busy || big) this.particles.spawn(PK.Ring, x, y, { life: 0.25, size: r * 0.5, size2: r * (big ? 3 : 1.7), color: '#ffffff' });
+    if (!this.reducedEffects && (!busy || big)) this.particles.spawn(PK.Stain, x, y + r * 0.6, { ground: true, life: big ? 6 : 2.5, size: r * (big ? 1.6 : 0.9), color });
   }
 
   explosion(x: number, y: number, radius: number, visual: string) {

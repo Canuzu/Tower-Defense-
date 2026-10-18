@@ -39,7 +39,7 @@ export function makePresentation(r: Renderer): FxSink {
       const now = performance.now();
       if (now - lastPopFrame > 16) {
         lastPopFrame = now;
-        popBudget = r.reducedEffects ? 12 : 40;
+        popBudget = r.reducedEffects ? 8 : 24;
       }
       if (e.def.boss) {
         r.splat(e.x, e.y, e.def.color, e.radius, true);

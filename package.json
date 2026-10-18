@@ -14,18 +14,18 @@
     "cap:sync": "npm run build && npx cap sync"
   },
   "devDependencies": {
-    "@capacitor/android": "^7.6.9",
     "@capacitor/cli": "^7.6.9",
-    "@capacitor/ios": "^7.6.9",
     "playwright-core": "1.56.1",
     "typescript": "5.9.3",
     "vite": "7.3.6",
     "vitest": "3.2.7"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.9",
     "@capacitor/app": "^7.1.2",
     "@capacitor/core": "^7.6.9",
     "@capacitor/haptics": "^7.0.5",
+    "@capacitor/ios": "^7.6.9",
     "@capacitor/splash-screen": "^7.0.5",
     "@capacitor/status-bar": "^7.0.6",
     "@fontsource/baloo-2": "^5.3.0"

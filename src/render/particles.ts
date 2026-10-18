@@ -39,7 +39,7 @@ export interface Particle {
   ground: boolean;
 }
 
-const MAX = 3200;
+const MAX = 2000;
 
 /** Soft round glow sprites, tinted per colour and cached. */
 const glowCache = new Map<string, HTMLCanvasElement>();

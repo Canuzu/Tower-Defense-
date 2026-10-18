@@ -1,5 +1,5 @@
-@import '@fontsource/baloo-2/600.css';
-@import '@fontsource/baloo-2/800.css';
+@import '@fontsource/baloo-2/latin-600.css';
+@import '@fontsource/baloo-2/latin-800.css';
 
 :root {
   --ink: #2a1b2e;
@@ -824,16 +824,18 @@ button {
   font-size: clamp(34px, 9vh, 84px);
   line-height: 1;
   color: #fff;
-  -webkit-text-stroke: 3px var(--ink);
+  -webkit-text-stroke: 7px var(--ink);
+  paint-order: stroke fill;
   text-shadow: 0 6px 0 var(--ink);
   animation: bannerIn 1.8s ease-out forwards;
+  z-index: 35;
   white-space: nowrap;
 }
 
 .banner small {
   display: block;
   font-size: 0.38em;
-  -webkit-text-stroke: 1.5px var(--ink);
+  -webkit-text-stroke: 4px var(--ink);
   text-shadow: 0 3px 0 var(--ink);
   margin-top: 6px;
 }
@@ -880,6 +882,7 @@ button {
   text-align: center;
   animation: toastIn 0.25s ease-out;
   pointer-events: none;
+  z-index: 30;
 }
 
 @keyframes toastIn {
@@ -952,7 +955,8 @@ button {
   margin: 0 0 6px;
   font-size: clamp(28px, 6vh, 46px);
   line-height: 1;
-  -webkit-text-stroke: 2px var(--ink);
+  -webkit-text-stroke: 5px var(--ink);
+  paint-order: stroke fill;
   text-shadow: 0 4px 0 var(--ink);
 }
 
@@ -1138,7 +1142,7 @@ input[type='range'] {
 .header h1 {
   margin: 0;
   font-size: clamp(26px, 6vh, 46px);
-  -webkit-text-stroke: 2px var(--ink);
+  -webkit-text-stroke: 6px var(--ink);
   paint-order: stroke fill;
   text-shadow: 0 4px 0 var(--ink);
 }
@@ -1339,11 +1343,18 @@ input[type='range'] {
 }
 
 .startrow {
+  position: absolute;
+  right: calc(16px + var(--safe-r));
+  bottom: calc(12px + var(--safe-b));
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  margin-top: 12px;
   flex-wrap: wrap;
+  z-index: 5;
+}
+
+.setup {
+  padding-bottom: 80px !important;
 }
 
 .rotate {
@@ -1473,20 +1484,100 @@ input[type='range'] {
   }
 }
 
-@media (max-height: 430px) {
+@media (max-height: 500px) {
   .upanel {
-    width: min(340px, 46vw);
+    width: min(330px, 46vw);
     padding: 6px;
     gap: 4px;
+    border-radius: 16px;
+    top: calc(var(--hud-h) + 12px + var(--safe-t));
   }
   .path {
-    padding: 4px;
+    padding: 3px 5px;
+    gap: 5px;
+    border-radius: 10px;
+  }
+  .pip {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    border-width: 1px;
+  }
+  .path .pips {
+    gap: 2px;
+  }
+  .upg {
+    gap: 5px;
+  }
+  .upg img {
+    width: 30px !important;
   }
   .upg .udesc {
     display: none;
   }
+  .upg .buy {
+    min-width: 70px;
+    min-height: 32px;
+    padding: 2px 6px;
+  }
   .uhead .portrait {
-    width: 46px;
-    height: 46px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+  .uhead .name {
+    font-size: 17px;
+  }
+  .uhead .close {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    font-size: 16px;
+  }
+  .ufoot .btn.small {
+    min-height: 30px;
+  }
+  .target {
+    min-width: 120px;
+  }
+  .setup {
+    grid-template-columns: 0.75fr 1.25fr;
+    gap: 10px;
+  }
+  .setup .panel p {
+    display: none;
+  }
+  .diff span {
+    display: none;
+  }
+  .diffs {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .herocard img {
+    width: 42%;
+  }
+  .herocard span {
+    display: none;
+  }
+  .panel {
+    padding: 8px;
+  }
+  .panel h3 {
+    margin-bottom: 4px;
+  }
+  .header h1 {
+    font-size: 26px;
+  }
+  .btn.icon {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+  .maps {
+    gap: 10px;
+  }
+  .mapcard .mc-body {
+    padding: 4px 10px 6px;
   }
 }

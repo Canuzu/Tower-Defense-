@@ -16,6 +16,7 @@ import { setHaptics } from './haptics';
 import { gloopIcon } from './icons';
 import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, type Profile } from '../save/storage';
 import type { TowerId } from '../game/towerTypes';
+import { SYNERGIES } from '../game/synergy';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
 
@@ -86,9 +87,19 @@ export class App {
     this.renderer.resize(w, hgt, window.devicePixelRatio || 1);
   }
 
+  private slowFrames = 0;
   private frame = (now: number) => {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
+    // adaptive quality: fall back to reduced effects if the device struggles for a few seconds
+    if (!this.renderer.reducedEffects && this.scene === 'game') {
+      this.slowFrames = dt > 1 / 38 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 2);
+      if (this.slowFrames > 180) {
+        this.renderer.reducedEffects = true;
+        this.renderer.particles.reduced = true;
+        this.hud?.toast('Effects reduced to keep the game smooth', 2200);
+      }
+    }
     if (this.scene === 'game' && this.game) {
       this.game.update(dt);
       this.hud?.update(dt);
@@ -586,12 +597,26 @@ export class App {
       const d = GLOOPS[id];
       gloops.append(h('div', { class: 'entry' }, h('img', { src: gloopIcon(id, 96), alt: '' }), h('div', null, h('b', null, d.name), h('span', null, d.desc))));
     }
+    const bonds = h('div', { class: 'codex' });
+    for (const syn of SYNERGIES) {
+      bonds.append(
+        h(
+          'div',
+          { class: 'entry', style: `border:2px solid ${syn.color}` },
+          h('img', { src: towerIcon(syn.a as ArtId, [0, 0, 0], 64), alt: '', style: 'width:36px;height:36px' }),
+          h('img', { src: towerIcon(syn.b as ArtId, [0, 0, 0], 64), alt: '', style: 'width:36px;height:36px;margin-left:-14px' }),
+          h('div', null, h('b', { style: `color:${syn.color}` }, '⚡ ' + syn.name), h('span', null, `${TOWERS[syn.a].name}: ${syn.descA} · ${TOWERS[syn.b].name}: ${syn.descB}`)),
+        ),
+      );
+    }
     const m = h(
       'div',
       { class: 'modal', style: 'width:min(900px,94vw)' },
       h('h2', null, 'Gloopedia'),
       h('p', null, 'Critters'),
       towers,
+      h('p', { style: 'margin-top:14px' }, '⚡ Bonds: place these pairs close together and both get stronger'),
+      bonds,
       h('p', { style: 'margin-top:14px' }, 'Gloops'),
       gloops,
       h('div', { class: 'row' }, h('button', { class: 'btn green', onclick: () => host.close() }, 'Close')),
