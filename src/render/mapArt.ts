@@ -3,6 +3,7 @@ import { WORLD_H, WORLD_W } from '../game/maps';
 import type { Path } from '../game/path';
 import { shade, rgba } from '../core/math';
 import { makeCanvas, ellipse, circle, fillStroke, ballGrad, gloss, seeded, star, type Ctx } from './draw';
+import { mapArt } from './art';
 
 /** Extra terrain rendered around the playfield so letterboxing still shows the map. */
 export const BLEED = 260;
@@ -737,11 +738,95 @@ function decorations(ctx: Ctx, map: MapDef, paths: Path[], pal: ThemePalette, rn
   }
 }
 
+/**
+ * Painted background (art/raw/m_<map>.webp) prerendered at `res` px per world unit. The playfield
+ * shows the painting 1:1 over the 1600x900 world; the letterbox bleed around it is filled with a
+ * mirrored, blurred and darkened copy so wide or tall screens never show a hard edge. A gentle
+ * vignette keeps the eye on the track.
+ */
+export function renderPaintedMap(img: CanvasImageSource, iw: number, ih: number, res: number): HTMLCanvasElement {
+  const W = WORLD_W + BLEED * 2;
+  const H = WORLD_H + BLEED * 2;
+  const [c, ctx] = makeCanvas(W * res, H * res);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // --- bleed: 3x3 mirrored tiles at low resolution, upscaled = blurred ---
+  const lo = 1 / 14;
+  const [b, bctx] = makeCanvas(W * lo, H * lo);
+  bctx.imageSmoothingEnabled = true;
+  bctx.imageSmoothingQuality = 'high';
+  for (let ty = -1; ty <= 1; ty++) {
+    for (let tx = -1; tx <= 1; tx++) {
+      bctx.save();
+      bctx.translate((BLEED + tx * WORLD_W) * lo, (BLEED + ty * WORLD_H) * lo);
+      // mirror the neighbours so the painting continues seamlessly across the border
+      const mx = tx !== 0 ? -1 : 1;
+      const my = ty !== 0 ? -1 : 1;
+      bctx.translate(mx < 0 ? WORLD_W * lo : 0, my < 0 ? WORLD_H * lo : 0);
+      bctx.scale(mx, my);
+      bctx.drawImage(img, 0, 0, iw, ih, 0, 0, WORLD_W * lo, WORLD_H * lo);
+      bctx.restore();
+    }
+  }
+  // second blur pass
+  const [b2, b2ctx] = makeCanvas(b.width / 2, b.height / 2);
+  b2ctx.imageSmoothingEnabled = true;
+  b2ctx.drawImage(b, 0, 0, b2.width, b2.height);
+  ctx.drawImage(b2, 0, 0, W * res, H * res);
+  // darken the bleed, more towards the outside
+  ctx.fillStyle = 'rgba(12,8,24,0.42)';
+  ctx.fillRect(0, 0, W * res, H * res);
+  const edge = (x0: number, y0: number, x1: number, y1: number, rx: number, ry: number, rw: number, rh: number) => {
+    const g = ctx.createLinearGradient(x0 * res, y0 * res, x1 * res, y1 * res);
+    g.addColorStop(0, 'rgba(8,5,18,0.55)');
+    g.addColorStop(1, 'rgba(8,5,18,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(rx * res, ry * res, rw * res, rh * res);
+  };
+  edge(0, 0, BLEED, 0, 0, 0, BLEED, H);
+  edge(W, 0, W - BLEED, 0, W - BLEED, 0, BLEED, H);
+  edge(0, 0, 0, BLEED, 0, 0, W, BLEED);
+  edge(0, H, 0, H - BLEED, 0, H - BLEED, W, BLEED);
+
+  // --- the painting ---
+  const px = BLEED * res;
+  const py = BLEED * res;
+  // soft drop shadow so the playfield reads as a board on a dimmed table
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)';
+  ctx.shadowBlur = 24 * res;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(px, py, WORLD_W * res, WORLD_H * res);
+  ctx.restore();
+  ctx.drawImage(img, 0, 0, iw, ih, px, py, WORLD_W * res, WORLD_H * res);
+
+  // --- vignette over the playfield ---
+  const cx = px + (WORLD_W * res) / 2;
+  const cy = py + (WORLD_H * res) / 2;
+  const vr = Math.hypot(WORLD_W, WORLD_H) * 0.5 * res;
+  const vg = ctx.createRadialGradient(cx, cy, vr * 0.55, cx, cy, vr * 1.02);
+  vg.addColorStop(0, 'rgba(20,10,30,0)');
+  vg.addColorStop(1, 'rgba(20,10,30,0.22)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(px, py, WORLD_W * res, WORLD_H * res);
+  return c;
+}
+
 /** Small preview used on the map select cards. */
 export function mapThumbnail(map: MapDef, paths: Path[], px = 320): string {
+  const art = mapArt(map.id);
+  const h = Math.round((px * WORLD_H) / WORLD_W);
+  if (art) {
+    const [t, tctx] = makeCanvas(px, h);
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(art.img, 0, 0, t.width, t.height);
+    return t.toDataURL('image/jpeg', 0.85);
+  }
   const res = px / WORLD_W;
   const c = renderMap(map, paths, res);
-  const [t, tctx] = makeCanvas(px, Math.round((px * WORLD_H) / WORLD_W));
+  const [t, tctx] = makeCanvas(px, h);
   tctx.drawImage(c, BLEED * res, BLEED * res, WORLD_W * res, WORLD_H * res, 0, 0, t.width, t.height);
   return t.toDataURL('image/jpeg', 0.85);
 }

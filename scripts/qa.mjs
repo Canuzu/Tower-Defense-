@@ -11,8 +11,8 @@ await page.reload();
 await page.waitForTimeout(1000);
 await page.locator('.btn.big').click();
 await page.locator('.mapcard').first().click();
-await page.locator('.diff').nth(1).click(); // medium
-await page.locator('.startrow .btn.green').click();
+await page.locator('.diff-tile').nth(1).click(); // medium
+await page.locator('.setup-actions .btn.green').click();
 await page.waitForTimeout(700);
 await page.screenshot({ path: 'screens/qa-1-tutorial.png' });
 // drag the hedgehog card onto the map

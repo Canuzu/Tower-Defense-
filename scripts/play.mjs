@@ -15,7 +15,7 @@ await page.screenshot({ path: out + '-maps.png' });
 await page.locator('.mapcard').first().click();
 await page.waitForTimeout(400);
 await page.screenshot({ path: out + '-setup.png' });
-await page.locator('.startrow .btn.green').click();
+await page.locator('.setup-actions .btn.green').click();
 await page.waitForTimeout(800);
 // place towers through the game API (world coords) to keep the script stable
 await page.evaluate(() => {

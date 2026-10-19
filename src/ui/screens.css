@@ -45,7 +45,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(12px, 3.5vh, 28px);
+  gap: clamp(calc(12px * var(--k, 1)), 3.5vh, calc(28px * var(--k, 1)));
   width: min(560px, 82vw);
   padding: 0 16px;
 }
@@ -63,7 +63,7 @@
 
 .ld-wordmark {
   --stroke: 8px;
-  font-size: clamp(36px, 10vh, 80px);
+  font-size: clamp(calc(36px * var(--k, 1)), 10vh, calc(80px * var(--k, 1)));
   color: var(--c-gold);
   text-align: center;
 }
@@ -71,7 +71,7 @@
 .ld-bar {
   position: relative;
   width: min(100%, 460px);
-  height: clamp(24px, 5.5vh, 34px);
+  height: clamp(calc(24px * var(--k, 1)), 5.5vh, calc(34px * var(--k, 1)));
   padding: 3px;
   border-radius: var(--r-pill);
   border: var(--bw) solid var(--c-ink);
@@ -83,7 +83,7 @@
   position: relative;
   height: 100%;
   width: 0%;
-  min-width: 14px;
+  min-width: calc(14px * var(--k, 1));
   border-radius: var(--r-pill);
   background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.18) 0 8px, transparent 8px 16px), linear-gradient(180deg, #fff2a8 0%, #ffcf3f 45%, #f0a020 100%);
   background-size: 22.6px 22.6px, auto;
@@ -115,12 +115,12 @@
 .ld-tip {
   color: var(--c-muted);
   font-weight: 700;
-  font-size: clamp(13px, 2.4vh, 17px);
+  font-size: clamp(calc(13px * var(--k, 1)), 2.4vh, calc(17px * var(--k, 1)));
 }
 
 .ld-pct {
   --stroke: 5px;
-  font-size: clamp(18px, 3.6vh, 26px);
+  font-size: clamp(calc(18px * var(--k, 1)), 3.6vh, calc(26px * var(--k, 1)));
 }
 
 @keyframes ld-stripes {
@@ -209,7 +209,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 52px;
+  min-height: calc(52px * var(--k, 1));
 }
 
 .topbar .t-title {
@@ -218,7 +218,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 4px 4px 6px;
-  font-size: clamp(24px, 6vh, 42px);
+  font-size: clamp(calc(24px * var(--k, 1)), 6vh, calc(42px * var(--k, 1)));
 }
 
 .topbar .spacer {
@@ -271,7 +271,7 @@
 
 .menu-logo .wordmark {
   --stroke: 8px;
-  font-size: clamp(40px, 12vh, 96px);
+  font-size: clamp(calc(40px * var(--k, 1)), 12vh, calc(96px * var(--k, 1)));
   color: var(--c-gold);
   line-height: 0.9;
 }
@@ -282,32 +282,26 @@
   top: calc(10px + var(--safe-t));
   display: flex;
   align-items: flex-start;
-  gap: clamp(10px, 2vw, 18px);
+  gap: clamp(calc(10px * var(--k, 1)), 2vw, calc(18px * var(--k, 1)));
 }
 
 .lvl-card {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  height: clamp(46px, 11vh, 60px);
-  padding: 0 14px 0 calc(clamp(46px, 11vh, 60px) * 0.78);
-  margin-left: calc(clamp(46px, 11vh, 60px) * 0.42);
-  margin-top: calc(clamp(52px, 13vh, 76px) / 2 - clamp(46px, 11vh, 60px) / 2);
-  border-radius: var(--r-pill);
-  border: var(--bw) solid var(--c-ink);
-  background: linear-gradient(180deg, rgba(48, 36, 118, 0.94), rgba(23, 16, 54, 0.94));
-  box-shadow: var(--hl), var(--sh-drop), var(--sh-soft);
+  gap: 2px;
+  width: clamp(calc(76px * var(--k, 1)), 15vh, calc(104px * var(--k, 1)));
 }
 
 .lvl-star {
-  position: absolute;
-  left: calc(clamp(46px, 11vh, 60px) * -0.48);
-  top: 50%;
-  width: calc(clamp(46px, 11vh, 60px) * 1.32);
+  position: relative;
+  width: clamp(calc(50px * var(--k, 1)), 12.6vh, calc(72px * var(--k, 1)));
   aspect-ratio: 1;
-  transform: translateY(-50%);
   display: grid;
   place-items: center;
+  margin-bottom: -6px;
+  z-index: 1;
 }
 
 .lvl-star .ico {
@@ -316,37 +310,32 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 3px 0 rgba(10, 5, 30, 0.6));
+  filter: drop-shadow(0 3px 0 rgba(10, 5, 30, 0.6)) drop-shadow(0 0 10px rgba(190, 120, 255, 0.45));
 }
 
 .lvl-star .emoji {
   position: absolute;
-  font-size: calc(clamp(46px, 11vh, 60px) * 1.05);
+  font-size: clamp(calc(42px * var(--k, 1)), 11vh, calc(62px * var(--k, 1)));
 }
 
 .lvl-star b {
   --stroke: 5px;
   position: relative;
-  font-size: calc(clamp(46px, 11vh, 60px) * 0.42);
+  font-size: clamp(calc(18px * var(--k, 1)), 4.6vh, calc(26px * var(--k, 1)));
   line-height: 1;
   margin-top: 6%;
 }
 
-.lvl-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: clamp(120px, 17vw, 190px);
+.lvl-card .bar {
+  --bar-h: clamp(calc(12px * var(--k, 1)), 2.8vh, calc(15px * var(--k, 1)));
+  width: 100%;
 }
 
-.lvl-title {
-  --stroke: 4px;
-  font-size: clamp(13px, 2.6vh, 17px);
-  line-height: 1;
-}
-
-.lvl-info .bar {
-  --bar-h: clamp(16px, 3.6vh, 20px);
+.lvl-xp {
+  --stroke: 3.5px;
+  font-size: clamp(calc(11px * var(--k, 1)), 2.4vh, calc(14px * var(--k, 1)));
+  line-height: 1.05;
+  white-space: nowrap;
 }
 
 .menu-dock {
@@ -355,7 +344,7 @@
   bottom: calc(10px + var(--safe-b));
   display: flex;
   align-items: flex-end;
-  gap: clamp(6px, 1.6vw, 18px);
+  gap: clamp(calc(6px * var(--k, 1)), 1.6vw, calc(18px * var(--k, 1)));
 }
 
 .menu-cta {
@@ -365,15 +354,15 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: clamp(8px, 2vh, 14px);
-  width: clamp(196px, 27vw, 340px);
+  gap: clamp(calc(8px * var(--k, 1)), 2vh, calc(14px * var(--k, 1)));
+  width: clamp(calc(232px * var(--k, 1)), 31vw, calc(360px * var(--k, 1)));
 }
 
-.cta-play {
+.menu .btn.big.cta-play {
   position: relative;
   width: 100%;
-  --bh: clamp(62px, 17vh, 108px);
-  font-size: clamp(30px, 8vh, 60px);
+  --bh: clamp(calc(62px * var(--k, 1)), 17vh, calc(108px * var(--k, 1)));
+  font-size: clamp(calc(30px * var(--k, 1)), 8vh, calc(60px * var(--k, 1)));
   --stroke: 7px;
   gap: 0.25em;
   animation: cta-glow 2.4s ease-in-out infinite;
@@ -418,13 +407,13 @@
   justify-content: flex-start;
   padding: 4px 12px 7px 6px;
   gap: 10px;
-  --bh: 54px;
+  --bh: calc(54px * var(--k, 1));
   text-align: left;
 }
 
 .resume .thumb {
-  width: 58px;
-  height: 36px;
+  width: calc(58px * var(--k, 1));
+  height: calc(36px * var(--k, 1));
   flex: none;
   object-fit: cover;
   border-radius: 9px;
@@ -439,6 +428,7 @@
 
 .resume .stack > span:first-child,
 .resume .sub {
+  font-size: 0.6em;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
@@ -446,11 +436,11 @@
 
 /* ================================================================================== map select */
 .medal-total {
-  --pill-h: 44px;
+  --pill-h: calc(44px * var(--k, 1));
 }
 
 .map-grid {
-  --gap: clamp(10px, 2.2vh, 20px);
+  --gap: clamp(calc(10px * var(--k, 1)), 2.2vh, calc(20px * var(--k, 1)));
   flex: 1;
   min-height: 0;
   width: min(100%, calc(((100vh - 104px - var(--safe-t) - var(--safe-b)) / 2 - var(--gap)) * 16 / 9 * 3 + var(--gap) * 2), 1240px);
@@ -459,6 +449,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--gap);
   align-content: center;
+  align-content: safe center;
   padding: 8px 4px 6px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -472,6 +463,7 @@
 
 .mapcard {
   position: relative;
+  container-type: inline-size;
   aspect-ratio: 16 / 9;
   border-radius: var(--r-lg);
   border: var(--bw) solid var(--c-ink);
@@ -514,7 +506,7 @@
   left: 10px;
   right: 10px;
   bottom: 5px;
-  font-size: clamp(16px, 3.8vh, 28px);
+  font-size: clamp(calc(16px * var(--k, 1)), 3.8vh, calc(28px * var(--k, 1)));
   line-height: 1.05;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -530,11 +522,12 @@
   border-radius: 0 var(--r-pill) var(--r-pill) 0;
   border: 2.5px solid var(--c-ink);
   border-left: 0;
+  background: var(--tc);
   background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 55%, #fff) 0%, var(--tc) 55%, color-mix(in srgb, var(--tc) 70%, #000) 100%);
   box-shadow: 0 2px 0 rgba(9, 4, 28, 0.6);
   color: #fff;
   font-weight: 800;
-  font-size: clamp(11px, 2.2vh, 14px);
+  font-size: clamp(calc(11px * var(--k, 1)), 2.2vh, calc(14px * var(--k, 1)));
   line-height: 1.1;
   -webkit-text-stroke: var(--stroke) var(--c-ink);
   paint-order: stroke fill;
@@ -554,18 +547,31 @@
 }
 
 .mc-medals .ico {
-  width: clamp(18px, 4.6vh, 30px);
-  height: clamp(18px, 4.6vh, 30px);
+  width: clamp(calc(18px * var(--k, 1)), 4.6vh, calc(30px * var(--k, 1)));
+  height: clamp(calc(18px * var(--k, 1)), 4.6vh, calc(30px * var(--k, 1)));
   object-fit: contain;
 }
 
 .mc-medals .emoji {
-  font-size: clamp(14px, 3.6vh, 22px);
+  font-size: clamp(calc(14px * var(--k, 1)), 3.6vh, calc(22px * var(--k, 1)));
 }
 
 .mc-medals .off {
   filter: grayscale(1) brightness(0.35) contrast(0.9);
   opacity: 0.75;
+}
+
+@container (max-width: 250px) {
+  .mc-medals {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    border-radius: 12px;
+    padding: 3px 4px;
+  }
+  .mc-tier {
+    font-size: calc(11px * var(--k, 1));
+    padding-right: 10px;
+  }
 }
 
 .mapcard.locked .mc-img {
@@ -584,14 +590,14 @@
 }
 
 .mc-lock .ico {
-  width: clamp(30px, 9vh, 56px);
-  height: clamp(30px, 9vh, 56px);
+  width: clamp(calc(30px * var(--k, 1)), 9vh, calc(56px * var(--k, 1)));
+  height: clamp(calc(30px * var(--k, 1)), 9vh, calc(56px * var(--k, 1)));
   object-fit: contain;
   filter: drop-shadow(0 3px 0 rgba(10, 5, 30, 0.7));
 }
 
 .mc-lock .emoji {
-  font-size: clamp(26px, 7vh, 44px);
+  font-size: clamp(calc(26px * var(--k, 1)), 7vh, calc(44px * var(--k, 1)));
 }
 
 .mapcard.shake .mc-lock .ico,
@@ -618,18 +624,25 @@
 .setup {
   flex: 1;
   min-height: 0;
-  width: min(100%, 1180px);
+  width: min(100%, calc(1180px * var(--k, 1)));
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.25fr);
-  gap: clamp(10px, 2vw, 22px);
+  align-content: center;
+  align-content: safe center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  align-items: start;
+  gap: clamp(calc(10px * var(--k, 1)), 2vw, calc(22px * var(--k, 1)));
   padding-top: 6px;
 }
 
 .setup-col {
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.8vh, 14px);
+  gap: clamp(calc(8px * var(--k, 1)), 1.8vh, calc(14px * var(--k, 1)));
   min-height: 0;
   min-width: 0;
 }
@@ -645,7 +658,7 @@
   box-shadow: 0 5px 0 rgba(9, 4, 28, 0.8), var(--sh-soft);
 }
 
-.setup-map img {
+.setup-map > img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -666,7 +679,7 @@
   margin: 0;
   color: var(--c-muted);
   font-weight: 600;
-  font-size: clamp(13px, 2.3vh, 16px);
+  font-size: clamp(calc(13px * var(--k, 1)), 2.3vh, calc(16px * var(--k, 1)));
   line-height: 1.3;
 }
 
@@ -715,7 +728,7 @@
   padding: 0 4px;
   border-radius: 6px;
   background: rgba(10, 5, 30, 0.85);
-  font-size: 10px;
+  font-size: calc(10px * var(--k, 1));
   font-weight: 800;
   color: var(--c-muted);
   white-space: nowrap;
@@ -732,8 +745,8 @@
 
 .diff-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: clamp(6px, 1vw, 10px);
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: clamp(calc(6px * var(--k, 1)), 1vw, calc(10px * var(--k, 1)));
 }
 
 .diff-tile {
@@ -743,7 +756,11 @@
   gap: 2px;
   padding: 6px 4px 6px;
   text-align: center;
-  min-height: 44px;
+  min-height: calc(44px * var(--k, 1));
+}
+
+.diff-tile.sandbox {
+  padding-inline: 8px;
 }
 
 .diff-tile::before {
@@ -759,8 +776,8 @@
 }
 
 .diff-tile .medal {
-  width: clamp(28px, 7.4vh, 52px);
-  height: clamp(28px, 7.4vh, 52px);
+  width: clamp(calc(28px * var(--k, 1)), 7.4vh, calc(52px * var(--k, 1)));
+  height: clamp(calc(28px * var(--k, 1)), 7.4vh, calc(52px * var(--k, 1)));
   object-fit: contain;
   margin-top: 4px;
   filter: drop-shadow(0 3px 0 rgba(10, 5, 30, 0.6));
@@ -770,7 +787,7 @@
 .diff-tile span.medal {
   display: grid;
   place-items: center;
-  font-size: clamp(22px, 5.6vh, 38px);
+  font-size: clamp(calc(22px * var(--k, 1)), 5.6vh, calc(38px * var(--k, 1)));
 }
 
 .diff-tile:not(.got) .medal {
@@ -785,7 +802,7 @@
 .diff-tile .dname {
   --stroke: 4px;
   max-width: 100%;
-  font-size: clamp(12px, 2.5vh, 17px);
+  font-size: clamp(calc(12px * var(--k, 1)), 2.5vh, calc(17px * var(--k, 1)));
   line-height: 1.05;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -796,8 +813,8 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  width: 24px;
-  height: 24px;
+  width: calc(24px * var(--k, 1));
+  height: calc(24px * var(--k, 1));
   object-fit: contain;
   filter: drop-shadow(0 2px 0 rgba(10, 5, 30, 0.7));
 }
@@ -806,18 +823,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
+  min-height: calc(36px * var(--k, 1));
   padding: 5px 12px;
   border-radius: var(--r-sm);
   font-weight: 700;
-  font-size: clamp(13px, 2.4vh, 16px);
+  font-size: clamp(calc(13px * var(--k, 1)), 2.4vh, calc(16px * var(--k, 1)));
   color: var(--c-cream);
   line-height: 1.2;
 }
 
 .diff-desc .dot {
-  width: 12px;
-  height: 12px;
+  width: calc(12px * var(--k, 1));
+  height: calc(12px * var(--k, 1));
   flex: none;
   border-radius: 50%;
   border: 2px solid var(--c-ink);
@@ -827,7 +844,7 @@
 .hero-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(8px, 1.4vw, 12px);
+  gap: clamp(calc(8px * var(--k, 1)), 1.4vw, calc(12px * var(--k, 1)));
 }
 
 .hero-tile {
@@ -835,7 +852,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 10px 4px 4px;
-  min-height: 60px;
+  min-height: calc(60px * var(--k, 1));
   overflow: hidden;
   background: linear-gradient(180deg, #5b3fb0 0%, #3f2a8a 60%, #33206f 100%);
 }
@@ -846,8 +863,8 @@
 }
 
 .hero-tile .portrait {
-  width: clamp(54px, 15vh, 108px);
-  height: clamp(54px, 15vh, 108px);
+  width: clamp(calc(54px * var(--k, 1)), 15vh, calc(108px * var(--k, 1)));
+  height: clamp(calc(54px * var(--k, 1)), 15vh, calc(108px * var(--k, 1)));
 }
 
 .hero-text {
@@ -859,21 +876,21 @@
 
 .hero-text b {
   --stroke: 4.5px;
-  font-size: clamp(16px, 3.3vh, 24px);
+  font-size: clamp(calc(16px * var(--k, 1)), 3.3vh, calc(24px * var(--k, 1)));
   line-height: 1;
 }
 
 .hero-text small {
   color: #e2d6ff;
   font-weight: 700;
-  font-size: clamp(11px, 2.1vh, 14px);
+  font-size: clamp(calc(11px * var(--k, 1)), 2.1vh, calc(14px * var(--k, 1)));
   line-height: 1.15;
 }
 
 .hero-text .hdesc {
   color: var(--c-muted);
   font-weight: 600;
-  font-size: clamp(11px, 1.9vh, 13px);
+  font-size: clamp(calc(11px * var(--k, 1)), 1.9vh, calc(13px * var(--k, 1)));
   line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -885,8 +902,8 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 26px;
-  height: 26px;
+  width: calc(26px * var(--k, 1));
+  height: calc(26px * var(--k, 1));
   object-fit: contain;
 }
 
@@ -895,7 +912,7 @@
 }
 
 .setup-actions {
-  margin-top: auto;
+  margin-top: 2px;
   display: flex;
   gap: 10px;
   justify-content: flex-end;
@@ -904,24 +921,46 @@
 }
 
 .setup-actions .start {
-  min-width: clamp(170px, 22vw, 260px);
+  min-width: clamp(calc(170px * var(--k, 1)), 22vw, calc(260px * var(--k, 1)));
 }
 
 /* ================================================================================== settings */
 .settings-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 22px;
   padding: 2px 6px;
+}
+
+.settings-list .setting:last-child {
+  border-bottom: 0;
+}
+
+@media (min-width: 640px) {
+  .modal.settings {
+    width: min(820px, 100%);
+  }
+  .settings-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .settings-list .setting.full {
+    grid-column: 1 / -1;
+  }
+  .settings-list input[type='range'] {
+    width: min(48%, 200px);
+  }
 }
 
 .settings-list .socket {
   --s: 36px;
-  font-size: 18px;
+  font-size: calc(18px * var(--k, 1));
 }
 
 .settings-foot-note {
   margin: 2px 0 0;
   color: var(--c-dim);
   font-weight: 600;
-  font-size: 12px;
+  font-size: calc(12px * var(--k, 1));
 }
 
 /* ================================================================================== pause */
@@ -944,13 +983,13 @@
   flex-direction: column;
   gap: 2px;
   padding: 6px 6px 9px;
-  --bh: 64px;
-  font-size: clamp(13px, 2.3vh, 16px);
+  --bh: calc(64px * var(--k, 1));
+  font-size: clamp(calc(13px * var(--k, 1)), 2.3vh, calc(16px * var(--k, 1)));
   --stroke: 3.5px;
 }
 
 .pause-grid .btn .ico {
-  height: 26px;
+  height: calc(26px * var(--k, 1));
 }
 
 .pause-resume {
@@ -976,14 +1015,17 @@
 
 .result-art {
   position: relative;
+  margin-bottom: 6%;
   display: grid;
   place-items: center;
-  width: clamp(90px, 26vh, 180px);
-  height: clamp(90px, 26vh, 180px);
+  width: clamp(calc(90px * var(--k, 1)), 26vh, calc(180px * var(--k, 1)));
+  height: clamp(calc(90px * var(--k, 1)), 26vh, calc(180px * var(--k, 1)));
 }
 
 .result-art .rays {
-  --rays: clamp(200px, 56vh, 380px);
+  --rays: calc(clamp(calc(90px * var(--k, 1)), 26vh, calc(180px * var(--k, 1))) * 1.75);
+  -webkit-mask-image: radial-gradient(circle, #000 22%, transparent 62%);
+  mask-image: radial-gradient(circle, #000 22%, transparent 62%);
 }
 
 .result-art > img,
@@ -992,7 +1034,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  font-size: clamp(64px, 18vh, 130px);
+  font-size: clamp(calc(64px * var(--k, 1)), 18vh, calc(130px * var(--k, 1)));
   display: grid;
   place-items: center;
   filter: drop-shadow(0 6px 0 rgba(10, 5, 30, 0.55)) drop-shadow(0 0 24px rgba(255, 220, 120, 0.35));
@@ -1008,6 +1050,19 @@
   object-fit: contain;
   filter: drop-shadow(0 4px 0 rgba(10, 5, 30, 0.6));
   animation: ui-pop-big 0.8s var(--ease-spring) both 0.75s;
+}
+
+.crack-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: ui-fade 0.2s ease-out both 0.75s;
+}
+
+.crack-wrap svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-4deg);
 }
 
 .result.lose .result-art > img,
@@ -1036,7 +1091,7 @@
   margin: 0;
   color: var(--c-cream);
   font-weight: 700;
-  font-size: clamp(13px, 2.4vh, 17px);
+  font-size: clamp(calc(13px * var(--k, 1)), 2.4vh, calc(17px * var(--k, 1)));
   line-height: 1.25;
 }
 
@@ -1061,11 +1116,11 @@
 
 .stat .ico,
 .stat .emoji {
-  width: clamp(26px, 6vh, 36px);
-  height: clamp(26px, 6vh, 36px);
+  width: clamp(calc(26px * var(--k, 1)), 6vh, calc(36px * var(--k, 1)));
+  height: clamp(calc(26px * var(--k, 1)), 6vh, calc(36px * var(--k, 1)));
   flex: none;
   object-fit: contain;
-  font-size: clamp(20px, 4.6vh, 28px);
+  font-size: clamp(calc(20px * var(--k, 1)), 4.6vh, calc(28px * var(--k, 1)));
   display: grid;
   place-items: center;
 }
@@ -1079,7 +1134,7 @@
 .stat-text small {
   color: var(--c-muted);
   font-weight: 700;
-  font-size: clamp(11px, 2vh, 13px);
+  font-size: clamp(calc(11px * var(--k, 1)), 2vh, calc(13px * var(--k, 1)));
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
@@ -1088,7 +1143,7 @@
 
 .stat-text b {
   --stroke: 4px;
-  font-size: clamp(16px, 3.4vh, 22px);
+  font-size: clamp(calc(16px * var(--k, 1)), 3.4vh, calc(22px * var(--k, 1)));
   line-height: 1.05;
 }
 
@@ -1105,21 +1160,21 @@
 }
 
 .reward .ico {
-  width: clamp(30px, 7vh, 44px);
-  height: clamp(30px, 7vh, 44px);
+  width: clamp(calc(30px * var(--k, 1)), 7vh, calc(44px * var(--k, 1)));
+  height: clamp(calc(30px * var(--k, 1)), 7vh, calc(44px * var(--k, 1)));
   object-fit: contain;
 }
 
 .reward b {
   --stroke: 5px;
-  font-size: clamp(20px, 4.6vh, 32px);
+  font-size: clamp(calc(20px * var(--k, 1)), 4.6vh, calc(32px * var(--k, 1)));
   line-height: 1;
 }
 
 .reward small {
   color: var(--c-muted);
   font-weight: 700;
-  font-size: clamp(12px, 2.2vh, 15px);
+  font-size: clamp(calc(12px * var(--k, 1)), 2.2vh, calc(15px * var(--k, 1)));
 }
 
 /* ================================================================================== star atlas */
@@ -1139,12 +1194,12 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  min-height: 88px;
+  min-height: calc(88px * var(--k, 1));
 }
 
 .atlas-card .portrait {
-  width: clamp(64px, 15vh, 92px);
-  height: clamp(64px, 15vh, 92px);
+  width: clamp(calc(64px * var(--k, 1)), 15vh, calc(92px * var(--k, 1)));
+  height: clamp(calc(64px * var(--k, 1)), 15vh, calc(92px * var(--k, 1)));
 }
 
 .atlas-text {
@@ -1155,9 +1210,23 @@
   flex: 1;
 }
 
+.atlas-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
+.atlas-text small {
+  color: #e2d6ff;
+  font-weight: 700;
+  font-size: clamp(calc(11px * var(--k, 1)), 2vh, calc(13px * var(--k, 1)));
+  line-height: 1.1;
+}
+
 .atlas-text b {
   --stroke: 4px;
-  font-size: clamp(15px, 2.9vh, 19px);
+  font-size: clamp(calc(15px * var(--k, 1)), 2.9vh, calc(19px * var(--k, 1)));
   line-height: 1.05;
 }
 
@@ -1165,7 +1234,7 @@
   margin: 0;
   color: var(--c-muted);
   font-weight: 600;
-  font-size: clamp(12px, 2vh, 14px);
+  font-size: clamp(calc(12px * var(--k, 1)), 2vh, calc(14px * var(--k, 1)));
   line-height: 1.22;
 }
 
@@ -1176,8 +1245,8 @@
 }
 
 .atlas-chips .chip {
-  min-height: 22px;
-  font-size: 12px;
+  min-height: calc(22px * var(--k, 1));
+  font-size: calc(12px * var(--k, 1));
   padding: 0 8px 1px;
 }
 
@@ -1193,8 +1262,8 @@
 
 .hero-looks .look {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: calc(44px * var(--k, 1));
+  height: calc(44px * var(--k, 1));
   border-radius: 10px;
   background: var(--c-well);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
@@ -1213,7 +1282,7 @@
   padding: 0 4px;
   border-radius: 6px;
   background: var(--c-ink);
-  font-size: 10px;
+  font-size: calc(10px * var(--k, 1));
   font-weight: 800;
   line-height: 1.4;
 }
@@ -1221,8 +1290,8 @@
 .bond-pair {
   position: relative;
   flex: none;
-  width: clamp(84px, 18vh, 112px);
-  height: clamp(60px, 13vh, 80px);
+  width: clamp(calc(84px * var(--k, 1)), 18vh, calc(112px * var(--k, 1)));
+  height: clamp(calc(60px * var(--k, 1)), 13vh, calc(80px * var(--k, 1)));
 }
 
 .bond-pair img {
@@ -1248,19 +1317,19 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 28px;
-  height: 28px;
+  width: calc(28px * var(--k, 1));
+  height: calc(28px * var(--k, 1));
   border-radius: 50%;
   display: grid;
   place-items: center;
   border: 2.5px solid var(--c-ink);
   background: var(--bc, var(--c-gold));
-  font-size: 15px;
+  font-size: calc(15px * var(--k, 1));
   box-shadow: 0 0 12px var(--bc, var(--c-gold));
 }
 
 .bond-line {
-  font-size: clamp(12px, 2vh, 14px);
+  font-size: clamp(calc(12px * var(--k, 1)), 2vh, calc(14px * var(--k, 1)));
   font-weight: 600;
   color: var(--c-muted);
   line-height: 1.22;
@@ -1277,7 +1346,7 @@
   margin: 0 0 8px;
   color: var(--c-muted);
   font-weight: 700;
-  font-size: clamp(12px, 2.2vh, 15px);
+  font-size: clamp(calc(12px * var(--k, 1)), 2.2vh, calc(15px * var(--k, 1)));
 }
 
 /* ================================================================================== wisdom */
@@ -1291,8 +1360,8 @@
 }
 
 .wisdom-points {
-  --pill-h: 46px;
-  font-size: 24px;
+  --pill-h: calc(46px * var(--k, 1));
+  font-size: calc(24px * var(--k, 1));
   padding-right: 16px;
 }
 
@@ -1307,7 +1376,7 @@
   max-width: 460px;
   color: var(--c-muted);
   font-weight: 600;
-  font-size: clamp(12px, 2.2vh, 15px);
+  font-size: clamp(calc(12px * var(--k, 1)), 2.2vh, calc(15px * var(--k, 1)));
   line-height: 1.25;
   text-align: left;
 }
@@ -1344,7 +1413,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: clamp(13px, 2.4vh, 16px);
+  font-size: clamp(calc(13px * var(--k, 1)), 2.4vh, calc(16px * var(--k, 1)));
   text-align: center;
   color: var(--bc);
   -webkit-text-stroke: var(--stroke) var(--c-ink);
@@ -1357,12 +1426,12 @@
   gap: 8px;
   align-items: center;
   padding: 6px 8px 6px 6px;
-  min-height: 56px;
+  min-height: calc(56px * var(--k, 1));
 }
 
 .perk .socket {
   --s: 42px;
-  font-size: 21px;
+  font-size: calc(21px * var(--k, 1));
   z-index: 1;
 }
 
@@ -1373,13 +1442,13 @@
 }
 
 .perk-text b {
-  font-size: clamp(13px, 2.3vh, 15px);
+  font-size: clamp(calc(13px * var(--k, 1)), 2.3vh, calc(15px * var(--k, 1)));
   line-height: 1.1;
   font-weight: 800;
 }
 
 .perk-text small {
-  font-size: clamp(11px, 1.9vh, 13px);
+  font-size: clamp(calc(11px * var(--k, 1)), 1.9vh, calc(13px * var(--k, 1)));
   color: var(--c-muted);
   font-weight: 600;
   line-height: 1.18;
@@ -1394,8 +1463,8 @@
   position: absolute;
   top: -7px;
   right: -7px;
-  width: 24px;
-  height: 24px;
+  width: calc(24px * var(--k, 1));
+  height: calc(24px * var(--k, 1));
   object-fit: contain;
   filter: drop-shadow(0 2px 0 rgba(10, 5, 30, 0.7));
 }
@@ -1411,8 +1480,8 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  width: 24px;
-  height: 24px;
+  width: calc(24px * var(--k, 1));
+  height: calc(24px * var(--k, 1));
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1420,7 +1489,7 @@
   background: radial-gradient(circle at 50% 30%, #b5f78f, #2fad45);
   color: #fff;
   font-weight: 800;
-  font-size: 17px;
+  font-size: calc(17px * var(--k, 1));
   line-height: 1;
   -webkit-text-stroke: 3px var(--c-ink);
   paint-order: stroke fill;
@@ -1433,7 +1502,8 @@
 }
 
 .perk.owned .socket {
-  background: radial-gradient(circle at 50% 30%, #fff1a0 0%, #ffc935 50%, #d0800c 100%);
+  background: radial-gradient(circle at 50% 30%, #7a5ad8 0%, #3d2b8c 60%, #241860 100%);
+  box-shadow: inset 0 0 0 3px #ffcf3f, inset 0 -6px 8px rgba(0, 0, 0, 0.35), 0 0 12px rgba(255, 207, 63, 0.5);
 }
 
 .perk.locked {
@@ -1451,8 +1521,8 @@
 }
 
 .ach-summary .ico {
-  width: 40px;
-  height: 40px;
+  width: calc(40px * var(--k, 1));
+  height: calc(40px * var(--k, 1));
   object-fit: contain;
   flex: none;
 }
@@ -1467,7 +1537,7 @@
 
 .ach-summary b {
   --stroke: 4px;
-  font-size: clamp(14px, 2.6vh, 18px);
+  font-size: clamp(calc(14px * var(--k, 1)), 2.6vh, calc(18px * var(--k, 1)));
   line-height: 1;
 }
 
@@ -1487,7 +1557,7 @@
 
 .ach .socket {
   --s: 46px;
-  font-size: 23px;
+  font-size: calc(23px * var(--k, 1));
 }
 
 .ach:not(.done) .socket {
@@ -1504,20 +1574,19 @@
 }
 
 .ach-text b {
-  font-size: clamp(13px, 2.4vh, 16px);
+  font-size: clamp(calc(13px * var(--k, 1)), 2.4vh, calc(16px * var(--k, 1)));
   line-height: 1.1;
   font-weight: 800;
 }
 
 .ach-text small {
-  font-size: clamp(11px, 2vh, 13px);
+  font-size: clamp(calc(11px * var(--k, 1)), 2vh, calc(13px * var(--k, 1)));
   color: var(--c-muted);
   font-weight: 600;
   line-height: 1.2;
 }
 
 .ach-text .bar {
-  --bar-h: 14px;
   margin-top: 3px;
   border-width: 2px;
 }
@@ -1528,25 +1597,25 @@
   flex-direction: column;
   align-items: center;
   gap: 0;
-  min-width: 48px;
+  min-width: calc(48px * var(--k, 1));
 }
 
 .ach-xp .ico {
-  width: 28px;
-  height: 28px;
+  width: calc(28px * var(--k, 1));
+  height: calc(28px * var(--k, 1));
   object-fit: contain;
 }
 
 .ach-xp b {
   --stroke: 3.5px;
-  font-size: 13px;
+  font-size: calc(13px * var(--k, 1));
   line-height: 1;
   white-space: nowrap;
 }
 
 .ach.done .ach-xp .ico {
-  width: 34px;
-  height: 34px;
+  width: calc(34px * var(--k, 1));
+  height: calc(34px * var(--k, 1));
 }
 
 /* ================================================================================== daily */
@@ -1567,7 +1636,7 @@
   box-shadow: 0 4px 0 rgba(9, 4, 28, 0.7);
 }
 
-.daily-map img {
+.daily-map > img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1576,7 +1645,7 @@
 }
 
 .daily-map .mc-name {
-  font-size: clamp(16px, 3.2vh, 22px);
+  font-size: clamp(calc(16px * var(--k, 1)), 3.2vh, calc(22px * var(--k, 1)));
 }
 
 .daily-map .date {
@@ -1588,7 +1657,7 @@
 .daily-name {
   --stroke: 5px;
   margin: 8px 0 2px;
-  font-size: clamp(18px, 4vh, 28px);
+  font-size: clamp(calc(18px * var(--k, 1)), 4vh, calc(28px * var(--k, 1)));
   line-height: 1.05;
 }
 
@@ -1596,7 +1665,7 @@
   margin: 4px 0 0;
   color: var(--c-muted);
   font-weight: 600;
-  font-size: clamp(11px, 2vh, 13px);
+  font-size: clamp(calc(11px * var(--k, 1)), 2vh, calc(13px * var(--k, 1)));
   line-height: 1.25;
 }
 
@@ -1617,11 +1686,11 @@
 
 .rule .ico,
 .rule .emoji {
-  width: 30px;
-  height: 30px;
+  width: calc(30px * var(--k, 1));
+  height: calc(30px * var(--k, 1));
   object-fit: contain;
   flex: none;
-  font-size: 22px;
+  font-size: calc(22px * var(--k, 1));
   display: grid;
   place-items: center;
 }
@@ -1635,13 +1704,13 @@
 .rule-text small {
   color: var(--c-muted);
   font-weight: 700;
-  font-size: 11px;
+  font-size: calc(11px * var(--k, 1));
   line-height: 1.1;
 }
 
 .rule-text b {
   --stroke: 3.5px;
-  font-size: clamp(14px, 2.6vh, 17px);
+  font-size: clamp(calc(14px * var(--k, 1)), 2.6vh, calc(17px * var(--k, 1)));
   line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1666,8 +1735,8 @@
 }
 
 .allowed-row .portrait {
-  width: clamp(44px, 10vh, 60px);
-  height: clamp(44px, 10vh, 60px);
+  width: clamp(calc(44px * var(--k, 1)), 10vh, calc(60px * var(--k, 1)));
+  height: clamp(calc(44px * var(--k, 1)), 10vh, calc(60px * var(--k, 1)));
   border-radius: 12px;
   background: radial-gradient(circle at 50% 60%, rgba(255, 214, 120, 0.42), rgba(36, 26, 82, 0.6) 70%);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08);
@@ -1683,7 +1752,7 @@
   text-align: center;
   background: radial-gradient(ellipse at 50% 40%, #3b2794 0%, #171036 70%);
   font-weight: 800;
-  font-size: 22px;
+  font-size: calc(22px * var(--k, 1));
   padding: 30px;
 }
 
@@ -1695,7 +1764,7 @@
 }
 
 .rotate .phone {
-  font-size: 70px;
+  font-size: calc(70px * var(--k, 1));
   animation: rot 2s ease-in-out infinite;
 }
 
@@ -1721,9 +1790,6 @@
   .setup-desc {
     display: none;
   }
-  .hero-text .hdesc {
-    display: none;
-  }
   .modal-body {
     padding: 4px 12px 6px;
   }
@@ -1732,9 +1798,18 @@
   }
 }
 
+@media (max-height: 380px) {
+  .hero-text .hdesc {
+    display: none;
+  }
+}
+
 @media (max-height: 430px) {
+  .setting {
+    min-height: calc(46px * var(--k, 1));
+  }
   .topbar {
-    min-height: 46px;
+    min-height: calc(46px * var(--k, 1));
   }
   .screen {
     padding-top: calc(6px + var(--safe-t));
@@ -1744,41 +1819,46 @@
     display: none;
   }
   .roster .t-up {
-    font-size: 11px;
+    font-size: calc(11px * var(--k, 1));
   }
   .roster {
     padding: 6px 8px 8px;
   }
   .diff-desc {
-    min-height: 30px;
+    min-height: calc(30px * var(--k, 1));
     padding: 3px 10px;
   }
-  .btn {
-    --bh: 44px;
+  .screen .btn,
+  .modal-wrap .btn {
+    --bh: calc(44px * var(--k, 1));
   }
-  .btn.big {
-    --bh: 56px;
+  .screen .btn.big,
+  .modal-wrap .btn.big {
+    --bh: calc(56px * var(--k, 1));
   }
   .modal-wrap {
     padding-top: calc(26px + var(--safe-t));
     padding-bottom: calc(6px + var(--safe-b));
   }
   .pause-grid .btn {
-    --bh: 56px;
+    --bh: calc(56px * var(--k, 1));
   }
   .result-art {
-    width: 92px;
-    height: 92px;
+    width: calc(92px * var(--k, 1));
+    height: calc(92px * var(--k, 1));
   }
   .atlas-card {
-    min-height: 76px;
+    min-height: calc(76px * var(--k, 1));
   }
   .perk {
-    min-height: 50px;
+    min-height: calc(50px * var(--k, 1));
   }
 }
 
 @media (max-width: 760px) {
+  .setup {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  }
   .perk-cols {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

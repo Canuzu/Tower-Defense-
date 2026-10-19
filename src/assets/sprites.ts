@@ -20,6 +20,12 @@ export interface LoadedSprite extends SpriteInfo {
 
 const INDEX = index as Record<string, SpriteInfo>;
 const loaded = new Map<string, LoadedSprite>();
+let version = 0;
+
+/** Bumped whenever a sprite finishes loading (lets lookups memoize safely). */
+export function spritesVersion(): number {
+  return version;
+}
 
 export function hasSprite(id: string): boolean {
   return loaded.has(id);
@@ -55,6 +61,7 @@ export async function loadSprites(onProgress?: (p: number) => void): Promise<voi
           img.decoding = 'async';
           img.onload = () => {
             loaded.set(id, { ...info, img });
+            version++;
             done++;
             onProgress?.(done / ids.length);
             resolve();

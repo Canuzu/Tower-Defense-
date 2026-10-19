@@ -18,8 +18,8 @@ await page.screenshot({ path: 'screens/m-2-maps.png' });
 await tap(...(await center('.mapcard')));
 await page.waitForTimeout(300);
 await page.screenshot({ path: 'screens/m-3-setup.png' });
-await page.evaluate(() => { const b = document.querySelector('.startrow .btn.green'); b.scrollIntoView(); });
-await tap(...(await center('.startrow .btn.green')));
+await page.evaluate(() => { const b = document.querySelector('.setup-actions .btn.green'); b.scrollIntoView(); });
+await tap(...(await center('.setup-actions .btn.green')));
 await page.waitForTimeout(700);
 // drag spike
 const [cx, cy] = await center('.card[data-id="spike"]');

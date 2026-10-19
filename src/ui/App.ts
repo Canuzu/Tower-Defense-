@@ -1,45 +1,69 @@
+import './screens.css';
 import { Game, type SaveState, type ChallengeDef } from '../game/Game';
 import { MAPS, type MapDef } from '../game/maps';
 import { DIFFICULTIES, type Difficulty } from '../game/types';
 import { HEROES, HERO_ORDER, type HeroId } from '../game/heroes';
 import { TOWERS, TOWER_ORDER } from '../game/towers';
 import { GLOOP_ORDER, GLOOPS } from '../game/gloops';
-import { Path } from '../game/path';
 import { Renderer } from '../render/Renderer';
 import { makePresentation } from '../render/presentation';
-import { mapThumbnail } from '../render/mapArt';
-import { towerIcon, type ArtId } from '../render/towerArt';
+import { uiIconUrl } from '../render/art';
 import { audio } from '../audio/audio';
 import { Hud } from './hud';
 import { h, clear } from './dom';
 import { setHaptics } from './haptics';
-import { gloopIcon } from './icons';
 import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, wisdomPoints, type Profile } from '../save/storage';
 import { perksModal, achievementsModal, dailyModal } from './meta';
 import { newlyUnlocked, bondCount } from '../game/achievements';
 import { dailyFor, todayKey } from '../game/daily';
-import type { TowerId } from '../game/towerTypes';
 import { SYNERGIES } from '../game/synergy';
 import { t, setLang, type LangSetting } from '../i18n';
+import {
+  uiIcon,
+  img,
+  btn,
+  roundBtn,
+  backBtn,
+  modal,
+  bar,
+  chip,
+  socket,
+  twinkles,
+  stagger,
+  countUp,
+  confetti,
+  restartIcon,
+  fmt,
+  mapImageSrc,
+  towerPortraitUrl,
+  heroPortraitUrl,
+  starPortraitUrl,
+  MEDAL,
+  MEDAL_EMOJI,
+} from './kit';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
+type AtlasTab = 'bandits' | 'heroes' | 'stars' | 'bonds';
 
 const MAP_LEVEL: Record<string, number> = { meadow: 1, caverns: 2, fjord: 3, forge: 4, candy: 5, rivers: 6 };
-const TIER_COLOR: Record<string, string> = { Beginner: '#5ddc6a', Intermediate: '#ffd23c', Advanced: '#ff9f43', Expert: '#ff4d6d' };
+const TIER_COLOR: Record<string, string> = { Beginner: '#43c45a', Intermediate: '#f5b81f', Advanced: '#f27a2c', Expert: '#e8344e' };
+const ROLE_CHIP: Record<string, string> = { Primary: 'green', Military: 'red', Magic: 'blue', Support: 'gold' };
+const MEDAL_DIFFS: Difficulty[] = ['easy', 'medium', 'hard', 'champion'];
 
 export class App {
   private renderer: Renderer;
   private profile: Profile;
   private game: Game | null = null;
-  private demo: Game | null = null;
   private hud: Hud | null = null;
   private scene: Scene = 'menu';
   private screen: HTMLElement;
+  private backdrop: HTMLElement;
   private last = performance.now();
   private devUnlock = new URLSearchParams(location.search).has('dev') || location.hash === '#dev';
-  private thumbs = new Map<string, string>();
   private setupDiff: Difficulty = 'easy';
   private xpGainedThisGame = 0;
+  private menuTop: HTMLElement | null = null;
+  private menuDock: HTMLElement | null = null;
 
   constructor(private root: HTMLElement) {
     this.profile = loadProfile();
@@ -47,6 +71,8 @@ export class App {
     const canvas = h('canvas', { id: 'game' });
     root.append(canvas);
     this.renderer = new Renderer(canvas);
+    this.backdrop = this.buildBackdrop();
+    root.append(this.backdrop);
     this.screen = h('div', { class: 'layer' });
     root.append(this.screen);
     root.append(h('div', { class: 'rotate' }, h('div', null, h('div', { class: 'phone' }, '📱'), h('p', null, t('Rotate your device to landscape to play')))));
@@ -65,6 +91,10 @@ export class App {
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
+    // Escape walks back through menus (the HUD handles it in game)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.scene !== 'game') this.back();
+    });
     this.resize();
     this.showMenu();
     requestAnimationFrame(this.frame);
@@ -76,14 +106,15 @@ export class App {
 
   /** Android back button / Escape-like navigation. */
   back() {
-    const modal = this.root.querySelector('.modal-wrap');
+    const modalEl = this.root.querySelector('.modal-wrap');
     if (this.scene === 'game' && this.hud) {
       if (this.hud.isModalOpen) this.hud.closeModal();
       else this.hud.openPause();
       return;
     }
-    if (modal) {
-      modal.remove();
+    if (modalEl) {
+      modalEl.remove();
+      if (this.scene === 'menu') this.refreshMenu();
       return;
     }
     if (this.scene === 'setup') this.showMaps();
@@ -106,6 +137,7 @@ export class App {
     setHaptics(s.haptics);
     this.renderer.reducedEffects = s.reducedEffects;
     this.renderer.particles.reduced = s.reducedEffects;
+    document.documentElement.classList.toggle('reduce-fx', s.reducedEffects);
     if (this.hud) this.hud.showFps = s.showFps;
   }
 
@@ -143,56 +175,24 @@ export class App {
         audio.music.intensity = this.game.roundActive ? (this.game.enemies.some((e) => e.def.boss) ? 2 : 1) : 0;
         audio.music.frenzy = this.game.frenzyT > 0;
       }
-    } else if (this.demo) {
-      this.runDemo(dt);
+      this.renderer.render(this.game.paused ? 0 : dt);
     }
-    this.renderer.render(this.game?.paused ? 0 : dt);
+    // menus sit on the painted key art; the canvas is idle there (saves battery)
     requestAnimationFrame(this.frame);
   };
 
   // -------------------------------------------------------------------------------------------
-  // Attract-mode demo behind the menus
+  // Backdrop (painted key art behind every menu screen)
   // -------------------------------------------------------------------------------------------
 
-  private startDemo() {
-    const g = new Game({ mapId: 'meadow', difficulty: 'sandbox', heroId: 'nova' });
-    g.fx = makePresentation(this.renderer);
-    // quiet presentation for the demo: no sounds
-    const fx = g.fx;
-    g.fx = { ...fx, sound: () => {}, shake: () => {}, pop: (e) => this.renderer.splat(e.x, e.y, e.def.color, e.radius, !!e.def.boss), fire: () => {}, beam: (k, p, c, w) => this.renderer.addBeam(k, p, c, w), explosion: (x, y, r, v) => this.renderer.explosion(x, y, r, v), leak: () => {}, bossDeath: (e) => this.renderer.confetti(e.x, e.y, 30), place: () => {}, upgrade: () => {}, ability: () => {} };
-    const spots: [string, number, number, number[]][] = [
-      ['spike', 560, 215, [2, 0, 3]],
-      ['frost', 600, 600, [2, 0, 3]],
-      ['boomer', 905, 600, [3, 0, 2]],
-      ['ember', 310, 560, [0, 2, 3]],
-      ['zap', 1250, 600, [3, 2, 0]],
-      ['hoot', 1520, 560, [2, 0, 3]],
-      ['buzz', 1180, 170, [3, 0, 2]],
-      ['spike', 1540, 300, [0, 4, 0]],
-    ];
-    for (const [id, x, y, tiers] of spots) {
-      const t = g.placeTower(id as TowerId, x, y);
-      if (!t) continue;
-      for (let p = 0; p < 3; p++) for (let k = 0; k < tiers[p]; k++) g.upgrade(t, p);
-    }
-    g.placeHero('nova', 900, 400);
-    this.demo = g;
-    this.renderer.setGame(g);
-    this.demoT = 0;
+  private buildBackdrop(): HTMLElement {
+    const url = uiIconUrl('keyart');
+    return h('div', { class: 'backdrop', 'aria-hidden': 'true' }, url ? img(url, 'bd-img') : null, h('div', { class: 'bd-dim' }), twinkles(24, 5, 18));
   }
 
-  private demoT = 0;
-  private runDemo(dt: number) {
-    const g = this.demo!;
-    this.demoT -= dt;
-    if (this.demoT <= 0) {
-      this.demoT = 0.35 + Math.random() * 0.4;
-      const pool = ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'purple', 'zebra', 'rainbow', 'ceramic'] as const;
-      const t = pool[Math.floor(Math.random() * pool.length)];
-      if (g.enemies.length < 70) g.spawn(t, { dist: 0 });
-      if (Math.random() < 0.015) g.spawn('moab', { dist: 1 });
-    }
-    g.update(dt);
+  private setBackdrop(mode: 'menu' | 'dim' | 'off') {
+    this.backdrop.classList.toggle('hidden', mode === 'off');
+    this.backdrop.classList.toggle('dim', mode === 'dim');
   }
 
   // -------------------------------------------------------------------------------------------
@@ -208,93 +208,146 @@ export class App {
     this.hud?.destroy();
     this.hud = null;
     this.game = null;
+    this.renderer.setGame(null);
+  }
+
+  private tap(fn: () => void) {
+    return () => {
+      audio.play('click');
+      fn();
+    };
   }
 
   showMenu() {
     this.endGame();
     this.scene = 'menu';
-    if (!this.demo) this.startDemo();
-    else this.renderer.setGame(this.demo);
+    this.setBackdrop('menu');
     this.resize();
     audio.music?.start('menu');
-    const lv = levelFromXp(this.profile.xp);
     const save = latestSave();
-    const word = (text: string, colors: string[], small = false) =>
-      h('div', { class: 'word' + (small ? ' small' : '') }, ...text.split('').map((ch, i) => h('span', { class: 'l', style: `color:${colors[i % colors.length]};animation-delay:${i * 0.09}s` }, ch)));
-    const logo = h('div', { class: 'logo' }, word('STAR', ['#ffd23c', '#ff9f43', '#4cc9ff', '#c77dff']), word('BANDITS', ['#ffffff'], true));
-    const buttons = h('div', { class: 'menu-buttons' });
-    if (save) {
-      const m = MAPS.find((x) => x.id === save.mapId);
-      buttons.append(h('button', { class: 'btn blue', onclick: () => this.resume(save) }, t('↺ Continue'), h('small', { style: 'font-size:0.6em;opacity:0.85' }, ` ${t(m?.name ?? '')} · R${save.round}`)));
-    }
-    buttons.append(h('button', { class: 'btn green big', onclick: () => this.showMaps() }, t('▶ PLAY')));
-    buttons.append(h('button', { class: 'btn gold', onclick: () => this.openCodex() }, t('📖 Star Atlas')));
-    const s = h(
+    const logoUrl = uiIconUrl('logo');
+    const logo = h(
       'div',
-      { class: 'screen dim' },
+      { class: 'menu-logo' },
       h(
         'div',
-        { class: 'profile' },
-        h('div', { class: 'lvl' }, String(lv.level)),
-        h('div', null, h('div', { style: 'font-weight:800;font-size:15px;text-shadow:0 2px 0 #2a1b2e' }, t('Player level {n}', { n: lv.level })), h('div', { class: 'xpbar' }, h('div', { style: `width:${Math.round((lv.into / lv.need) * 100)}%` }))),
+        { class: 'logo-in' },
+        logoUrl ? img(logoUrl, '', 'Star Bandits') : h('div', { class: 'wordmark t-title' }, 'STAR', h('br'), 'BANDITS'),
+        logoUrl ? h('div', { class: 'sheen', style: `-webkit-mask-image:url("${logoUrl}");mask-image:url("${logoUrl}")` }) : null,
       ),
-      h('div', { class: 'corner-right' }, h('button', { class: 'btn icon dark', title: t('Settings'), onclick: () => this.openSettings() }, '⚙️')),
-      this.sideMenu(),
-      logo,
-      h('div', { class: 'tagline' }, t('Shatter the stars. Guard the stash.')),
-      buttons,
     );
-    this.setScreen(s);
+    const cta = h('div', { class: 'menu-cta' });
+    if (save) {
+      const m = MAPS.find((x) => x.id === save.mapId);
+      if (m) {
+        const resume = btn(t('Continue'), 'blue', this.tap(() => this.resume(save)), { cls: 'resume', icon: img(mapImageSrc(m), 'thumb'), sub: `${t(m.name)} · ${t('Round {n}', { n: save.round })}` });
+        cta.append(resume);
+      }
+    }
+    const play = btn(t('PLAY'), 'green', () => this.showMaps(), { size: 'big', cls: 'cta-play glint', icon: uiIcon('play', '▶') });
+    cta.append(h('div', { style: 'position:relative;display:flex' }, h('div', { class: 'cta-halo' }), play));
+    stagger([...cta.children] as HTMLElement[], 'anim-rise', 3);
+    this.menuTop = this.buildMenuTop(true);
+    this.menuDock = this.buildMenuDock(true);
+    this.setScreen(h('div', { class: 'screen menu' }, logo, this.menuTop, this.menuDock, cta));
   }
 
-  private thumb(m: MapDef) {
-    let t = this.thumbs.get(m.id);
-    if (!t) {
-      t = mapThumbnail(m, m.paths.map((p) => new Path(p)), 420);
-      this.thumbs.set(m.id, t);
-    }
-    return t;
+  /** Rebuilds the badges/level after a modal changed them, without replaying entrance animations. */
+  private refreshMenu() {
+    if (this.scene !== 'menu' || !this.menuTop || !this.menuDock) return;
+    const top = this.buildMenuTop(false);
+    const dock = this.buildMenuDock(false);
+    this.menuTop.replaceWith(top);
+    this.menuDock.replaceWith(dock);
+    this.menuTop = top;
+    this.menuDock = dock;
+  }
+
+  private buildMenuTop(animate: boolean): HTMLElement {
+    const lv = levelFromXp(this.profile.xp);
+    const card = h(
+      'div',
+      { class: 'lvl-card', title: t('Player level {n}', { n: lv.level }), role: 'img', 'aria-label': `${t('Player level {n}', { n: lv.level })}: ${fmt(lv.into)} / ${fmt(lv.need)} XP` },
+      h('div', { class: 'lvl-star' }, uiIcon('xp', '⭐'), h('b', { class: 't-num' }, String(lv.level))),
+      bar(lv.into / lv.need),
+      h('div', { class: 'lvl-xp t-outline' }, `${fmt(lv.into)} / ${fmt(lv.need)} XP`),
+    );
+    const gear = roundBtn(uiIcon('gear', '⚙️'), t('Settings'), this.tap(() => this.openSettings()));
+    const top = h('div', { class: 'menu-top' }, card, gear);
+    if (animate) stagger([card, gear], 'anim-drop', 1);
+    return top;
+  }
+
+  private buildMenuDock(animate: boolean): HTMLElement {
+    const pts = wisdomPoints(this.profile);
+    const unseen = newlyUnlocked(this.profile, null).length;
+    const dailyDone = !!this.profile.dailyDone[todayKey()];
+    const items = [
+      roundBtn(uiIcon('calendar', '📅'), t('Daily'), this.tap(() => this.openDaily()), dailyDone ? null : '!'),
+      roundBtn(uiIcon('lantern', '🧠'), t('Wisdom'), this.tap(() => this.openPerks()), pts > 0 ? String(pts) : null),
+      roundBtn(uiIcon('trophy', '🏅'), t('Achievements'), this.tap(() => this.openAchievements()), unseen > 0 ? String(unseen) : null),
+      roundBtn(uiIcon('book', '📖'), t('Star Atlas'), this.tap(() => this.openCodex())),
+    ];
+    if (animate) stagger(items, 'anim-rise', 4);
+    return h('div', { class: 'menu-dock' }, ...items);
   }
 
   private mapUnlocked(m: MapDef) {
     return this.devUnlock || this.level >= (MAP_LEVEL[m.id] ?? 1);
   }
 
+  private topbar(title: string, onBack: () => void, ...right: (HTMLElement | null)[]) {
+    return h('div', { class: 'topbar' }, backBtn(this.tap(onBack)), h('h1', { class: 't-title anim-fade' }, title), h('div', { class: 'spacer' }), ...right);
+  }
+
+  private medalIcon(d: Difficulty, cls = '') {
+    return d === 'sandbox' ? uiIcon('sack', MEDAL_EMOJI.sandbox, cls) : uiIcon(MEDAL[d], MEDAL_EMOJI[d], cls);
+  }
+
   showMaps() {
     this.scene = 'maps';
     audio.play('click');
-    const grid = h('div', { class: 'maps' });
-    for (const m of MAPS) {
+    this.setBackdrop('dim');
+    const grid = h('div', { class: 'map-grid' });
+    let medalCount = 0;
+    const maps = [...MAPS].sort((a, b) => (MAP_LEVEL[a.id] ?? 9) - (MAP_LEVEL[b.id] ?? 9));
+    const cards: HTMLElement[] = [];
+    for (const m of maps) {
       const unlocked = this.mapUnlocked(m);
-      const medals = h('div', { class: 'medals' });
-      for (const d of ['easy', 'medium', 'hard', 'champion'] as Difficulty[]) {
-        const got = this.profile.medals[m.id]?.[d];
-        medals.append(h('div', { class: 'medal', title: t(DIFFICULTIES[d].name), style: got ? `background:${DIFFICULTIES[d].color}` : '' }, got ? '★' : ''));
+      const medals = h('div', { class: 'mc-medals' });
+      for (const d of MEDAL_DIFFS) {
+        const got = !!this.profile.medals[m.id]?.[d];
+        if (got) medalCount++;
+        const ic = this.medalIcon(d, got ? '' : 'off');
+        ic.setAttribute('title', t(DIFFICULTIES[d].name));
+        medals.append(ic);
       }
       const card = h(
         'button',
-        { class: 'mapcard' + (unlocked ? '' : ' locked') },
-        h('img', { src: this.thumb(m), alt: t(m.name) }),
-        h('div', { class: 'mc-tier', style: `background:${TIER_COLOR[m.tier]}` }, t(m.tier)),
-        h('div', { class: 'mc-body' }, h('div', { class: 'mc-name' }, t(m.name)), medals),
-        unlocked ? null : h('div', { class: 'lock' }, t('🔒 Reach player level {n}', { n: MAP_LEVEL[m.id] })),
+        { class: 'mapcard' + (unlocked ? '' : ' locked'), type: 'button', 'aria-label': t(m.name) },
+        img(mapImageSrc(m), 'mc-img', t(m.name)),
+        h('div', { class: 'mc-shade' }),
+        h('div', { class: 'mc-tier', style: `--tc:${TIER_COLOR[m.tier]}` }, t(m.tier)),
+        medals,
+        h('div', { class: 'mc-name t-outline' }, t(m.name)),
+        unlocked ? null : h('div', { class: 'mc-lock' }, uiIcon('lock', '🔒'), chip(null, t('Unlocks at level {n}', { n: MAP_LEVEL[m.id] }), 'dark')),
       );
       card.addEventListener('click', () => {
         if (!unlocked) {
           audio.play('error');
+          card.classList.remove('shake');
+          void card.offsetWidth;
+          card.classList.add('shake');
           return;
         }
         this.showSetup(m);
       });
+      cards.push(card);
       grid.append(card);
     }
-    const s = h(
-      'div',
-      { class: 'screen dim' },
-      h('div', { class: 'header' }, h('button', { class: 'btn icon dark', onclick: () => this.showMenu() }, '←'), h('h1', null, t('Choose a map'))),
-      grid,
-    );
-    this.setScreen(s);
+    stagger(cards, 'anim-rise', 1);
+    const total = h('div', { class: 'pill medal-total anim-fade', title: t('Medals') }, uiIcon('medal3', '🥇'), h('span', null, `${medalCount}/${MAPS.length * MEDAL_DIFFS.length}`));
+    this.setScreen(h('div', { class: 'screen' }, this.topbar(t('Choose a map'), () => this.showMenu(), total), grid));
   }
 
   private lastSetupMap: MapDef = MAPS[0];
@@ -302,68 +355,113 @@ export class App {
     this.scene = 'setup';
     this.lastSetupMap = m;
     audio.play('click');
-    const diffs = h('div', { class: 'diffs' });
-    const heroEl = h('div', { class: 'heroes' });
-    const startRow = h('div', { class: 'startrow' });
-    const render = () => {
+    this.setBackdrop('dim');
+    const level = this.level;
+
+    // left: painted map, description, bandit roster
+    const roster = h('div', { class: 'roster-icons' });
+    let unlockedCount = 0;
+    for (const id of TOWER_ORDER) {
+      const def = TOWERS[id];
+      const open = this.devUnlock || level >= def.unlock;
+      if (open) unlockedCount++;
+      roster.append(h('div', { class: 'roster-icon' + (open ? '' : ' locked'), title: open ? t(def.name) : t('Unlocks at level {n}', { n: def.unlock }) }, img(towerPortraitUrl(id), '', t(def.name)), open ? null : h('span', { class: 'lv' }, t('Lvl {n}', { n: def.unlock }))));
+    }
+    const left = h(
+      'div',
+      { class: 'setup-col' },
+      h('div', { class: 'setup-map anim-rise', style: '--i:1' }, img(mapImageSrc(m), '', t(m.name)), h('div', { class: 'mc-tier', style: `--tc:${TIER_COLOR[m.tier]}` }, t(m.tier))),
+      h('p', { class: 'setup-desc anim-rise', style: '--i:2' }, t(m.desc)),
+      h('div', { class: 'roster well anim-rise', style: '--i:3' }, h('div', { class: 'roster-head' }, h('span', { class: 't-up' }, t('Bandits')), chip(null, `${unlockedCount}/${TOWER_ORDER.length}`)), roster),
+    );
+
+    // right: difficulty, hero, start
+    const diffs = h('div', { class: 'diff-row' });
+    const diffDesc = h('div', { class: 'diff-desc well' });
+    const heroes = h('div', { class: 'hero-row' });
+    const actions = h('div', { class: 'setup-actions' });
+    const render = (first: boolean) => {
       clear(diffs);
-      for (const d of ['easy', 'medium', 'hard', 'champion', 'sandbox'] as Difficulty[]) {
+      const order: Difficulty[] = ['easy', 'medium', 'hard', 'champion', 'sandbox'];
+      const tiles = order.map((d) => {
         const def = DIFFICULTIES[d];
-        const got = this.profile.medals[m.id]?.[d];
-        const b = h('button', { class: 'diff' + (this.setupDiff === d ? ' sel' : ''), style: `background:linear-gradient(180deg, ${def.color}, ${def.color}aa)` }, h('b', { style: 'color:#1c1230' }, t(def.name) + (got ? ' ★' : '')), h('span', { style: 'color:#1c1230' }, t(def.desc)));
-        b.addEventListener('click', () => {
+        const got = d === 'sandbox' || !!this.profile.medals[m.id]?.[d];
+        const tile = h(
+          'button',
+          { class: 'tile diff-tile ' + d + (this.setupDiff === d ? ' sel' : '') + (got ? ' got' : ''), type: 'button', style: `--dc:${def.color}`, 'aria-pressed': String(this.setupDiff === d) },
+          this.medalIcon(d, 'medal'),
+          h('span', { class: 'dname t-outline' }, t(def.name)),
+          got && d !== 'sandbox' ? uiIcon('check', '✔', 'got-mark') : null,
+        );
+        tile.addEventListener('click', () => {
+          if (this.setupDiff === d) return;
           this.setupDiff = d;
           audio.play('click');
-          render();
+          render(false);
         });
-        diffs.append(b);
-      }
-      clear(heroEl);
-      for (const id of HERO_ORDER) {
+        return tile;
+      });
+      diffs.append(...tiles);
+      const sel = DIFFICULTIES[this.setupDiff];
+      clear(diffDesc);
+      diffDesc.style.setProperty('--dc', sel.color);
+      diffDesc.append(h('span', { class: 'dot' }), h('span', null, t(sel.desc)));
+
+      clear(heroes);
+      const heroTiles = HERO_ORDER.map((id) => {
         const def = HEROES[id];
-        const locked = !this.devUnlock && this.level < def.unlock;
+        const locked = !this.devUnlock && level < def.unlock;
+        const sel = this.profile.heroId === id;
         const c = h(
           'button',
-          { class: 'herocard' + (this.profile.heroId === id ? ' sel' : '') + (locked ? ' locked' : '') },
-          h('img', { src: towerIcon(id as ArtId, [1], 140), alt: t(def.name) }),
-          h('b', null, t(def.name)),
-          h('span', null, locked ? t('🔒 Player level {n}', { n: def.unlock }) : t(def.desc)),
+          { class: 'tile hero-tile' + (sel ? ' sel' : '') + (locked ? ' locked' : ''), type: 'button', 'aria-pressed': String(sel) },
+          h('div', { class: 'portrait' }, img(heroPortraitUrl(id, 1), '', t(def.name))),
+          h(
+            'div',
+            { class: 'hero-text' },
+            h('b', { class: 't-outline' }, t(def.name)),
+            h('small', null, t(def.title)),
+            locked ? chip(uiIcon('lock', '🔒'), t('Unlocks at level {n}', { n: def.unlock }), 'dark') : h('span', { class: 'hdesc' }, t(def.desc)),
+          ),
+          sel ? uiIcon('check', '✔', 'sel-mark') : null,
         );
         c.addEventListener('click', () => {
           if (locked) {
             audio.play('error');
             return;
           }
+          if (sel) return;
           this.profile.heroId = id;
           saveProfile(this.profile);
           audio.play('click');
-          render();
+          render(false);
         });
-        heroEl.append(c);
-      }
-      clear(startRow);
+        return c;
+      });
+      heroes.append(...heroTiles);
+
+      clear(actions);
       const existing = loadGame(m.id, this.setupDiff);
-      if (existing && this.setupDiff !== 'sandbox') startRow.append(h('button', { class: 'btn blue', onclick: () => this.resume(existing) }, t('↺ Continue round {n}', { n: existing.round })));
-      startRow.append(h('button', { class: 'btn green', style: 'min-width:200px', onclick: () => this.startGame(m.id, this.setupDiff, this.profile.heroId) }, t(existing ? 'New game' : '▶ Start')));
+      if (existing && this.setupDiff !== 'sandbox') actions.append(btn(t('Continue round {n}', { n: existing.round }), 'blue', this.tap(() => this.resume(existing))));
+      actions.append(btn(existing ? t('New game') : t('Start'), 'green', () => this.startGame(m.id, this.setupDiff, this.profile.heroId), { cls: 'start glint', icon: uiIcon('play', '▶') }));
+      if (first) {
+        stagger(tiles, 'anim-pop', 2);
+        stagger(heroTiles, 'anim-rise', 6);
+        stagger([...actions.children] as HTMLElement[], 'anim-rise', 8);
+      }
     };
-    render();
-    const s = h(
+    render(true);
+    const right = h(
       'div',
-      { class: 'screen dim' },
-      h('div', { class: 'header' }, h('button', { class: 'btn icon dark', onclick: () => this.showMaps() }, '←'), h('h1', null, t(m.name))),
-      h(
-        'div',
-        { class: 'setup' },
-        h(
-          'div',
-          { class: 'panel' },
-          h('img', { src: this.thumb(m), alt: '', style: 'width:100%;border-radius:14px;border:3px solid #2a1b2e;display:block' }),
-          h('p', { style: 'margin:8px 2px 0;font-weight:600;color:#e6defa' }, t(m.desc)),
-        ),
-        h('div', null, h('div', { class: 'panel' }, h('h3', null, t('Difficulty')), diffs), h('div', { class: 'panel', style: 'margin-top:12px' }, h('h3', null, t('Hero')), heroEl), startRow),
-      ),
+      { class: 'setup-col' },
+      h('div', { class: 'sec-title' }, h('span', { class: 't-up' }, t('Difficulty'))),
+      diffs,
+      diffDesc,
+      h('div', { class: 'sec-title' }, h('span', { class: 't-up' }, t('Hero'))),
+      heroes,
+      actions,
     );
-    this.setScreen(s);
+    this.setScreen(h('div', { class: 'screen' }, this.topbar(t(m.name), () => this.showMaps()), h('div', { class: 'setup' }, left, right)));
   }
 
   // -------------------------------------------------------------------------------------------
@@ -383,50 +481,43 @@ export class App {
     this.startGame(d.mapId, d.difficulty, this.profile.heroId, d.challenge);
   }
 
-  private sideMenu(): HTMLElement {
-    const pts = wisdomPoints(this.profile);
-    const unseen = newlyUnlocked(this.profile, null).length;
-    const dailyDone = !!this.profile.dailyDone[todayKey()];
-    const btn = (label: string, cls: string, badge: string | null, fn: () => void) => {
-      const b = h('button', { class: 'btn small ' + cls }, label, badge ? h('span', { class: 'badge' }, badge) : null);
-      b.addEventListener('click', () => {
-        audio.play('click');
-        fn();
-      });
-      return b;
-    };
-    return h(
-      'div',
-      { class: 'side-menu' },
-      btn(t('📅 Daily'), 'blue', dailyDone ? null : '!', () => this.openDaily()),
-      btn(t('🧠 Wisdom'), 'gold', pts > 0 ? String(pts) : null, () => this.openPerks()),
-      btn(t('🏅 Achievements'), 'dark', unseen > 0 ? String(unseen) : null, () => this.openAchievements()),
-    );
-  }
-
   private openPerks() {
     const host = this.modalHost();
-    host.open(perksModal(this.profile, () => {
-      host.close();
-      if (this.scene === 'menu') this.showMenu();
-    }, () => {}));
+    host.open(
+      perksModal(
+        this.profile,
+        () => {
+          host.close();
+          this.refreshMenu();
+        },
+        () => {},
+      ),
+    );
   }
 
   private openAchievements() {
     this.claimAchievements(null);
     const host = this.modalHost();
-    host.open(achievementsModal(this.profile, this.game, () => {
-      host.close();
-      if (this.scene === 'menu') this.showMenu();
-    }));
+    host.open(
+      achievementsModal(this.profile, this.game, () => {
+        host.close();
+        this.refreshMenu();
+      }),
+    );
   }
 
   private openDaily() {
     const host = this.modalHost();
-    host.open(dailyModal(this.profile, (id) => this.thumb(MAPS.find((m) => m.id === id)!), () => {
-      host.close();
-      this.startDaily();
-    }, () => host.close()));
+    host.open(
+      dailyModal(
+        this.profile,
+        () => {
+          host.close();
+          this.startDaily();
+        },
+        () => host.close(),
+      ),
+    );
   }
 
   /** Records unlocked achievements, grants their XP and announces them. */
@@ -489,6 +580,7 @@ export class App {
     g.fx = makePresentation(this.renderer);
     g.autoStart = this.profile.settings.autoStart;
     this.scene = 'game';
+    this.setBackdrop('off');
     clear(this.screen);
     this.renderer.setGame(g);
     this.profile.stats.games++;
@@ -575,34 +667,36 @@ export class App {
     saveProfile(p);
     clearGame(g.map.id, g.config.difficulty);
     const hud = this.hud!;
-    hud.openModal(
-      h(
-        'div',
-        { class: 'modal' },
-        h('div', { style: 'font-size:64px;line-height:1' }, '🏆'),
-        h('h2', null, t('VICTORY!')),
-        h('p', null, g.config.challenge ? t('Daily challenge complete!') + (first ? ' +500 XP' : '') : t('{map} on {diff}', { map: t(g.map.name), diff: t(g.diff.name) }) + (first ? t(' · New medal!') : '')),
-        this.statsGrid(g),
-        h(
-          'div',
-          { class: 'row' },
-          h(
-            'button',
-            {
-              class: 'btn gold',
-              onclick: () => {
-                g.continueFreeplay();
-                hud.closeModal();
-                hud.toast(t('Freeplay! Rounds keep getting harder…'), 3000);
-              },
-            },
-            t('∞ Freeplay'),
-          ),
-          h('button', { class: 'btn green', onclick: () => this.showMaps() }, t('🗺 Maps')),
-          h('button', { class: 'btn dark', onclick: () => this.showMenu() }, t('🏠 Home')),
-        ),
-      ),
+    const d = g.config.difficulty;
+    const medal = !g.config.challenge && MEDAL[d] ? uiIcon(MEDAL[d], MEDAL_EMOJI[d], 'medal-pop') : null;
+    const msg = h(
+      'p',
+      { class: 'result-msg' },
+      g.config.challenge ? t('Daily challenge complete!') : t('{map} on {diff}', { map: t(g.map.name), diff: t(g.diff.name) }),
+      first ? h('br') : null,
+      first ? chip(g.config.challenge ? uiIcon('calendar', '📅') : this.medalIcon(d), g.config.challenge ? '+500 XP' : t('New medal!'), 'gold anim-pop') : null,
     );
+    const hero = h('div', { class: 'result-hero' }, h('div', { class: 'result-art' }, h('div', { class: 'rays' }), uiIcon('trophy', '🏆'), medal), msg);
+    const m = modal(
+      { title: t('VICTORY!'), color: 'gold', size: 'wide', cls: 'win' },
+      [h('div', { class: 'result' }, hero, h('div', null, this.resultStats(g, true), this.xpReward()))],
+      [
+        btn(
+          t('Freeplay'),
+          'gold',
+          () => {
+            g.continueFreeplay();
+            hud.closeModal();
+            hud.toast(t('Freeplay! Rounds keep getting harder…'), 3000);
+          },
+          { icon: uiIcon('fast', '∞') },
+        ),
+        btn(t('Maps'), 'green', this.tap(() => this.showMaps()), { icon: uiIcon('play', '▶') }),
+        btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
+      ],
+    );
+    const wrap = hud.openModal(m);
+    confetti(wrap, 90);
     this.renderer.confetti(800, 300, 120);
   }
 
@@ -613,44 +707,50 @@ export class App {
     clearGame(g.map.id, g.config.difficulty);
     const hud = this.hud!;
     setTimeout(() => {
+      if (this.hud !== hud) return;
+      const crack =
+        '<svg class="crack" viewBox="0 0 100 100" aria-hidden="true"><path d="M52 18 L44 38 L58 50 L42 66 L54 86" fill="none" stroke="#120a2b" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/><path d="M52 18 L44 38 L58 50 L42 66 L54 86" fill="none" stroke="#2a1840" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+      const art = h('div', { class: 'result-art' }, uiIcon('heart', '💔'), h('div', { class: 'crack-wrap', html: uiIconUrl('heart') ? crack : '' }));
+      const hero = h('div', { class: 'result-hero' }, art, h('p', { class: 'result-msg' }, t('The stars broke through on round {n}.', { n: g.round })));
+      const snap = g.roundSnapshot;
       hud.openModal(
-        h(
-          'div',
-          { class: 'modal' },
-          h('div', { style: 'font-size:64px;line-height:1' }, '💔'),
-          h('h2', null, t('GAME OVER')),
-          h('p', null, t('The stars broke through on round {n}.', { n: g.round })),
-          this.statsGrid(g),
-          h(
-            'div',
-            { class: 'row' },
-            g.roundSnapshot ? h('button', { class: 'btn gold', onclick: () => this.resume(g.roundSnapshot!) }, t('↺ Retry round {n}', { n: g.roundSnapshot.round })) : null,
-            h('button', { class: 'btn green', onclick: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge) }, t('↻ Restart')),
-            h('button', { class: 'btn dark', onclick: () => this.showMenu() }, t('🏠 Home')),
-          ),
+        modal(
+          { title: t('GAME OVER'), color: 'red', size: 'wide', cls: 'lose' },
+          [h('div', { class: 'result lose' }, hero, h('div', null, this.resultStats(g, false), this.xpReward()))],
+          [
+            snap ? btn(t('Retry round {n}', { n: snap.round }), 'gold', this.tap(() => this.resume(snap)), { icon: restartIcon() }) : null,
+            btn(t('Restart'), 'green', this.tap(() => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge)), { icon: uiIcon('play', '▶') }),
+            btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
+          ],
         ),
       );
     }, 900);
   }
 
-  private statsGrid(g: Game) {
+  private resultStats(g: Game, won: boolean) {
     const s = g.stats;
-    return h(
-      'div',
-      { class: 'stats' },
-      h('span', null, t('Stars shattered')),
-      h('span', null, s.pops.toLocaleString('en-US')),
-      h('span', null, t('Bosses defeated')),
-      h('span', null, String(s.bossesPopped)),
-      h('span', null, t('Best combo')),
-      h('span', null, `${s.bestCombo}x`),
-      h('span', null, t('Cash earned')),
-      h('span', null, '$' + Math.floor(s.cashEarned).toLocaleString('en-US')),
-      h('span', null, t('Lucky Stars')),
-      h('span', null, String(s.goldenPopped ?? 0)),
-      h('span', null, t('XP earned')),
-      h('span', null, '+' + this.xpGainedThisGame),
-    );
+    const star = (id: Parameters<typeof starPortraitUrl>[0]) => img(starPortraitUrl(id), 'ico');
+    const items: [HTMLElement, string, number, (n: number) => string][] = [
+      [star('red'), t('Stars shattered'), s.pops, fmt],
+      [star('moab'), t('Bosses defeated'), s.bossesPopped, fmt],
+      [uiIcon('coin', '🪙'), t('Cash earned'), Math.floor(s.cashEarned), (n) => '$' + fmt(n)],
+      [uiIcon('target', '🎯'), t('Best combo'), s.bestCombo, (n) => fmt(n) + 'x'],
+      [star('golden'), t('Lucky Stars'), s.goldenPopped ?? 0, fmt],
+      won ? [uiIcon('heart', '❤️'), t('Lives left'), Math.max(0, g.lives), fmt] : [uiIcon('sack', '💰'), t('Round reached'), g.round, fmt],
+    ];
+    const tiles = items.map(([icon, label, value, format], i) => {
+      const val = h('b', { class: 't-num' }, format(0));
+      countUp(val, value, { delay: 350 + i * 110, format });
+      return h('div', { class: 'stat well' }, icon, h('div', { class: 'stat-text' }, h('small', null, label), val));
+    });
+    stagger(tiles, 'anim-rise', 2);
+    return h('div', { class: 'stat-grid' }, ...tiles);
+  }
+
+  private xpReward() {
+    const val = h('b', { class: 't-num' }, '+0');
+    countUp(val, this.xpGainedThisGame, { delay: 1000, format: (n) => '+' + fmt(n) });
+    return h('div', { class: 'reward anim-pop', style: '--d:900ms' }, uiIcon('xp', '⭐'), val, h('small', null, t('XP earned')));
   }
 
   // -------------------------------------------------------------------------------------------
@@ -664,7 +764,15 @@ export class App {
     }
     return {
       open: (el) => {
+        this.screen.querySelector('.modal-wrap')?.remove();
         const wrap = h('div', { class: 'modal-wrap' }, el);
+        wrap.addEventListener('pointerdown', (e) => {
+          if (e.target === wrap) {
+            audio.play('click');
+            wrap.remove();
+            this.refreshMenu();
+          }
+        });
         this.screen.append(wrap);
       },
       close: () => this.screen.querySelector('.modal-wrap')?.remove(),
@@ -678,34 +786,44 @@ export class App {
       saveProfile(this.profile);
       this.applySettings();
     };
-    const slider = (label: string, v: number, on: (x: number) => void) => {
-      const inp = h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(v) }) as HTMLInputElement;
+    const label = (icon: string, text: string) => h('span', { class: 'lbl' }, socket(icon, 36), h('span', null, text));
+    const slider = (icon: string, text: string, v: number, on: (x: number) => void) => {
+      const inp = h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(v), 'aria-label': text }) as HTMLInputElement;
+      const paint = () => inp.style.setProperty('--v', `${Math.round(+inp.value * 100)}%`);
+      paint();
       inp.addEventListener('input', () => {
+        paint();
         on(+inp.value);
         save();
       });
       inp.addEventListener('change', () => audio.play('pop', 0.8));
-      return h('div', { class: 'setting' }, label, inp);
+      return h('div', { class: 'setting' }, label(icon, text), inp);
     };
-    const sw = (label: string, v: boolean, on: (x: boolean) => void) => {
-      const t = h('div', { class: 'toggle' + (v ? ' on' : '') });
-      const b = h('button', { class: 'setting', style: 'width:100%' }, label, t);
+    const sw = (icon: string, text: string, v: boolean, on: (x: boolean) => void) => {
+      const tg = h('span', { class: 'toggle' + (v ? ' on' : '') });
+      const b = h('button', { class: 'setting', type: 'button', role: 'switch', 'aria-checked': String(v) }, label(icon, text), tg);
       b.addEventListener('click', () => {
-        const nv = !t.classList.contains('on');
-        t.classList.toggle('on', nv);
+        const nv = !tg.classList.contains('on');
+        tg.classList.toggle('on', nv);
+        b.setAttribute('aria-checked', String(nv));
         on(nv);
         save();
         audio.play('click');
       });
       return b;
     };
-    const langRow = h('div', { class: 'setting' }, t('🌐 Language'));
-    const langBtns = h('div', { style: 'display:flex;gap:6px' });
-    for (const [code, label] of [['auto', t('Auto')], ['en', 'English'], ['de', 'Deutsch']] as [LangSetting, string][]) {
-      const b = h('button', { class: 'btn small ' + ((s.lang ?? 'auto') === code ? 'gold' : 'dark') }, label);
+    const seg = h('div', { class: 'seg' });
+    for (const [code, name] of [
+      ['auto', t('Auto')],
+      ['en', 'English'],
+      ['de', 'Deutsch'],
+    ] as [LangSetting, string][]) {
+      const b = h('button', { class: (s.lang ?? 'auto') === code ? 'on' : '', type: 'button' }, name);
       b.addEventListener('click', () => {
+        if ((s.lang ?? 'auto') === code) return;
         s.lang = code;
         save();
+        audio.play('click');
         host.close();
         if (this.scene === 'game') this.hud?.openPause();
         else if (this.scene === 'menu') this.showMenu();
@@ -713,80 +831,129 @@ export class App {
         else if (this.scene === 'setup') this.showSetup(this.lastSetupMap);
         this.openSettings();
       });
-      langBtns.append(b);
+      seg.append(b);
     }
-    langRow.append(langBtns);
-    const m = h(
-      'div',
-      { class: 'modal' },
-      h('h2', null, t('Settings')),
-      slider(t('🔊 Sound effects'), s.sfx, (x) => (s.sfx = x)),
-      slider(t('🎵 Music'), s.music, (x) => (s.music = x)),
-      sw(t('📳 Haptics'), s.haptics, (x) => (s.haptics = x)),
-      sw(t('✨ Reduced effects (better battery)'), s.reducedEffects, (x) => (s.reducedEffects = x)),
-      sw(t('⏩ Auto-start rounds by default'), s.autoStart, (x) => (s.autoStart = x)),
-      sw(t('📈 Show FPS'), s.showFps, (x) => (s.showFps = x)),
-      langRow,
-      h(
-        'div',
-        { class: 'row' },
+    const done = () => {
+      host.close();
+      if (this.hud) this.hud.openPause();
+    };
+    const m = modal(
+      { title: t('Settings'), color: 'blue', icon: uiIcon('gear', '⚙️'), cls: 'settings', onClose: this.tap(done) },
+      [
         h(
-          'button',
-          {
-            class: 'btn green',
-            onclick: () => {
-              host.close();
-              if (this.hud) this.hud.openPause();
-            },
-          },
-          t('Done'),
+          'div',
+          { class: 'settings-list' },
+          slider('🔊', t('Sound effects'), s.sfx, (x) => (s.sfx = x)),
+          slider('🎵', t('Music'), s.music, (x) => (s.music = x)),
+          sw('📳', t('Haptics'), s.haptics, (x) => (s.haptics = x)),
+          sw('✨', t('Reduced effects (better battery)'), s.reducedEffects, (x) => (s.reducedEffects = x)),
+          sw('⏩', t('Auto-start rounds by default'), s.autoStart, (x) => (s.autoStart = x)),
+          sw('📈', t('Show FPS'), s.showFps, (x) => (s.showFps = x)),
+          h('div', { class: 'setting full' }, label('🌐', t('Language')), seg),
         ),
-      ),
-      h('p', { style: 'font-size:12px;margin-top:14px' }, t('Star Bandits v0.1 · Made with ❤️')),
+        h('p', { class: 'settings-foot-note' }, t('Star Bandits v0.1 · Made with ❤️')),
+      ],
+      [btn(t('Done'), 'green', this.tap(done), { icon: uiIcon('check', '✔') })],
     );
     host.open(m);
   }
 
-  openCodex() {
+  openCodex(tab: AtlasTab = 'bandits') {
     const host = this.modalHost();
-    const towers = h('div', { class: 'codex' });
-    for (const id of TOWER_ORDER) {
-      const d = TOWERS[id];
-      towers.append(h('div', { class: 'entry' }, h('img', { src: towerIcon(id as ArtId, [0, 0, 0], 96), alt: '' }), h('div', null, h('b', null, `${t(d.name)} · ${t(d.species)}`), h('span', null, t(d.desc)))));
-    }
-    for (const id of HERO_ORDER) {
-      const d = HEROES[id];
-      towers.append(h('div', { class: 'entry' }, h('img', { src: towerIcon(id as ArtId, [1], 96), alt: '' }), h('div', null, h('b', null, `${t(d.name)}, ${t(d.title)}`), h('span', null, t(d.desc)))));
-    }
-    const gloops = h('div', { class: 'codex' });
-    for (const id of GLOOP_ORDER) {
-      const d = GLOOPS[id];
-      gloops.append(h('div', { class: 'entry' }, h('img', { src: gloopIcon(id, 96), alt: '' }), h('div', null, h('b', null, t(d.name)), h('span', null, t(d.desc)))));
-    }
-    const bonds = h('div', { class: 'codex' });
-    for (const syn of SYNERGIES) {
-      bonds.append(
-        h(
-          'div',
-          { class: 'entry', style: `border:2px solid ${syn.color}` },
-          h('img', { src: towerIcon(syn.a as ArtId, [0, 0, 0], 64), alt: '', style: 'width:36px;height:36px' }),
-          h('img', { src: towerIcon(syn.b as ArtId, [0, 0, 0], 64), alt: '', style: 'width:36px;height:36px;margin-left:-14px' }),
-          h('div', null, h('b', { style: `color:${syn.color}` }, '⚡ ' + t(syn.name)), h('span', null, `${t(TOWERS[syn.a].name)}: ${t(syn.descA)} · ${t(TOWERS[syn.b].name)}: ${t(syn.descB)}`)),
-        ),
-      );
-    }
-    const m = h(
-      'div',
-      { class: 'modal', style: 'width:min(900px,94vw)' },
-      h('h2', null, t('Star Atlas')),
-      h('p', null, t('Bandits')),
-      towers,
-      h('p', { style: 'margin-top:14px' }, t('⚡ Bonds: place these pairs close together and both get stronger')),
-      bonds,
-      h('p', { style: 'margin-top:14px' }, t('Stars')),
-      gloops,
-      h('div', { class: 'row' }, h('button', { class: 'btn green', onclick: () => host.close() }, t('Close'))),
-    );
+    const level = this.level;
+    const grid = h('div', { class: 'atlas-grid' });
+    const tabs: [AtlasTab, string, number][] = [
+      ['bandits', t('Bandits'), TOWER_ORDER.length],
+      ['heroes', t('Heroes'), HERO_ORDER.length],
+      ['stars', t('Stars'), GLOOP_ORDER.length],
+      ['bonds', t('Bonds'), SYNERGIES.length],
+    ];
+    const tabEls = tabs.map(([id, name, n]) => {
+      const b = h('button', { class: 'tab', type: 'button', role: 'tab' }, name, h('span', { class: 'tab-n' }, String(n)));
+      b.addEventListener('click', () => {
+        if (b.classList.contains('on')) return;
+        audio.play('click');
+        select(id);
+      });
+      return b;
+    });
+    const lockedChip = (lvl: number) => chip(uiIcon('lock', '🔒'), t('Unlocks at level {n}', { n: lvl }), 'dark');
+    const select = (id: AtlasTab) => {
+      tabEls.forEach((b, i) => {
+        b.classList.toggle('on', tabs[i][0] === id);
+        b.setAttribute('aria-selected', String(tabs[i][0] === id));
+      });
+      clear(grid);
+      const cards: HTMLElement[] = [];
+      if (id === 'bandits') {
+        for (const tid of TOWER_ORDER) {
+          const d = TOWERS[tid];
+          const locked = !this.devUnlock && level < d.unlock;
+          cards.push(
+            h(
+              'div',
+              { class: 'tile atlas-card' + (locked ? ' locked' : '') },
+              h('div', { class: 'portrait' }, img(towerPortraitUrl(tid), '', t(d.name))),
+              h(
+                'div',
+                { class: 'atlas-text' },
+                h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), h('div', { class: 'atlas-chips' }, chip(null, t(d.role), ROLE_CHIP[d.role] ?? 'dark'))),
+                h('small', null, t(d.species)),
+                h('p', null, t(d.desc)),
+                locked ? h('div', null, lockedChip(d.unlock)) : null,
+              ),
+            ),
+          );
+        }
+      } else if (id === 'heroes') {
+        for (const hid of HERO_ORDER) {
+          const d = HEROES[hid];
+          const locked = !this.devUnlock && level < d.unlock;
+          const looks = h('div', { class: 'hero-looks' }, ...[1, 7, 14].map((lv) => h('div', { class: 'look', title: t('Level {n}', { n: lv }) }, img(heroPortraitUrl(hid, lv)), h('span', null, t('Lv {n}', { n: lv })))));
+          cards.push(
+            h(
+              'div',
+              { class: 'tile atlas-card hero-tile' + (locked ? ' locked' : '') },
+              h('div', { class: 'portrait' }, img(heroPortraitUrl(hid, 1), '', t(d.name))),
+              h('div', { class: 'atlas-text' }, h('b', { class: 't-outline' }, t(d.name)), h('small', null, t(d.title)), h('p', null, t(d.desc)), locked ? h('div', null, lockedChip(d.unlock)) : looks),
+            ),
+          );
+        }
+      } else if (id === 'stars') {
+        for (const gid of GLOOP_ORDER) {
+          const d = GLOOPS[gid];
+          const chips = h('div', { class: 'atlas-chips' }, chip(uiIcon('fast', '💨'), `×${d.speed}`, 'dark'));
+          if (d.hp > 1) chips.append(chip(uiIcon('heart', '❤️'), fmt(d.hp), 'dark'));
+          if (d.boss) chips.append(chip(uiIcon('crown', '👑'), t('Boss'), 'red'));
+          if (d.camo) chips.append(chip(uiIcon('camo', '👁'), t('Camo'), 'blue'));
+          cards.push(h('div', { class: 'tile atlas-card' }, h('div', { class: 'portrait' }, img(starPortraitUrl(gid), '', t(d.name))), h('div', { class: 'atlas-text' }, h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), chips), h('p', null, t(d.desc)))));
+        }
+      } else {
+        grid.append(h('p', { class: 'atlas-note', style: 'grid-column:1/-1' }, t('⚡ Bonds: place these pairs close together and both get stronger')));
+        for (const syn of SYNERGIES) {
+          cards.push(
+            h(
+              'div',
+              { class: 'tile atlas-card', style: `--bc:${syn.color}` },
+              h('div', { class: 'bond-pair' }, img(towerPortraitUrl(syn.a)), img(towerPortraitUrl(syn.b)), h('span', { class: 'zap' }, '⚡')),
+              h(
+                'div',
+                { class: 'atlas-text' },
+                h('b', { class: 't-outline', style: `color:${syn.color}` }, t(syn.name)),
+                h('div', { class: 'bond-line' }, h('b', null, t(TOWERS[syn.a].name) + ': '), t(syn.descA)),
+                h('div', { class: 'bond-line' }, h('b', null, t(TOWERS[syn.b].name) + ': '), t(syn.descB)),
+              ),
+            ),
+          );
+        }
+      }
+      grid.append(...cards);
+      stagger(cards, 'anim-rise');
+      const body = grid.parentElement;
+      if (body) body.scrollTop = 0;
+    };
+    const m = modal({ title: t('Star Atlas'), color: 'blue', icon: uiIcon('book', '📖'), size: 'xwide', onClose: this.tap(() => host.close()), head: [h('div', { class: 'tabs atlas-tabs', role: 'tablist' }, ...tabEls)] }, [grid]);
+    select(tab);
     host.open(m);
   }
 }

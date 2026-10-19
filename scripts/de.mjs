@@ -14,7 +14,7 @@ await page.locator('.btn.big').click();
 await page.locator('.mapcard').nth(2).click();
 await page.waitForTimeout(300);
 await page.screenshot({ path: 'screens/de-setup.png' });
-await page.locator('.startrow .btn.green').click();
+await page.locator('.setup-actions .btn.green').click();
 await page.waitForTimeout(600);
 await page.evaluate(() => { const g = window.__app.game; g.cash = 50000; const t = g.placeTower('frost', 520, 230); g.upgrade(t, 0); g.upgrade(t, 0); g.upgrade(t, 2); window.__app.hud.select(t); });
 await page.waitForTimeout(400);

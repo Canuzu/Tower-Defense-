@@ -14,6 +14,7 @@ import { h, clear, setText, toggle } from './dom';
 import { haptic } from './haptics';
 import { gloopIcon } from './icons';
 import { t as tr } from '../i18n';
+import { modal, btn, chip, uiIcon, restartIcon, MEDAL, MEDAL_EMOJI } from './kit';
 
 export interface HudHost {
   playerLevel: number;
@@ -1014,23 +1015,42 @@ export class Hud {
   }
 
   openPause() {
-    const m = h(
-      'div',
-      { class: 'modal' },
-      h('h2', null, tr('Paused')),
-      h('p', null, tr('{map} · {diff} · Round {n}', { map: tr(this.game.map.name), diff: tr(this.game.diff.name), n: this.game.round })),
-      h(
-        'div',
-        { class: 'row' },
-        h('button', { class: 'btn green', onclick: () => this.closeModal() }, tr('▶ Resume')),
-        h('button', { class: 'btn blue', onclick: () => this.host.onSettings() }, tr('⚙️ Settings')),
-      ),
-      h(
-        'div',
-        { class: 'row' },
-        h('button', { class: 'btn dark small', onclick: () => this.host.onRestart() }, tr('↻ Restart')),
-        h('button', { class: 'btn dark small', onclick: () => this.host.onQuit() }, tr('🏠 Home')),
-      ),
+    const g = this.game;
+    const d = g.config.difficulty;
+    const restart = btn(tr('Restart'), 'red', () => {
+      // restarting throws the run away: ask for a second tap
+      const label = restart.querySelector('span:last-child') as HTMLElement;
+      if (!restart.classList.contains('armed')) {
+        restart.classList.add('armed');
+        label.textContent = tr('Sure?');
+        audio.play('click');
+        setTimeout(() => {
+          restart.classList.remove('armed');
+          label.textContent = tr('Restart');
+        }, 2500);
+        return;
+      }
+      this.host.onRestart();
+    }, { icon: restartIcon() });
+    const m = modal(
+      { title: tr('Paused'), color: 'blue', size: 'narrow', icon: uiIcon('pause', '⏸'), onClose: () => this.closeModal() },
+      [
+        h(
+          'div',
+          { class: 'pause-info' },
+          chip(null, tr(g.map.name), 'dark'),
+          chip(d === 'sandbox' ? uiIcon('sack', MEDAL_EMOJI.sandbox) : uiIcon(MEDAL[d], MEDAL_EMOJI[d]), tr(g.diff.name), 'dark'),
+          chip(null, tr('Round {n}', { n: g.round }), 'dark'),
+        ),
+        btn(tr('Resume'), 'green', () => this.closeModal(), { size: 'big', icon: uiIcon('play', '▶'), cls: 'pause-resume glint' }),
+        h(
+          'div',
+          { class: 'pause-grid' },
+          btn(tr('Settings'), 'blue', () => this.host.onSettings(), { icon: uiIcon('gear', '⚙️') }),
+          restart,
+          btn(tr('Home'), 'dark', () => this.host.onQuit(), { icon: uiIcon('home', '🏠') }),
+        ),
+      ],
     );
     this.openModal(m);
   }

@@ -26,7 +26,7 @@ export function uiIcon(name: string, fallback: string, cls = ''): HTMLElement {
 }
 
 export function img(src: string, cls = '', alt = ''): HTMLImageElement {
-  return h('img', { class: cls || null, src, alt, draggable: 'false', decoding: 'async' }) as HTMLImageElement;
+  return h('img', { class: cls || undefined, src, alt, draggable: 'false', decoding: 'async' }) as HTMLImageElement;
 }
 
 export const towerPortraitUrl = (id: string, tiers: readonly number[] = [0, 0, 0]) => towerIconUrl(id, tiers) ?? towerIcon(id as ArtId, [...tiers], 140);
@@ -140,7 +140,17 @@ export function backBtn(onClick: () => void): HTMLButtonElement {
   return b;
 }
 
-export type RibbonColor = 'gold' | 'red' | 'green' | 'blue' | 'purple';
+/** Outlined circular-arrow glyph (restart), drawn like the painted icons. */
+export function restartIcon(): HTMLElement {
+  const path = 'M19 12a7 7 0 1 1-2.05-4.95M19 4.5V8h-3.5';
+  return h('span', {
+    class: 'ico svg-ico',
+    'aria-hidden': 'true',
+    html: `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="${path}" fill="none" stroke="#120a2b" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/><path d="${path}" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  });
+}
+
+export type RibbonColor ='gold' | 'red' | 'green' | 'blue' | 'purple';
 
 export function ribbon(text: string, color: RibbonColor = 'purple', icon: HTMLElement | null = null, cls = ''): HTMLElement {
   return h('div', { class: `ribbon ${color} ${cls}`.trim() }, h('span', { class: 'rb-tail l' }), h('span', { class: 'rb-tail r' }), h('div', { class: 'rb-body' }, icon, h('span', null, text)));
@@ -161,14 +171,31 @@ export interface ModalOpts {
 export function modal(o: ModalOpts, body: Child[], foot: Child[] = []): HTMLElement {
   const head = h('div', { class: 'modal-head' }, ribbon(o.title, o.color ?? 'purple', o.icon ?? null, 'anim-drop'), ...(o.head ?? []), o.onClose ? closeBtn(o.onClose) : null);
   const bodyEl = h('div', { class: 'modal-body' }, ...body);
+  watchScroll(bodyEl);
   const footEl = foot.some(Boolean) ? h('div', { class: 'modal-foot' }, ...foot) : null;
   return h('div', { class: ['modal', o.size, o.cls].filter(Boolean).join(' '), role: 'dialog', 'aria-label': o.title }, head, bodyEl, footEl);
+}
+
+/** Fades the top/bottom edge of a scroll area while more content hides there. */
+export function watchScroll(el: HTMLElement) {
+  const update = () => {
+    const more = el.scrollHeight - el.clientHeight > 2;
+    el.classList.toggle('more-top', more && el.scrollTop > 2);
+    el.classList.toggle('more-bottom', more && el.scrollTop < el.scrollHeight - el.clientHeight - 2);
+  };
+  el.addEventListener('scroll', update, { passive: true });
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    for (const c of el.children) ro.observe(c);
+  }
+  requestAnimationFrame(update);
 }
 
 /** Glossy progress bar; frac 0..1. */
 export function bar(frac: number, color: '' | 'gold' | 'green' | 'red' = '', label?: string, height?: number): HTMLElement {
   const p = Math.max(0, Math.min(1, frac));
-  const el = h('div', { class: ('bar ' + color + (p <= 0 ? ' zero' : '')).trim(), style: height ? `--bar-h:${height}px` : null }, h('i', { style: `--p:${(p * 100).toFixed(1)}%` }), label ? h('span', null, label) : null);
+  const el = h('div', { class: ('bar ' + color + (p <= 0 ? ' zero' : '')).trim(), style: height ? `--bar-h:calc(${height}px * var(--k, 1))` : undefined }, h('i', { style: `--p:${(p * 100).toFixed(1)}%` }), label ? h('span', null, label) : null);
   return el;
 }
 

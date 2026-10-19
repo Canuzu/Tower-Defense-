@@ -2,15 +2,50 @@
  * Single source of truth for which painted sprite (public/sprites, see art/ART_BIBLE.md) represents
  * a tower, hero, star, projectile, map or UI icon. Renderer and UI both go through here; every
  * lookup returns null when the sprite is missing so callers can fall back to procedural art.
+ *
+ * Lookups the renderer makes every frame are memoized (no allocations on the hot path); the memo is
+ * dropped whenever more sprites finish loading.
  */
-import { getSprite, pickSprite, type LoadedSprite } from '../assets/sprites';
+import { getSprite, pickSprite, spritesVersion, type LoadedSprite } from '../assets/sprites';
 import { GLOOPS, type GloopId } from '../game/gloops';
+import type { ProjDef } from '../game/towerTypes';
 import spriteIndex from '../assets/sprites.json';
 
 /** Sprite file URL usable as <img src>. */
 export function spriteUrl(s: LoadedSprite | null): string | null {
   return s ? (import.meta.env.BASE_URL || './') + s.file : null;
 }
+
+// --- memo ---------------------------------------------------------------------------------------
+type Memo = Map<string, (LoadedSprite | null | undefined)[]>;
+let memoVersion = -1;
+const towerMemo: Memo = new Map();
+const heroMemo: Memo = new Map();
+const enemyMemo: Memo = new Map();
+const single = new Map<string, LoadedSprite | null>();
+const projMemo = new Map<string, LoadedSprite | null>();
+function checkVersion() {
+  const v = spritesVersion();
+  if (v !== memoVersion) {
+    towerMemo.clear();
+    heroMemo.clear();
+    enemyMemo.clear();
+    single.clear();
+    projMemo.clear();
+    memoVersion = v;
+  }
+}
+function table(memo: Memo, key: string, size: number): (LoadedSprite | null | undefined)[] {
+  checkVersion();
+  let t = memo.get(key);
+  if (!t) {
+    t = new Array(size);
+    memo.set(key, t);
+  }
+  return t;
+}
+
+// --- towers & heroes ----------------------------------------------------------------------------
 
 /** Highest path tier >= 3 decides the look; lower tiers of that path, then the base, are fallbacks. */
 export function towerSpriteIds(typeId: string, tiers: readonly number[]): string[] {
@@ -29,8 +64,17 @@ export function towerSpriteIds(typeId: string, tiers: readonly number[]): string
 }
 
 export function towerArt(typeId: string, tiers: readonly number[]): LoadedSprite | null {
-  return pickSprite(towerSpriteIds(typeId, tiers));
+  const a = clampTier(tiers[0]);
+  const b = clampTier(tiers[1]);
+  const c = clampTier(tiers[2]);
+  const t = table(towerMemo, typeId, 216);
+  const k = a * 36 + b * 6 + c;
+  let s = t[k];
+  if (s === undefined) s = t[k] = pickSprite(towerSpriteIds(typeId, [a, b, c]));
+  return s;
 }
+
+const clampTier = (v: number | undefined) => (v === undefined || v < 0 ? 0 : v > 5 ? 5 : v | 0);
 
 /** Hero looks: level 1-6, 7-13, 14-20. */
 export function heroStage(level: number): 1 | 2 | 3 {
@@ -39,9 +83,24 @@ export function heroStage(level: number): 1 | 2 | 3 {
 
 export function heroArt(heroId: string, level: number): LoadedSprite | null {
   const st = heroStage(level);
-  const ids: string[] = [];
-  for (let s = st; s >= 1; s--) ids.push(`h_${heroId}_${s}`);
-  return pickSprite(ids);
+  const t = table(heroMemo, heroId, 4);
+  let s = t[st];
+  if (s === undefined) {
+    const ids: string[] = [];
+    for (let i = st; i >= 1; i--) ids.push(`h_${heroId}_${i}`);
+    s = t[st] = pickSprite(ids);
+  }
+  return s;
+}
+
+// --- stars --------------------------------------------------------------------------------------
+
+/** 0 = intact, 1 = cracked, 2 = badly cracked, 3 = fortified (armour look wins). */
+export function enemyLook(type: GloopId, fortified: boolean, hpFrac: number): number {
+  const def = GLOOPS[type];
+  if (fortified && def.fortifiable) return 3;
+  if (def.hp > 1) return hpFrac <= 0.34 ? 2 : hpFrac <= 0.67 ? 1 : 0;
+  return 0;
 }
 
 /**
@@ -49,20 +108,83 @@ export function heroArt(heroId: string, level: number): LoadedSprite | null {
  * `_d1` / `_d2` as their shell loses HP (fortified ones keep the armoured look).
  */
 export function enemyArt(type: GloopId, opts: { fortified?: boolean; hpFrac?: number } = {}): LoadedSprite | null {
-  const ids: string[] = [];
-  const base = `e_${type}`;
-  if (opts.fortified && GLOOPS[type].fortifiable) ids.push(base + '_f');
-  else if (opts.hpFrac !== undefined && GLOOPS[type].hp > 1) {
-    if (opts.hpFrac <= 0.34) ids.push(base + '_d2', base + '_d1');
-    else if (opts.hpFrac <= 0.67) ids.push(base + '_d1');
-  }
-  ids.push(base);
-  return pickSprite(ids);
+  return enemyArtLook(type, enemyLook(type, !!opts.fortified, opts.hpFrac ?? 1));
 }
 
-export function projectileArt(visual: string): LoadedSprite | null {
-  return getSprite('p_' + visual);
+export function enemyArtLook(type: GloopId, look: number): LoadedSprite | null {
+  const t = table(enemyMemo, type, 4);
+  let s = t[look];
+  if (s === undefined) {
+    const base = `e_${type}`;
+    const ids = look === 3 ? [base + '_f'] : look === 2 ? [base + '_d2', base + '_d1'] : look === 1 ? [base + '_d1'] : [];
+    ids.push(base);
+    s = t[look] = pickSprite(ids);
+  }
+  return s;
 }
+
+// --- projectiles, drones, traps, drops ----------------------------------------------------------
+
+function one(id: string): LoadedSprite | null {
+  checkVersion();
+  let s = single.get(id);
+  if (s === undefined) {
+    s = getSprite(id);
+    single.set(id, s);
+  }
+  return s;
+}
+
+/** p_<visual>: quill, javelin, bomb, missile, shard, lance, iceball, bolt, fireball, star, spirit, ... */
+export function projectileArt(visual: string): LoadedSprite | null {
+  checkVersion();
+  let s = projMemo.get(visual);
+  if (s === undefined) {
+    s = getSprite('p_' + visual);
+    projMemo.set(visual, s);
+  }
+  return s;
+}
+
+/** Projectile look including upgrades that change it (atomic cans, arcane orbs). */
+export function projectileArtFor(def: ProjDef): LoadedSprite | null {
+  const ex = def.explode?.visual;
+  if (def.visual === 'bomb' && ex === 'nuke') return one('p_nuke') ?? one('p_bomb');
+  if (def.visual === 'bolt' && ex === 'arcane') return one('p_arcane') ?? one('p_bolt');
+  return projectileArt(def.visual);
+}
+
+/** Drones: bee -> scout drone, wasp -> jet, queen -> mother drone, phoenix. */
+export function droneArt(visual: string): LoadedSprite | null {
+  return projectileArt(visual);
+}
+
+/** Orbiting helpers of a tower (spirit wisps). Blades stay procedural. */
+export function orbitArt(visual: string): LoadedSprite | null {
+  return visual === 'wisp' ? one('p_wisp') : null;
+}
+
+/** Ghost raccoon runners. */
+export function runnerArt(): LoadedSprite | null {
+  return one('p_foxspirit');
+}
+
+/** Glue puddles (honey) and tesla traps (coil). */
+export function trapArt(visual: string): LoadedSprite | null {
+  return visual === 'honey' ? one('p_honey') : visual === 'coil' ? one('p_coil') : null;
+}
+
+/** Loot the Hoarder digs up; big piles get the gold-and-gems look. */
+export function dropArt(value: number): LoadedSprite | null {
+  return value >= 30 ? one('p_lootgold') ?? one('p_loot') : one('p_loot');
+}
+
+/** Parachute crate of the Supply Drop ability. */
+export function crateArt(): LoadedSprite | null {
+  return one('p_crate');
+}
+
+// --- maps & UI ----------------------------------------------------------------------------------
 
 export function mapArt(mapId: string): LoadedSprite | null {
   return getSprite('m_' + mapId);

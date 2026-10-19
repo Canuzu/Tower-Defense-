@@ -5,13 +5,15 @@ import type { Renderer } from './Renderer';
 import { audio } from '../audio/audio';
 import { formatNum } from '../core/math';
 import { haptic } from '../ui/haptics';
-import { PK } from './particles';
 import { t } from '../i18n';
 
 /** Bridges simulation events to visuals, sound and haptics. */
 export function makePresentation(r: Renderer): FxSink {
   let popBudget = 0;
   let lastPopFrame = 0;
+  // comic words and "tink"s are fun once in a while, noise when a crowd pops
+  let nextComic = 0;
+  let nextTink = 0;
   const fireSound = (t: Tower): SoundName | null => {
     switch (t.typeId) {
       case 'spike':
@@ -43,17 +45,24 @@ export function makePresentation(r: Renderer): FxSink {
         popBudget = r.reducedEffects ? 8 : 24;
       }
       if (e.def.boss) {
-        r.splat(e.x, e.y, e.def.color, e.radius, true);
+        r.shatter(e);
         r.comic(e.x, e.y - e.radius, true);
         audio.play('bigpop', 1);
         return;
       }
-      if (popBudget-- > 0) r.splat(e.x, e.y, e.def.color, e.radius);
-      if (!r.reducedEffects && Math.random() < (e.def.hp > 1 ? 0.5 : 0.035)) r.comic(e.x, e.y - e.radius);
+      if (popBudget-- > 0) r.shatter(e);
+      if (!r.reducedEffects && now > nextComic && Math.random() < (e.def.hp > 1 ? 0.5 : 0.05)) {
+        nextComic = now + 450;
+        r.comic(e.x, e.y - e.radius);
+      }
       audio.play('pop', 0.5, 1 + (5 - Math.min(5, e.def.tier)) * 0.06);
     },
     immune(x, y) {
-      if (Math.random() < 0.3) r.floatText(x, y - 12, 'tink', '#cfd8e3', 10);
+      const now = performance.now();
+      if (now > nextTink && Math.random() < 0.3) {
+        nextTink = now + 350;
+        r.floatText(x, y - 12, 'tink', '#cfd8e3', 10);
+      }
     },
     explosion(x, y, radius, visual) {
       r.explosion(x, y, radius, visual);
@@ -90,7 +99,6 @@ export function makePresentation(r: Renderer): FxSink {
     },
     bossDeath(e: Enemy) {
       r.confetti(e.x, e.y, 40);
-      r.explosion(e.x, e.y, e.radius * 1.6, 'boom');
       r.floatText(e.x, e.y - e.radius, t('{name} SHATTERED!', { name: t(e.def.name).toUpperCase() }), '#ffffff', 22);
       haptic('heavy');
     },
@@ -101,18 +109,21 @@ export function makePresentation(r: Renderer): FxSink {
       audio.play(name, vol, pitch);
     },
     ability(t, id) {
-      if (t) r.sparkles(t.x, t.y - 20, 14, '#ffe066', 30);
+      if (t) r.sparkles(t.x, t.y - 30, 14, '#ffe066', 30);
+      if (t && id === 'supplyDrop') {
+        // the crate lands in front of the Hoarder, kept inside the playfield
+        const x = Math.min(1560, Math.max(40, t.x + (t.x > 800 ? -46 : 46)));
+        const y = Math.min(880, t.y + 34);
+        r.dropCrate(x, y);
+      }
       haptic('medium');
-      void id;
     },
     place(t: Tower) {
-      r.smokePuff(t.x, t.y + 10, 8);
-      r.sparkles(t.x, t.y - 10, 6, '#ffffff', 22);
+      r.placeFx(t);
       haptic('light');
     },
     upgrade(t: Tower) {
-      r.sparkles(t.x, t.y - 20, 18, '#ffe066', 26);
-      r.particles.spawn(PK.Spark, t.x, t.y - 20, { life: 0.4, size: 60, color: '#ffe066' });
+      r.upgradeFx(t);
       haptic('medium');
     },
     sell(t: Tower) {
