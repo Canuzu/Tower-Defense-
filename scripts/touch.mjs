@@ -5,7 +5,7 @@ const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, de
 const page = await ctx.newPage();
 const logs = [];
 page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message));
-await page.goto('http://localhost:5173/?dev=1');
+await page.goto('http://127.0.0.1:5173/?dev=1');
 await page.waitForTimeout(1000);
 const cdp = await ctx.newCDPSession(page);
 const touch = async (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });

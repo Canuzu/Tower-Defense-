@@ -5,7 +5,7 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const logs = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text()); });
 page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message + '\n' + e.stack));
-await page.goto('http://localhost:5173/');
+await page.goto('http://127.0.0.1:5173/');
 await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(1000);

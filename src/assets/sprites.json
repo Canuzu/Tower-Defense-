@@ -503,7 +503,7 @@
  },
  "p_bee": {
   "file": "sprites/p_bee.webp",
-  "w": 122,
+  "w": 124,
   "h": 128,
   "ax": 0.5,
   "ay": 0.5
@@ -1424,6 +1424,20 @@
   "ax": 0,
   "ay": 0
  },
+ "ui_battery": {
+  "file": "sprites/ui_battery.webp",
+  "w": 144,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_bond": {
+  "file": "sprites/ui_bond.webp",
+  "w": 160,
+  "h": 107,
+  "ax": 0.5,
+  "ay": 0.5
+ },
  "ui_book": {
   "file": "sprites/ui_book.webp",
   "w": 156,
@@ -1442,6 +1456,13 @@
   "file": "sprites/ui_camo.webp",
   "w": 160,
   "h": 150,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_chart": {
+  "file": "sprites/ui_chart.webp",
+  "w": 139,
+  "h": 160,
   "ax": 0.5,
   "ay": 0.5
  },
@@ -1484,6 +1505,20 @@
   "file": "sprites/ui_gear.webp",
   "w": 156,
   "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_globe": {
+  "file": "sprites/ui_globe.webp",
+  "w": 156,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_haptics": {
+  "file": "sprites/ui_haptics.webp",
+  "w": 160,
+  "h": 148,
   "ax": 0.5,
   "ay": 0.5
  },
@@ -1571,6 +1606,13 @@
   "ax": 0.5,
   "ay": 0.5
  },
+ "ui_music": {
+  "file": "sprites/ui_music.webp",
+  "w": 156,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
  "ui_pause": {
   "file": "sprites/ui_pause.webp",
   "w": 140,
@@ -1585,10 +1627,31 @@
   "ax": 0.5,
   "ay": 0.5
  },
+ "ui_restart": {
+  "file": "sprites/ui_restart.webp",
+  "w": 160,
+  "h": 155,
+  "ax": 0.5,
+  "ay": 0.5
+ },
  "ui_sack": {
   "file": "sprites/ui_sack.webp",
   "w": 145,
   "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_sound": {
+  "file": "sprites/ui_sound.webp",
+  "w": 160,
+  "h": 135,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_star": {
+  "file": "sprites/ui_star.webp",
+  "w": 160,
+  "h": 155,
   "ax": 0.5,
   "ay": 0.5
  },
