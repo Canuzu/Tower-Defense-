@@ -3,7 +3,7 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-const out = process.argv[2] ?? 'gloop-guardians.html';
+const out = process.argv[2] ?? 'star-bandits.html';
 execSync('npx vite build', { stdio: 'inherit', env: { ...process.env, SINGLE: '1' } });
 const dir = 'dist-single';
 const html = readFileSync(join(dir, 'index.html'), 'utf8');

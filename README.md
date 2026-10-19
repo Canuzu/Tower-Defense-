@@ -2,7 +2,7 @@
 
 Ein farbenfrohes Tower-Defense-Spiel für iPhone, iPad, Android und den Browser. Es ist inspiriert von Bloons TD 6, hat aber eine **komplett eigene Welt**: Grummelige, lebendige Sterne sind vom Himmel ins Waschbärtal gefallen und marschieren auf das Schatzlager der Waschbären zu. Eine Bande tüftelnder Waschbären (die „Bandits“) baut aus Schrott Gadgets – Schleudern, Mülltonnen-Mörser, Tesla-Rucksäcke, Drohnen – und zerschmettert die Sterne zu Sternenstaub. Jeder Stern zerbricht dabei in kleinere Sterne (das Schichtsystem).
 
-Sounds und Musik werden live synthetisiert. Die Grafiken werden aktuell noch im Code gezeichnet; die neuen Star-Bandits-Grafiken (glänzender 3D-Cartoon-Look) entstehen gerade, siehe `art/ART_BIBLE.md`.
+Sounds und Musik werden live synthetisiert. Alle Grafiken (Türme, Helden, Sterne, Bosse, Karten, Icons, Logo, App-Icon) sind gemalte Sprites im glänzenden 3D-Cartoon-Look, erstellt mit KI-Bildgenerierung (Higgsfield, GPT Image) nach einer festen Stil-Vorlage. Rollen, Namen und Look sind in `art/ART_BIBLE.md` beschrieben. Fehlt einmal ein Sprite, zeichnet der Renderer automatisch die alte Code-Grafik als Ersatz.
 
 ## Was schon drin ist
 
@@ -29,7 +29,7 @@ npm run dev          # öffnet http://localhost:5173
 ```
 
 - `?dev=1` (oder `#dev`) an die URL hängen: alle Karten, Türme und Helden sind sofort freigeschaltet (zum Testen).
-- `node scripts/single.mjs gloop-guardians.html` baut das ganze Spiel als **eine einzige HTML-Datei** (≈450 KB) zum Teilen.
+- `node scripts/single.mjs star-bandits.html` baut das Spiel als **eine HTML-Datei**; die Sprites lädt sie aus `dist-single/sprites/` (zum Teilen den Ordner mitgeben).
 - `npm test` startet die Simulations-Tests.
 - `BALANCE=1 npx vitest run tests/balance.test.ts` lässt einen Bot alle Karten durchspielen (Balance-Check).
 
@@ -61,14 +61,26 @@ Android: `npx cap open android` öffnet Android Studio → **Build → Generate 
 
 Für den App Store brauchst du außerdem eine **Datenschutzerklärung** (eine URL). Das Spiel sammelt keine Daten; Fortschritt wird nur lokal auf dem Gerät gespeichert (zusätzlich im nativen Speicher, damit iOS ihn nicht löscht).
 
-App-Icon und Splashscreen liegen in `resources/`. Sie werden mit `node scripts/icons.mjs` aus dem Code erzeugt, während `npm run dev` läuft.
+App-Icon und Splashscreen liegen in `resources/` und in den nativen Projekten. `python3 -I scripts/art/native_icons.py` erzeugt sie aus dem gemalten App-Icon und dem Logo neu.
+
+### Grafik-Pipeline
+
+| Schritt | Werkzeug |
+|---|---|
+| Rohbilder (1024 px, transparenter Hintergrund) | `art/raw/<id>.webp`; Higgsfield-Job-IDs in `art/jobs.json`, Prompts in `art/specs/*.json` und `scripts/art/specs_*.py` |
+| Sprite-Bögen (3×3) zerschneiden | `python3 -I scripts/art/cut.py <bogen> 3 3 id1,id2,…` |
+| Qualitätsprüfung | `python3 -I scripts/art/check.py <ids>` (abgeschnitten? Dunst?) |
+| Spielfertige Sprites | `python3 scripts/process_art.py` → `public/sprites/*.webp` + `src/assets/sprites.json` (Ankerpunkt auf dem Podest, Größe) |
+| Karten | `scripts/art/guide.py` zeichnet einen Layout-Plan aus den echten Wegdaten, die KI malt ihn aus, `scripts/art/overlay.py` prüft, ob der gemalte Weg auf dem echten liegt |
+
 
 ## Projektstruktur
 
 ```
 src/
   game/      Simulation (unabhängig von der Grafik, testbar): Game, Türme, Sterne (gloops.ts), Runden, Karten, Synergien, Helden
-  render/    Canvas-Renderer, prozedurale Grafik (Türme, Sterne, Karten), Partikel
+  render/    Canvas-Renderer, Sprite-Zuordnung (art.ts), Partikel/Effekte, Ersatz-Grafik im Code
+  assets/    Sprite-Index und Lader
   audio/     Synthetisierte Soundeffekte und Musik (WebAudio)
   ui/        Menüs, HUD, Shop, Upgrade-Panel, Tutorial
   save/      Fortschritt & Spielstände (localStorage)
