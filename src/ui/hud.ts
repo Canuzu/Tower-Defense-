@@ -7,14 +7,31 @@ import { canTier, type TowerId, type AbilityDef } from '../game/towerTypes';
 import { TARGET_PRIORITIES, type TargetPriority } from '../game/types';
 import { SYNERGIES } from '../game/synergy';
 import { GLOOP_ORDER, GLOOPS, type GloopId } from '../game/gloops';
-import { towerIcon, type ArtId } from '../render/towerArt';
+import { towerIconUrl, abilityIconUrl, heroStage } from '../render/art';
 import { formatNum } from '../core/math';
 import { audio } from '../audio/audio';
 import { h, clear, setText, toggle } from './dom';
 import { haptic } from './haptics';
-import { gloopIcon } from './icons';
 import { t as tr } from '../i18n';
-import { modal, btn, chip, uiIcon, restartIcon, MEDAL, MEDAL_EMOJI } from './kit';
+import { modal, btn, chip, uiIcon, img, bar, closeBtn, restartIcon, bump, reducedMotion, watchScroll, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
+
+/** Accent per upgrade path (generic tier icons, pips). */
+const PATH_COLOR = ['#ff8a3c', '#3fb2ff', '#5bdc5a'];
+const HERO_LOOK_LEVELS = [1, 7, 14];
+
+/** Outlined glyphs drawn like the painted icons (ink stroke under a light stroke). */
+function glyph(d: string, w = 7, fill = '#fff6d6', cls = 'ico svg-ico'): HTMLElement {
+  return h('span', {
+    class: cls,
+    'aria-hidden': 'true',
+    html: `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="${d}" fill="none" stroke="#120a2b" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${fill}" stroke-width="${(w * 0.46).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  });
+}
+const CHEVRONS = ['M6 15.5 12 9.5l6 6', 'M6 11.5 12 5.5l6 6M6 18.5l6-6 6 6'];
+const ARROW_L = 'M14.5 5 8 12l6.5 7';
+const ARROW_R = 'M9.5 5 16 12l-6.5 7';
+const BOLT_SVG =
+  '<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="M13.5 2 5 13.5h6L9.5 22 19 9.8h-6.2z" fill="#ffd23c" stroke="#120a2b" stroke-width="2.6" stroke-linejoin="round"/><path d="M12.6 4.6 7.6 11.6" stroke="#fff6c8" stroke-width="1.6" stroke-linecap="round"/></svg>';
 
 export interface HudHost {
   playerLevel: number;
@@ -22,7 +39,8 @@ export interface HudHost {
   onQuit(): void;
   onRestart(): void;
   onRetryRound(): void;
-  onSettings(): void;
+  /** fromPause: the settings modal returns to the pause menu when closed */
+  onSettings(fromPause: boolean): void;
   onRoundEnd(round: number): void;
   onVictory(): void;
   onDefeat(): void;
@@ -65,7 +83,14 @@ export class Hud {
   private panelKey = '';
   private abilitiesEl!: HTMLElement;
   private abilityKey = '';
-  private abilityBtns: { el: HTMLElement; cd: HTMLElement; n: HTMLElement; id: string; towers: Tower[]; ab: AbilityDef }[] = [];
+  private abilityBtns: { el: HTMLElement; cd: HTMLElement; n: HTMLElement; time: HTMLElement; id: string; towers: Tower[]; ab: AbilityDef; state: string }[] = [];
+  private speedBtn!: HTMLButtonElement;
+  private speedLbl!: HTMLElement;
+  private playIco!: HTMLElement;
+  private playLbl!: HTMLElement;
+  private playState = '';
+  private shownCash = -1;
+  private lastBump = 0;
   private toastEl: HTMLElement | null = null;
   private toastTimer = 0;
   private handEl: HTMLElement | null = null;
@@ -131,51 +156,72 @@ export class Hud {
   // Build
   // -------------------------------------------------------------------------------------------
 
+  private hudBtn(icon: HTMLElement, label: string, onClick: () => void, cls: string): HTMLButtonElement {
+    const b = h('button', { class: 'hbtn ' + cls, type: 'button', title: label, 'aria-label': label }, icon) as HTMLButtonElement;
+    b.addEventListener('click', () => {
+      audio.unlock();
+      onClick();
+    });
+    return b;
+  }
+
   private buildTop() {
     this.livesEl = h('span', { class: 'val' }, '0');
-    this.livesPill = h('div', { class: 'pill lives' }, h('span', { class: 'ico' }, '❤️'), this.livesEl);
+    this.livesPill = h('div', { class: 'pill lives', title: tr('Lives') }, uiIcon('heart', '❤️'), this.livesEl);
     this.cashEl = h('span', { class: 'val' }, '0');
-    this.cashPill = h('div', { class: 'pill cash' }, h('span', { class: 'ico' }, '🪙'), this.cashEl);
+    this.cashPill = h('div', { class: 'pill cash', title: tr('Cash') }, uiIcon('coin', '🪙'), this.cashEl);
     this.roundEl = h('span', { class: 'val' }, '1');
     this.roundSub = h('span', { class: 'sub' }, '');
-    const roundPill = h('div', { class: 'pill round' }, h('span', { class: 'ico' }, '🌊'), this.roundEl, this.roundSub);
+    const roundPill = h('div', { class: 'pill round', title: tr('Round') }, img(starPortraitUrl('red'), 'ico'), h('span', { class: 'rv' }, this.roundEl, this.roundSub));
     this.frenzyFill = h('div', { class: 'fill' });
-    this.frenzyLbl = h('span', null, tr('FRENZY'));
-    this.frenzyEl = h('div', { class: 'frenzy', title: tr('Fill the meter by shattering stars, then tap for 10s of FRENZY (+50% attack speed)') }, this.frenzyFill, this.frenzyLbl);
+    this.frenzyLbl = h('span', { class: 'lbl' }, tr('FRENZY'));
+    this.frenzyEl = h(
+      'button',
+      { class: 'frenzy', type: 'button', title: tr('Fill the meter by shattering stars, then tap for 10s of FRENZY (+50% attack speed)') },
+      h('div', { class: 'track' }, this.frenzyFill),
+      h('span', { class: 'bolt', html: BOLT_SVG }),
+      this.frenzyLbl,
+    );
     this.frenzyEl.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       this.tryFrenzy();
     });
+    this.speedLbl = h('span', { class: 'spd' }, '1×');
+    this.speedBtn = this.hudBtn(uiIcon('fast', '⏩'), tr('Game speed'), () => this.cycleSpeed(), 'speed');
+    this.speedBtn.append(this.speedLbl);
+    const pause = this.hudBtn(uiIcon('pause', '⏸'), tr('Pause (Esc)'), () => this.openPause(), 'pause');
+    const gear = this.hudBtn(uiIcon('gear', '⚙️'), tr('Settings'), () => this.host.onSettings(false), 'gear');
     const top = h('div', { class: 'hud-top' }, this.livesPill, this.cashPill, roundPill, this.frenzyEl);
-    const pause = h('button', { class: 'btn icon dark', title: tr('Pause (Esc)'), onclick: () => this.openPause() }, '⏸');
-    const topRight = h('div', { class: 'top-right' }, pause);
-    this.root.append(top, topRight);
+    this.root.append(h('div', { class: 'hud-bar' }, top, h('div', { class: 'top-right' }, this.speedBtn, pause, gear)));
   }
 
   private buildSidebar() {
     const shop = h('div', { class: 'shop' });
     if (this.host.heroId) {
       const hid = this.host.heroId;
-      const card = this.makeCard('hero', hid, towerIcon(hid as ArtId, [1], 120), this.game.heroCost(hid), tr(HEROES[hid].name), 'H');
-      card.classList.add('hero');
-      shop.append(card);
+      shop.append(this.makeCard('hero', hid, heroPortraitUrl(hid, 1), tr(HEROES[hid].name), 'H'));
     }
-    for (const id of TOWER_ORDER) {
-      const def = TOWERS[id];
-      const card = this.makeCard('tower', id, towerIcon(id as ArtId, [0, 0, 0], 120), this.game.towerCost(id), tr(def.name), def.hotkey.toUpperCase());
-      shop.append(card);
-    }
-    this.playBtn = h('button', { class: 'btn green play waiting', title: tr('Start round / speed (Space)') }, '▶') as HTMLButtonElement;
+    for (const id of TOWER_ORDER) shop.append(this.makeCard('tower', id, towerPortraitUrl(id), tr(TOWERS[id].name), TOWERS[id].hotkey.toUpperCase()));
+    watchScroll(shop);
+    this.playIco = h('span', { class: 'play-ico' }, uiIcon('play', '▶'));
+    this.playLbl = h('span', { class: 'play-lbl' }, '');
+    this.playBtn = h('button', { class: 'btn green play waiting', type: 'button', title: tr('Start round / speed (Space)'), 'aria-label': tr('Start round / speed (Space)') }, this.playIco, this.playLbl) as HTMLButtonElement;
     this.playBtn.addEventListener('click', () => this.onPlay());
-    this.autoToggle = h('div', { class: 'toggle' + (this.game.autoStart ? ' on' : '') });
-    const auto = h('button', { class: 'auto', onclick: () => this.toggleAuto() }, this.autoToggle, tr('Auto-start'));
-    const sb = h('div', { class: 'sidebar' }, h('div', { class: 'title' }, tr('Bandits')), shop, auto, this.playBtn);
+    this.autoToggle = h('span', { class: 'toggle' + (this.game.autoStart ? ' on' : '') });
+    const auto = h('button', { class: 'auto', type: 'button', title: tr('Auto-start'), 'aria-label': tr('Auto-start'), onclick: () => this.toggleAuto() }, this.autoToggle, h('span', { class: 'auto-lbl' }, tr('Auto')));
+    const sb = h('div', { class: 'sidebar' }, h('div', { class: 'sb-title t-up' }, tr('Bandits')), h('div', { class: 'shop-wrap' }, shop), h('div', { class: 'sb-foot' }, auto, this.playBtn));
     this.root.append(sb);
   }
 
-  private makeCard(kind: 'tower' | 'hero', id: string, icon: string, cost: number, name: string, key: string) {
-    const price = h('div', { class: 'price' }, '$' + formatNum(cost));
-    const card = h('div', { class: 'card', title: name }, h('img', { src: icon, alt: name, draggable: 'false' }), h('div', { class: 'key' }, key), price);
+  private makeCard(kind: 'tower' | 'hero', id: string, icon: string, name: string, key: string) {
+    const card = h(
+      'div',
+      { class: 'card ' + kind, title: name, role: 'button', 'aria-label': name },
+      h('div', { class: 'card-art' }, h('img', { src: icon, alt: '', draggable: 'false', decoding: 'async' })),
+      h('div', { class: 'key' }, key),
+      h('div', { class: 'lockmark' }, uiIcon('lock', '🔒')),
+      h('div', { class: 'price' }, uiIcon('coin', '$', 'coin'), h('span', { class: 'pv' }, '')),
+    );
     card.dataset.kind = kind;
     card.dataset.id = id;
     card.addEventListener('pointerdown', (e) => {
@@ -204,7 +250,7 @@ export class Hud {
   private buildSandbox() {
     const p = h('div', { class: 'sandbox-panel' });
     for (const id of GLOOP_ORDER) {
-      const b = h('button', { title: tr('Spawn') + ' ' + tr(GLOOPS[id].name) }, h('img', { src: gloopIcon(id as GloopId), alt: '' }));
+      const b = h('button', { title: tr('Spawn') + ' ' + tr(GLOOPS[id].name) }, img(starPortraitUrl(id as GloopId)));
       b.addEventListener('click', (e) => {
         const n = (e as MouseEvent).shiftKey ? 10 : 1;
         for (let i = 0; i < n; i++) this.game.spawn(id as GloopId, { dist: i * 14 });
@@ -252,6 +298,7 @@ export class Hud {
       g.events.on('heroLevel', ({ level }) => {
         this.toast(tr('{name} reached level {n}!', { name: tr(g.hero?.name ?? ''), n: level }), 2200);
         this.panelKey = '';
+        this.lastCash = -1;
       }),
       g.events.on('frenzyReady', () => {
         this.toast(tr('FRENZY is ready! Tap the meter!'), 2000);
@@ -270,6 +317,7 @@ export class Hud {
       }),
       g.events.on('towersChanged', () => {
         this.panelKey = '';
+        this.lastCash = -1;
       }),
     );
   }
@@ -521,6 +569,7 @@ export class Hud {
       this.panel.remove();
       this.panel = null;
       this.panelFor = null;
+      this.root.classList.remove('up-left', 'up-right');
     }
     if (t) audio.play('click');
   }
@@ -528,79 +577,86 @@ export class Hud {
   private buildPanel(t: Tower) {
     const g = this.game;
     const side = this.renderer.worldToScreen(t.x, t.y).x < (window.innerWidth - this.sidebarWidth) / 2 ? 'right' : 'left';
-    const panel = h('div', { class: 'upanel ' + side });
+    const panel = h('div', { class: 'upanel ' + side + (t.hero ? ' is-hero' : '') });
+    toggle(this.root, 'up-left', side === 'left');
+    toggle(this.root, 'up-right', side === 'right');
     panel.addEventListener('pointerdown', (e) => e.stopPropagation());
-    const art = t.hero ? (t.hero.id as ArtId) : (t.def!.id as ArtId);
-    const tiers = t.hero ? [t.heroLevel >= 20 ? 20 : t.heroLevel >= 10 ? 10 : 1] : [...t.tiers];
-    const portrait = h('div', { class: 'portrait' }, h('img', { src: towerIcon(art, tiers, 140), alt: '' }));
+    const look = t.hero ? heroPortraitUrl(t.hero.id, t.heroLevel) : towerPortraitUrl(t.def!.id, t.tiers);
     const sub = t.hero ? tr(t.hero.title) : `${tr(t.def!.species)} · ${tr(t.def!.role)}`;
     const statsLine = h('div', { class: 'stats-line' });
-    const head = h(
-      'div',
-      { class: 'uhead' },
-      portrait,
-      h('div', null, h('div', { class: 'name' }, tr(t.name)), h('div', { class: 'meta' }, sub), statsLine),
-      h('button', { class: 'btn icon small dark close', title: tr('Close'), onclick: () => this.select(null) }, '✕'),
+    panel.append(
+      h(
+        'div',
+        { class: 'uhead' },
+        h('div', { class: 'u-portrait' }, img(look)),
+        h('div', { class: 'u-title' }, h('div', { class: 'name t-outline' }, tr(t.name)), h('div', { class: 'meta' }, sub), statsLine),
+        closeBtn(() => {
+          audio.play('click');
+          this.select(null);
+        }),
+      ),
     );
-    panel.append(head);
 
     if (t.def) {
+      const def = t.def;
       const paths = h('div', { class: 'paths' });
       for (let p = 0; p < 3; p++) {
         const tier = t.tiers[p];
-        const row = h('div', { class: 'path' });
-        const pips = h('div', { class: 'pips' });
-        for (let i = 0; i < 5; i++) pips.append(h('div', { class: 'pip' + (i < tier ? ' on' : '') + (i === 4 ? ' five' : '') }));
-        row.append(pips);
         const can = canTier(t.tiers, p);
+        const pips = h('div', { class: 'pips', title: tr('Tier {n}', { n: tier }) });
+        for (let i = 0; i < 5; i++) pips.append(h('i', { class: (i < tier ? 'on' : '') + (i === 4 ? ' five' : '') }));
+        const head = h('div', { class: 'p-head' }, h('span', { class: 'pname' }, tr(def.pathNames[p])), pips);
+        const row = h('div', { class: 'path', style: `--pc:${PATH_COLOR[p]}` });
         if (tier >= 5) {
+          const u = def.paths[p][4];
           row.classList.add('maxed');
-          const u = t.def.paths[p][4];
-          row.append(h('div', { class: 'upg' }, h('div', { class: 'info' }, h('div', { class: 'pname' }, tr(t.def.pathNames[p]) + ' · MAX'), h('div', { class: 'uname' }, '★ ' + tr(u.name)), h('div', { class: 'udesc' }, tr(u.desc)))));
+          row.append(this.upgIcon(def.id, t.tiers, 5), h('div', { class: 'info' }, head, h('div', { class: 'uname' }, tr(u.name)), h('div', { class: 'udesc' }, tr(u.desc))), h('div', { class: 'maxmark' }, uiIcon('crown', '👑'), h('b', null, 'MAX')));
         } else {
-          const u = t.def.paths[p][tier];
+          const u = def.paths[p][tier];
           const cost = g.upgradeCost(t, p)!;
-          const icon = towerIcon(art, t.tiers.map((x, i) => (i === p ? x + 1 : x)), 90);
-          const buy = h('button', { class: 'btn small gold buy' }, can ? '$' + formatNum(cost) : '🔒', h('small', null, can ? tr('Tier {n}', { n: tier + 1 }) : tr('Path closed'))) as HTMLButtonElement;
+          const next = t.tiers.map((x, i) => (i === p ? x + 1 : x));
+          const buy = h(
+            'button',
+            { class: 'btn small buy ' + (can ? 'gold' : 'dark closed'), type: 'button', title: can ? tr(u.name) : tr('Path closed') },
+            can ? h('span', { class: 'bp' }, uiIcon('coin', '$', 'coin'), h('span', null, formatNum(cost))) : uiIcon('lock', '🔒', 'lock'),
+            h('small', null, can ? tr('Tier {n}', { n: tier + 1 }) : tr('Path closed')),
+          ) as HTMLButtonElement;
           buy.dataset.cost = String(cost);
           buy.dataset.can = can ? '1' : '0';
           buy.addEventListener('click', () => this.buyUpgrade(t, p));
           if (!can) row.classList.add('closed');
-          row.append(
-            h(
-              'div',
-              { class: 'upg' },
-              h('img', { src: icon, alt: '', style: 'width:clamp(40px,8vh,56px);flex:none' }),
-              h('div', { class: 'info' }, h('div', { class: 'pname' }, tr(t.def.pathNames[p])), h('div', { class: 'uname' }, tr(u.name)), h('div', { class: 'udesc' }, can ? tr(u.desc) : tr('Only 2 paths, and only one past tier 2.'))),
-              buy,
-            ),
-          );
+          row.append(this.upgIcon(def.id, next, tier + 1), h('div', { class: 'info' }, head, h('div', { class: 'uname' }, tr(u.name)), h('div', { class: 'udesc' }, can ? tr(u.desc) : tr('Only 2 paths, and only one past tier 2.'))), buy);
         }
         paths.append(row);
       }
       panel.append(paths);
     } else if (t.hero) {
+      const hero = t.hero;
       const lvl = t.heroLevel;
-      const next = lvl < MAX_HERO_LEVEL ? t.hero.levels[lvl - 1] : null;
-      const xpNeed = heroXpFor(lvl + 1) - heroXpFor(lvl);
-      const xpInto = t.heroXp - heroXpFor(lvl);
+      const next = lvl < MAX_HERO_LEVEL ? hero.levels[lvl - 1] : null;
+      const xp = bar(this.heroXpFrac(t), 'gold', undefined, 12);
+      xp.classList.add('hxp');
+      const stage = heroStage(lvl);
+      const looks = h(
+        'div',
+        { class: 'h-stages' },
+        ...HERO_LOOK_LEVELS.map((lv) => h('div', { class: 'h-stage' + (heroStage(lv) === stage ? ' on' : lv > lvl ? ' future' : ''), title: tr('Level {n}', { n: lv }) }, img(heroPortraitUrl(hero.id, lv)), h('span', null, tr('Lv {n}', { n: lv })))),
+      );
       panel.append(
         h(
           'div',
-          { class: 'path' },
+          { class: 'path hero-lv' },
+          h('div', { class: 'lv-badge' }, uiIcon('xp', '⭐'), h('b', { class: 't-num' }, String(lvl))),
           h(
             'div',
-            { class: 'upg' },
-            h(
-              'div',
-              { class: 'info' },
-              h('div', { class: 'pname' }, tr('Level {n}', { n: lvl }) + (lvl >= MAX_HERO_LEVEL ? ' · MAX' : '')),
-              h('div', { class: 'uname' }, next ? tr('Next: ') + tr(next.desc) : tr('Fully powered!')),
-              next ? h('div', { class: 'xpbar', style: 'width:100%;margin-top:4px' }, h('div', { style: `width:${Math.round((xpInto / xpNeed) * 100)}%` })) : null,
-              h('div', { class: 'udesc', style: 'margin-top:4px' }, tr('Heroes level up automatically every round.')),
-            ),
+            { class: 'info' },
+            h('div', { class: 'p-head' }, h('span', { class: 'pname' }, tr('Level {n}', { n: lvl }) + (lvl >= MAX_HERO_LEVEL ? ' · MAX' : ''))),
+            h('div', { class: 'uname' }, next ? tr('Next: ') + tr(next.desc) : tr('Fully powered!')),
+            next ? xp : null,
           ),
         ),
+        looks,
+        h('div', { class: 'u-note' }, tr('Heroes level up automatically every round.')),
       );
     }
 
@@ -613,48 +669,42 @@ export class Hud {
         seen.add(b.synergyId);
         const syn = SYNERGIES.find((s) => s.id === b.synergyId)!;
         const isA = t.def?.id === syn.a;
-        bonds.append(h('span', { class: 'bond', style: `background:${syn.color}`, title: tr(isA ? syn.descA : syn.descB) }, `⚡ ${tr(syn.name)}: ${tr(isA ? syn.descA : syn.descB)}`));
+        bonds.append(h('span', { class: 'bond', style: `--bc:${syn.color}`, title: tr(isA ? syn.descA : syn.descB) }, h('b', null, `⚡ ${tr(syn.name)}`), ' ' + tr(isA ? syn.descA : syn.descB)));
       }
       panel.append(bonds);
     }
 
-    // footer
+    // footer: targeting, bank, sell
     const foot = h('div', { class: 'ufoot' });
-    const hasTarget = t.stats.attacks.some((a) => ['shoot', 'hitscan', 'chain'].includes(a.kind));
-    if (hasTarget) {
-      const lbl = h('div', { class: 'lbl' }, prio(t.priority));
-      foot.append(
-        h(
-          'div',
-          { class: 'target' },
-          h('button', { class: 'btn small dark', onclick: () => this.cyclePriority(t, -1) }, '‹'),
-          lbl,
-          h('button', { class: 'btn small dark', onclick: () => this.cyclePriority(t, 1) }, '›'),
-        ),
-      );
+    if (t.stats.attacks.some((a) => ['shoot', 'hitscan', 'chain'].includes(a.kind))) {
+      const arrow = (dir: number) => {
+        const b = h('button', { class: 'tg-arrow', type: 'button', 'aria-label': tr('Targeting') }, glyph(dir < 0 ? ARROW_L : ARROW_R, 6.5));
+        b.addEventListener('click', () => this.cyclePriority(t, dir));
+        return b;
+      };
+      foot.append(h('div', { class: 'target', title: tr('Targeting') + ' (Tab)' }, arrow(-1), h('div', { class: 'lbl' }, uiIcon('target', '🎯'), h('span', null, prio(t.priority))), arrow(1)));
     }
     if (t.stats.bank) {
-      const wd = h('button', { class: 'btn small green', onclick: () => this.game.withdraw(t) }, tr('Withdraw')) as HTMLButtonElement;
+      const wd = btn(tr('Withdraw'), 'green', () => this.game.withdraw(t), { size: 'small', icon: uiIcon('sack', '💰'), cls: 'withdraw' });
       wd.dataset.role = 'withdraw';
       foot.append(wd);
     }
     const sellV = t.sellValue(g.sandbox) + Math.floor(t.stash);
-    const sellBtn = h('button', { class: 'btn small red', title: tr('Sell (Backspace)') }, tr('Sell ${n}', { n: formatNum(sellV) })) as HTMLButtonElement;
-    let armed = false;
-    sellBtn.addEventListener('click', () => {
+    const sellLbl = h('span', null, tr('Sell'));
+    const sellBtn = btn(h('span', { class: 'sell-in' }, sellLbl, h('span', { class: 'sv' }, uiIcon('coin', '$', 'coin'), formatNum(sellV))), 'red', () => {
       // expensive towers need a second tap so they are not sold by accident
-      if (sellV >= 1000 && !armed && !this.game.sandbox) {
-        armed = true;
-        sellBtn.textContent = tr('Tap again to sell');
+      if (sellV >= 1000 && !sellBtn.classList.contains('armed') && !this.game.sandbox) {
+        sellBtn.classList.add('armed');
+        sellLbl.textContent = tr('Sure?');
         audio.play('click');
         setTimeout(() => {
-          armed = false;
-          if (sellBtn.isConnected) sellBtn.textContent = tr('Sell ${n}', { n: formatNum(sellV) });
+          sellBtn.classList.remove('armed');
+          sellLbl.textContent = tr('Sell');
         }, 2200);
         return;
       }
       this.sell(t);
-    });
+    }, { size: 'small', cls: 'sell', title: tr('Sell (Backspace)') });
     foot.append(sellBtn);
     panel.append(foot);
 
@@ -662,29 +712,58 @@ export class Hud {
     this.panel?.remove();
     this.panel = panel;
     this.panelFor = t;
-    this.updateStatsLine(t, statsLine);
+    this.buildStats(t, statsLine);
   }
 
-  private updateStatsLine(t: Tower, el: HTMLElement) {
-    const parts = [tr('Pops {n}', { n: formatNum(t.pops) })];
-    if (t.stats.bank) parts.push(tr('Stash ${a} / {b}', { a: formatNum(t.stash), b: formatNum(t.stats.bank.capacity) }));
-    if (t.stats.income && !t.stats.bank) {
-      const inc = t.stats.income;
-      const per = inc.perDrop * inc.drops * t.buffs.incomeMul + inc.bonusPerRound;
-      parts.push(tr('${n}/round', { n: formatNum(per) }));
-    }
-    if (t.camo) parts.push(tr('👁 Camo'));
-    const main = this.mainAttackSummary(t);
-    if (main) parts.push(main);
-    setText(el, parts.join(' · '));
+  /** Next-upgrade picture: the painted look for tier 3+, a path-coloured chevron emblem below. */
+  private upgIcon(id: string, tiers: readonly number[], tier: number): HTMLElement {
+    const url = tier >= 3 ? towerIconUrl(id, tiers) : null;
+    if (url) return h('div', { class: 'u-ico look' }, img(url));
+    return h('div', { class: 'u-ico gen' }, glyph(CHEVRONS[tier >= 2 ? 1 : 0], 6.5, '#fff6d6', 'chev'), h('b', null, String(tier)));
   }
 
-  /** Short "damage / pierce / speed" readout of the primary attack. */
-  private mainAttackSummary(t: Tower): string {
+  private heroXpFrac(t: Tower) {
+    const lvl = t.heroLevel;
+    if (lvl >= MAX_HERO_LEVEL) return 1;
+    const need = heroXpFor(lvl + 1) - heroXpFor(lvl);
+    return need > 0 ? Math.max(0, Math.min(1, (t.heroXp - heroXpFor(lvl)) / need)) : 1;
+  }
+
+  private statEls: Record<string, HTMLElement> = {};
+
+  /** Stat chips under the name; values are refreshed every frame by updateStats. */
+  private buildStats(t: Tower, el: HTMLElement) {
+    clear(el);
+    this.statEls = {};
+    const add = (key: string, icon: HTMLElement, title: string) => {
+      const v = h('span', null, '');
+      el.append(h('span', { class: 'st ' + key, title }, icon, v));
+      this.statEls[key] = v;
+    };
+    add('pops', img(starPortraitUrl('red'), 'ico'), tr('Pops'));
+    if (t.stats.bank) add('stash', uiIcon('sack', '💰'), tr('Stash'));
+    else if (t.stats.income) add('income', uiIcon('coin', '🪙'), tr('Income'));
     const a = t.stats.attacks[0];
-    if (!a) return '';
-    const rate = a.rate / t.rateFactor(this.game.time, this.game.frenzyT > 0);
-    const perSec = rate > 0 ? (1 / rate).toFixed(rate < 1 ? 1 : 2) : '';
+    if (a && ['shoot', 'radial', 'hitscan', 'chain', 'pulse', 'drone'].includes(a.kind)) {
+      add('dmg', glyph('M5 19 17 7M14 4h6v6M7 15l2 2', 5.5, '#ffd0d0'), tr('Damage'));
+      if (a.kind === 'drone') add('drones', h('span', { class: 'ico emoji' }, '🛸'), tr('Drones'));
+      else add('pierce', glyph('M4 12h13M13 6l6 6-6 6', 5.5, '#cfe8ff'), tr('Pierce'));
+      if (a.kind !== 'drone') add('rate', glyph('M12 7v5l3 2M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17', 4.5, '#e0ffd0'), tr('Attacks per second'));
+    }
+    if (t.camo) el.append(h('span', { class: 'st camo', title: tr('Camo detection') }, uiIcon('camo', '👁'), h('span', null, tr('Camo'))));
+    this.updateStats(t);
+  }
+
+  private updateStats(t: Tower) {
+    const s = this.statEls;
+    if (s.pops) setText(s.pops, formatNum(t.pops));
+    if (s.stash && t.stats.bank) setText(s.stash, `$${formatNum(t.stash)}/${formatNum(t.stats.bank.capacity)}`);
+    if (s.income && t.stats.income) {
+      const inc = t.stats.income;
+      setText(s.income, tr('${n}/round', { n: formatNum(inc.perDrop * inc.drops * t.buffs.incomeMul + inc.bonusPerRound) }));
+    }
+    const a = t.stats.attacks[0];
+    if (!a || !s.dmg) return;
     let dmg = 0;
     let pierce = 0;
     if (a.kind === 'shoot' || a.kind === 'radial') {
@@ -702,10 +781,16 @@ export class Hud {
       pierce = a.pierce;
     } else if (a.kind === 'drone') {
       dmg = a.proj.damage;
-      pierce = a.proj.pierce;
-      return `⚔ ${dmg + t.buffs.damageAdd} · 🛸 ${a.count}`;
-    } else return '';
-    return `⚔ ${dmg + (dmg > 0 ? t.buffs.damageAdd : 0)} · ➹ ${pierce + t.buffs.pierceAdd} · ⏱ ${perSec}/s`;
+      setText(s.dmg, String(dmg + t.buffs.damageAdd));
+      if (s.drones) setText(s.drones, String(a.count));
+      return;
+    }
+    setText(s.dmg, String(dmg + (dmg > 0 ? t.buffs.damageAdd : 0)));
+    if (s.pierce) setText(s.pierce, String(pierce + t.buffs.pierceAdd));
+    if (s.rate) {
+      const rate = a.rate / t.rateFactor(this.game.time, this.game.frenzyT > 0);
+      setText(s.rate, rate > 0 ? `${(1 / rate).toFixed(rate < 1 ? 1 : 2)}/s` : '–');
+    }
   }
 
   private refreshPanel() {
@@ -715,7 +800,7 @@ export class Hud {
       this.select(null);
       return;
     }
-    const key = `${t.id}|${t.tiers.join('')}|${t.heroLevel}|${t.priority}|${t.bonds.map((b) => b.synergyId).join(',')}`;
+    const key = `${t.id}|${t.tiers.join('')}|${t.heroLevel}|${t.priority}|${t.camo}|${t.bonds.map((b) => b.synergyId).join(',')}`;
     if (key !== this.panelKey || this.panelFor !== t) {
       this.panelKey = key;
       this.buildPanel(t);
@@ -723,12 +808,18 @@ export class Hud {
     if (!this.panel) return;
     // affordability
     for (const b of this.panel.querySelectorAll<HTMLButtonElement>('.buy')) {
-      const cost = +b.dataset.cost!;
-      const ok = b.dataset.can === '1' && (this.game.sandbox || this.game.cash >= cost);
-      toggle(b, 'disabled', !ok);
+      if (b.dataset.can !== '1') continue;
+      toggle(b, 'poor', !this.game.sandbox && this.game.cash < +b.dataset.cost!);
     }
-    const sl = this.panel.querySelector('.stats-line') as HTMLElement | null;
-    if (sl) this.updateStatsLine(t, sl);
+    if (t.hero) {
+      const fill = this.panel.querySelector<HTMLElement>('.hxp > i');
+      if (fill) {
+        const f = this.heroXpFrac(t);
+        fill.style.setProperty('--p', `${(f * 100).toFixed(1)}%`);
+        toggle(fill.parentElement!, 'zero', f <= 0);
+      }
+    }
+    this.updateStats(t);
   }
 
   private buyUpgrade(t: Tower, p: number) {
@@ -778,10 +869,13 @@ export class Hud {
       }
       g.startRound();
       haptic('light');
-    } else {
-      g.speed = g.speed === 1 ? 2 : g.speed === 2 ? 3 : 1;
-      audio.play('click');
-    }
+    } else this.cycleSpeed();
+  }
+
+  private cycleSpeed() {
+    const g = this.game;
+    g.speed = g.speed === 1 ? 2 : g.speed === 2 ? 3 : 1;
+    audio.play('click');
   }
 
   private toggleAuto() {
@@ -808,21 +902,33 @@ export class Hud {
     const g = this.game;
     const cash = Math.floor(g.cash);
     if (cash !== this.lastCash) {
-      setText(this.cashEl, g.sandbox ? '∞' : '$' + formatNum(cash));
       if (cash > this.lastCash && this.lastCash >= 0) {
-        this.cashPill.classList.remove('gain');
-        void this.cashPill.offsetWidth;
-        this.cashPill.classList.add('gain');
+        const now = performance.now();
+        if (now - this.lastBump > 260) {
+          this.lastBump = now;
+          bump(this.cashEl);
+        }
       }
       this.lastCash = cash;
       this.updateCards();
     }
+    // the cash readout counts towards the real value
+    if (this.shownCash !== cash) {
+      const d = cash - this.shownCash;
+      if (this.shownCash < 0 || g.sandbox || reducedMotion() || Math.abs(d) < 2) this.shownCash = cash;
+      else {
+        const step = d * Math.min(1, dt * (d > 0 ? 8 : 14));
+        this.shownCash += Math.abs(step) < 1 ? Math.sign(d) : step;
+      }
+      setText(this.cashEl, g.sandbox ? '∞' : '$' + formatNum(Math.round(this.shownCash)));
+    }
     if (g.lives !== this.lastLives) {
       setText(this.livesEl, g.sandbox ? '∞' : formatNum(Math.max(0, g.lives)));
+      toggle(this.livesPill, 'low', !g.sandbox && g.lives > 0 && g.lives <= Math.max(5, g.diff.lives * 0.2));
       this.lastLives = g.lives;
     }
     setText(this.roundEl, String(g.round));
-    setText(this.roundSub, g.sandbox ? '' : g.freeplay ? tr(' freeplay') : `/${g.lastRound}`);
+    setText(this.roundSub, g.sandbox ? '' : g.freeplay ? '∞' : `/${g.lastRound}`);
     // frenzy
     const ready = g.frenzyReady;
     toggle(this.frenzyEl, 'ready', ready);
@@ -848,18 +954,29 @@ export class Hud {
       toggle(this.comboEl, 'hidden', true);
       this.lastCombo = 0;
     }
-    // play button
-    const state = g.roundActive ? (g.speed === 1 ? '▶' : g.speed === 2 ? '⏩' : '⏭') : '▶';
-    setText(this.playBtn, g.roundActive ? `${state}` : '▶');
-    toggle(this.playBtn, 'waiting', !g.roundActive && !g.over);
-    toggle(this.playBtn, 'fast', g.roundActive && g.speed === 2);
-    toggle(this.playBtn, 'faster', g.roundActive && g.speed === 3);
-    toggle(this.playBtn, 'green', !(g.roundActive && g.speed > 1));
+    // play / speed buttons
+    const running = g.roundActive && !g.over;
+    const state = (g.over ? 'over' : running ? 'run' : 'wait') + g.speed;
+    if (state !== this.playState) {
+      this.playState = state;
+      toggle(this.playBtn, 'waiting', !running && !g.over);
+      toggle(this.playBtn, 'running', running);
+      toggle(this.playBtn, 'fast', running && g.speed === 2);
+      toggle(this.playBtn, 'faster', running && g.speed === 3);
+      toggle(this.playBtn, 'green', !(running && g.speed > 1));
+      this.playIco.replaceChildren(running ? uiIcon('fast', '⏩') : uiIcon('play', '▶'));
+      setText(this.playLbl, running ? `${g.speed}×` : '');
+      setText(this.speedLbl, `${g.speed}×`);
+      toggle(this.speedBtn, 'on', g.speed > 1);
+      toggle(this.speedBtn, 'max', g.speed > 2);
+    }
     this.refreshPanel();
     this.updateAbilities();
     if (this.toastEl && (this.toastTimer -= dt) <= 0) {
-      this.toastEl.remove();
+      const el = this.toastEl;
       this.toastEl = null;
+      el.classList.add('out');
+      setTimeout(() => el.remove(), 220);
     }
     if (this.showFps) {
       this.fpsAcc += dt;
@@ -880,14 +997,24 @@ export class Hud {
       const unlocked = this.isUnlocked(kind, id);
       const banned = kind === 'tower' && !g.isAllowed(id as TowerId);
       const cost = kind === 'tower' ? g.towerCost(id as TowerId) : g.heroCost(id as HeroId);
+      const placedHero = kind === 'hero' && !!g.hero;
       toggle(card, 'locked', !unlocked || banned);
       toggle(card, 'banned', banned);
-      const placedHero = kind === 'hero' && !!g.hero;
-      toggle(card, 'poor', unlocked && !placedHero && !g.sandbox && g.cash < cost);
-      const price = card.querySelector('.price') as HTMLElement;
-      if (!unlocked) setText(price, tr('Lvl {n}', { n: kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock }));
-      else if (placedHero) setText(price, tr('Lv {n}', { n: g.hero!.heroLevel }));
-      else setText(price, '$' + formatNum(cost));
+      toggle(card, 'placed', placedHero);
+      toggle(card, 'poor', unlocked && !banned && !placedHero && !g.sandbox && g.cash < cost);
+      const pv = card.querySelector('.pv') as HTMLElement;
+      if (!unlocked) setText(pv, tr('Lvl {n}', { n: kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock }));
+      else if (placedHero) setText(pv, tr('Lv {n}', { n: g.hero!.heroLevel }));
+      else setText(pv, formatNum(cost));
+      if (kind === 'hero') {
+        // the hero card shows the hero's current look
+        const stage = String(heroStage(g.hero?.heroLevel ?? 1));
+        if (card.dataset.stage !== stage) {
+          card.dataset.stage = stage;
+          const im = card.querySelector('.card-art img') as HTMLImageElement | null;
+          if (im) im.src = heroPortraitUrl(id, g.hero?.heroLevel ?? 1);
+        }
+      }
     }
   }
 
@@ -907,15 +1034,24 @@ export class Hud {
       clear(this.abilitiesEl);
       this.abilityBtns = [];
       for (const [id, gr] of groups) {
+        const url = abilityIconUrl(id);
         const cd = h('div', { class: 'cd' });
-        const n = h('div', { class: 'n' }, gr.towers.length > 1 ? `x${gr.towers.length}` : '');
-        const el = h('button', { class: 'ability', title: `${tr(gr.ab.name)}: ${tr(gr.ab.desc)}` }, gr.ab.icon, cd, n);
+        const time = h('div', { class: 'time' });
+        const n = h('div', { class: 'n hidden' });
+        const el = h(
+          'button',
+          { class: 'ability anim-pop', type: 'button', title: `${tr(gr.ab.name)}: ${tr(gr.ab.desc)}`, 'aria-label': tr(gr.ab.name) },
+          url ? img(url, 'ab-ico') : h('span', { class: 'ab-emoji' }, gr.ab.icon),
+          cd,
+          time,
+          n,
+        );
         el.addEventListener('pointerdown', (e) => {
           e.stopPropagation();
           this.useAbility(id);
         });
         this.abilitiesEl.append(el);
-        this.abilityBtns.push({ el, cd, n, id, towers: gr.towers, ab: gr.ab });
+        this.abilityBtns.push({ el, cd, n, time, id, towers: gr.towers, ab: gr.ab, state: '' });
       }
     }
     for (const b of this.abilityBtns) {
@@ -927,10 +1063,21 @@ export class Hud {
         best = Math.min(best, c);
       }
       const frac = ready > 0 ? 0 : Math.min(1, best / b.ab.cooldown);
-      toggle(b.el, 'ready', ready > 0);
-      toggle(b.el, 'cooling', ready === 0);
-      b.cd.style.background = frac > 0 ? `conic-gradient(rgba(20,10,30,0.65) ${frac * 360}deg, transparent 0)` : 'none';
-      setText(b.n, b.towers.length > 1 ? `${ready}/${b.towers.length}` : ready ? '' : `${Math.ceil(best)}s`);
+      const state = ready > 0 ? 'ready' : 'cooling';
+      if (state !== b.state) {
+        if (state === 'ready' && b.state) {
+          b.el.classList.remove('pop');
+          void b.el.offsetWidth;
+          b.el.classList.add('pop');
+        }
+        b.state = state;
+        toggle(b.el, 'ready', ready > 0);
+        toggle(b.el, 'cooling', ready === 0);
+      }
+      b.cd.style.setProperty('--cd', `${(frac * 360).toFixed(0)}deg`);
+      setText(b.time, ready ? '' : `${Math.ceil(best)}`);
+      toggle(b.n, 'hidden', b.towers.length < 2);
+      if (b.towers.length > 1) setText(b.n, `${ready}/${b.towers.length}`);
     }
   }
 
@@ -951,14 +1098,14 @@ export class Hud {
   // -------------------------------------------------------------------------------------------
 
   banner(text: string, sub: string | null, boss: boolean, small = false) {
-    const el = h('div', { class: 'banner' + (boss ? ' boss' : ''), style: small ? 'font-size:clamp(26px,6vh,52px)' : '' }, text, sub ? h('small', null, sub) : null);
+    const el = h('div', { class: 'banner' + (boss ? ' boss' : '') + (small ? ' small' : '') }, h('span', { class: 'b-main' }, text), sub ? h('small', null, sub) : null);
     this.root.append(el);
     setTimeout(() => el.remove(), 1900);
   }
 
   toast(text: string, ms = 2500) {
     this.toastEl?.remove();
-    this.toastEl = h('div', { class: 'toast' }, text);
+    this.toastEl = h('div', { class: 'toast', role: 'status' }, text);
     this.root.append(this.toastEl);
     this.toastTimer = ms / 1000;
   }
@@ -1046,7 +1193,7 @@ export class Hud {
         h(
           'div',
           { class: 'pause-grid' },
-          btn(tr('Settings'), 'blue', () => this.host.onSettings(), { icon: uiIcon('gear', '⚙️') }),
+          btn(tr('Settings'), 'blue', () => this.host.onSettings(true), { icon: uiIcon('gear', '⚙️') }),
           restart,
           btn(tr('Home'), 'dark', () => this.host.onQuit(), { icon: uiIcon('home', '🏠') }),
         ),

@@ -11,6 +11,34 @@ import { t } from '../i18n';
 export function makePresentation(r: Renderer): FxSink {
   let popBudget = 0;
   let lastPopFrame = 0;
+  // Recent shatter spots. An overkill pops a star and all its children (or a boss and every boss
+  // inside it) in one frame at the same place; only the first pop of such a cascade gets the full
+  // burst, the rest add a couple of shards, so the result stays a crisp shatter instead of a cloud.
+  const RN = 12;
+  const rx = new Float64Array(RN);
+  const ry = new Float64Array(RN);
+  const rr = new Float64Array(RN);
+  const rt = new Float64Array(RN).fill(-1e9);
+  const rn = new Uint16Array(RN);
+  let ri = 0;
+  let lastMerged = 0;
+  const mergeWindow = 140;
+  const cascade = (x: number, y: number, rad: number, now: number): number => {
+    for (let i = 0; i < RN; i++) {
+      if (now - rt[i] > mergeWindow) continue;
+      const R = rr[i] > 26 ? rr[i] : 26;
+      const dx = x - rx[i];
+      const dy = y - ry[i];
+      if (dx * dx + dy * dy < R * R) return ++rn[i];
+    }
+    rx[ri] = x;
+    ry[ri] = y;
+    rr[ri] = rad;
+    rt[ri] = now;
+    rn[ri] = 0;
+    ri = (ri + 1) % RN;
+    return 0;
+  };
   // comic words and "tink"s are fun once in a while, noise when a crowd pops
   let nextComic = 0;
   let nextTink = 0;
@@ -44,14 +72,15 @@ export function makePresentation(r: Renderer): FxSink {
         lastPopFrame = now;
         popBudget = r.reducedEffects ? 8 : 24;
       }
+      const m = (lastMerged = cascade(e.x, e.y, e.radius, now));
       if (e.def.boss) {
-        r.shatter(e);
-        r.comic(e.x, e.y - e.radius, true);
-        audio.play('bigpop', 1);
+        r.shatter(e, m);
+        if (m === 0) audio.play('bigpop', 1);
         return;
       }
-      if (popBudget-- > 0) r.shatter(e);
-      if (!r.reducedEffects && now > nextComic && Math.random() < (e.def.hp > 1 ? 0.5 : 0.05)) {
+      if (m > 2 && m % 6 !== 0) return;
+      if (popBudget-- > 0) r.shatter(e, m);
+      if (m === 0 && !r.reducedEffects && now > nextComic && Math.random() < (e.def.hp > 1 ? 0.5 : 0.05)) {
         nextComic = now + 450;
         r.comic(e.x, e.y - e.radius);
       }
@@ -98,7 +127,8 @@ export function makePresentation(r: Renderer): FxSink {
       void e;
     },
     bossDeath(e: Enemy) {
-      r.confetti(e.x, e.y, 40);
+      // one headline per cascade: the outermost boss names itself, the bosses inside it stay quiet
+      if (lastMerged > 0) return;
       r.floatText(e.x, e.y - e.radius, t('{name} SHATTERED!', { name: t(e.def.name).toUpperCase() }), '#ffffff', 22);
       haptic('heavy');
     },

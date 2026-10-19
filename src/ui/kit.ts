@@ -4,7 +4,7 @@
  * procedural art) when a sprite is missing, so screens never show broken images.
  */
 import { h } from './dom';
-import { uiIconUrl, towerIconUrl, heroIconUrl, enemyIconUrl, mapImageUrl } from '../render/art';
+import { uiIconUrl, towerIconUrl, heroIconUrl, enemyIconUrl, mapImageUrl, mapArt } from '../render/art';
 import { towerIcon, type ArtId } from '../render/towerArt';
 import { mapThumbnail } from '../render/mapArt';
 import { Path } from '../game/path';
@@ -34,8 +34,58 @@ export const heroPortraitUrl = (id: string, level = 1) => heroIconUrl(id, level)
 export const starPortraitUrl = (id: GloopId) => enemyIconUrl(id) ?? gloopIcon(id, 112);
 
 const thumbs = new Map<string, string>();
-/** Painted map background, or the procedural thumbnail while the painting is missing. */
+const paintedThumbs = new Map<string, string>();
+let thumbsStarted = false;
+
+/**
+ * The painted maps are 2400px wide; six of them decoding at once left the map cards empty for a
+ * moment (and costs ~80 MB of decoded pixels on phones). This makes small WebP copies once, in idle
+ * time after start-up; mapImageSrc() serves them as soon as they exist.
+ */
+export function prepareMapThumbs(maps: readonly MapDef[], width = 960) {
+  if (thumbsStarted || typeof document === 'undefined') return;
+  thumbsStarted = true;
+  const idle = (fn: () => void) => ('requestIdleCallback' in window ? (window as any).requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 200));
+  const queue = [...maps];
+  const next = () => {
+    const m = queue.shift();
+    if (!m) return;
+    makeThumb(m.id, width)
+      .catch(() => {})
+      .then(() => idle(next));
+  };
+  idle(next);
+}
+
+async function makeThumb(id: string, width: number) {
+  const s = mapArt(id);
+  if (!s || paintedThumbs.has(id)) return;
+  const w = Math.min(width, s.w);
+  const hh = Math.round((w * s.h) / s.w);
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = hh;
+  const ctx = c.getContext('2d');
+  if (!ctx) return;
+  let src: CanvasImageSource = s.img;
+  if (typeof createImageBitmap === 'function') {
+    try {
+      src = await createImageBitmap(s.img, { resizeWidth: w, resizeHeight: hh, resizeQuality: 'high' });
+    } catch {
+      src = s.img;
+    }
+  }
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, hh);
+  if (typeof ImageBitmap !== 'undefined' && src instanceof ImageBitmap) src.close();
+  const blob = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/webp', 0.88));
+  if (blob) paintedThumbs.set(id, URL.createObjectURL(blob));
+}
+
+/** Painted map background (small copy when ready), or the procedural thumbnail while the painting is missing. */
 export function mapImageSrc(m: MapDef): string {
+  const small = paintedThumbs.get(m.id);
+  if (small) return small;
   const url = mapImageUrl(m.id);
   if (url) return url;
   let th = thumbs.get(m.id);

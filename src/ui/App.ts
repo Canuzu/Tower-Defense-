@@ -35,6 +35,7 @@ import {
   restartIcon,
   fmt,
   mapImageSrc,
+  prepareMapThumbs,
   towerPortraitUrl,
   heroPortraitUrl,
   starPortraitUrl,
@@ -97,6 +98,7 @@ export class App {
     });
     this.resize();
     this.showMenu();
+    prepareMapThumbs(MAPS);
     requestAnimationFrame(this.frame);
   }
 
@@ -599,7 +601,7 @@ export class App {
         onRetryRound: () => {
           if (g.roundSnapshot) this.resume(g.roundSnapshot);
         },
-        onSettings: () => this.openSettings(),
+        onSettings: (fromPause) => this.openSettings(fromPause ? () => this.hud?.openPause() : undefined),
         onRoundEnd: (round) => this.onRoundEnd(g, round),
         onVictory: () => this.onVictory(g),
         onDefeat: () => this.onDefeat(g),
@@ -779,15 +781,16 @@ export class App {
     };
   }
 
-  openSettings() {
+  /** `back` runs after the modal closes (in game: return to the pause menu). */
+  openSettings(back?: () => void) {
     const host = this.modalHost();
     const s = this.profile.settings;
     const save = () => {
       saveProfile(this.profile);
       this.applySettings();
     };
-    const label = (icon: string, text: string) => h('span', { class: 'lbl' }, socket(icon, 36), h('span', null, text));
-    const slider = (icon: string, text: string, v: number, on: (x: number) => void) => {
+    const label = (icon: string | HTMLElement, text: string) => h('span', { class: 'lbl' }, socket(icon, 36), h('span', null, text));
+    const slider = (icon: string | HTMLElement, text: string, v: number, on: (x: number) => void) => {
       const inp = h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(v), 'aria-label': text }) as HTMLInputElement;
       const paint = () => inp.style.setProperty('--v', `${Math.round(+inp.value * 100)}%`);
       paint();
@@ -799,7 +802,7 @@ export class App {
       inp.addEventListener('change', () => audio.play('pop', 0.8));
       return h('div', { class: 'setting' }, label(icon, text), inp);
     };
-    const sw = (icon: string, text: string, v: boolean, on: (x: boolean) => void) => {
+    const sw = (icon: string | HTMLElement, text: string, v: boolean, on: (x: boolean) => void) => {
       const tg = h('span', { class: 'toggle' + (v ? ' on' : '') });
       const b = h('button', { class: 'setting', type: 'button', role: 'switch', 'aria-checked': String(v) }, label(icon, text), tg);
       b.addEventListener('click', () => {
@@ -825,17 +828,16 @@ export class App {
         save();
         audio.play('click');
         host.close();
-        if (this.scene === 'game') this.hud?.openPause();
-        else if (this.scene === 'menu') this.showMenu();
+        if (this.scene === 'menu') this.showMenu();
         else if (this.scene === 'maps') this.showMaps();
         else if (this.scene === 'setup') this.showSetup(this.lastSetupMap);
-        this.openSettings();
+        this.openSettings(back);
       });
       seg.append(b);
     }
     const done = () => {
       host.close();
-      if (this.hud) this.hud.openPause();
+      back?.();
     };
     const m = modal(
       { title: t('Settings'), color: 'blue', icon: uiIcon('gear', '⚙️'), cls: 'settings', onClose: this.tap(done) },
@@ -847,7 +849,7 @@ export class App {
           slider('🎵', t('Music'), s.music, (x) => (s.music = x)),
           sw('📳', t('Haptics'), s.haptics, (x) => (s.haptics = x)),
           sw('✨', t('Reduced effects (better battery)'), s.reducedEffects, (x) => (s.reducedEffects = x)),
-          sw('⏩', t('Auto-start rounds by default'), s.autoStart, (x) => (s.autoStart = x)),
+          sw(uiIcon('fast', '⏩'), t('Auto-start rounds by default'), s.autoStart, (x) => (s.autoStart = x)),
           sw('📈', t('Show FPS'), s.showFps, (x) => (s.showFps = x)),
           h('div', { class: 'setting full' }, label('🌐', t('Language')), seg),
         ),

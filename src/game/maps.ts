@@ -65,6 +65,7 @@ const meadow: MapDef = {
     ],
   ],
   obstacles: [
+    { kind: 'rock', x: 1200, y: 584, r: 18, blocks: true }, // tin can
     { kind: 'pond', x: 302, y: 284, r: 86, ry: 55, blocks: true },
     { kind: 'tree', x: 607, y: 112, r: 54, blocks: true },
     { kind: 'tree', x: 683, y: 458, r: 49, blocks: true },
@@ -100,6 +101,10 @@ const caverns: MapDef = {
     ],
   ],
   obstacles: [
+    { kind: 'rock', x: 1466, y: 46, r: 34, blocks: true }, // mine cart
+    { kind: 'rock', x: 798, y: 830, r: 30, blocks: true }, // crates
+    { kind: 'rock', x: 45, y: 332, r: 17, blocks: true }, // lantern
+    { kind: 'rock', x: 1355, y: 752, r: 17, blocks: true }, // lantern
     { kind: 'pit', x: 630, y: 468, r: 74, blocks: true },
     { kind: 'pit', x: 1430, y: 555, r: 68, blocks: true },
     { kind: 'crystal', x: 185, y: 350, r: 50, blocks: true },
@@ -131,6 +136,14 @@ const forge: MapDef = {
     ],
   ],
   obstacles: [
+    { kind: 'rock', x: 1205, y: 200, r: 28, blocks: true }, // barrels
+    { kind: 'rock', x: 663, y: 822, r: 34, blocks: true }, // crates
+    { kind: 'rock', x: 1506, y: 226, r: 28, blocks: true }, // pallet
+    { kind: 'rock', x: 1566, y: 495, r: 26, blocks: true }, // pallet
+    { kind: 'rock', x: 467, y: 45, r: 22, blocks: true }, // tyres
+    { kind: 'rock', x: 655, y: 126, r: 20, blocks: true }, // tyre
+    { kind: 'rock', x: 1393, y: 473, r: 20, blocks: true }, // tyre
+    { kind: 'rock', x: 90, y: 352, r: 22, blocks: true }, // crate
     { kind: 'lava', x: 254, y: 518, r: 155, ry: 100, blocks: true, rot: -0.1 },
     { kind: 'lava', x: 878, y: 323, r: 140, ry: 94, blocks: true, rot: 0.12 },
     { kind: 'lava', x: 1378, y: 648, r: 168, ry: 106, blocks: true, rot: 0.08 },
@@ -161,6 +174,8 @@ const rivers: MapDef = {
     ],
   ],
   obstacles: [
+    { kind: 'stump', x: 452, y: 83, r: 54, ry: 22, rot: 0.38, blocks: true }, // log
+    { kind: 'stump', x: 1152, y: 821, r: 52, ry: 22, rot: 0.3, blocks: true }, // log
     { kind: 'water', x: 238, y: 446, r: 252, ry: 68, blocks: true },
     { kind: 'water', x: 798, y: 444, r: 197, ry: 56, blocks: true },
     { kind: 'water', x: 1366, y: 443, r: 255, ry: 70, blocks: true },
@@ -189,6 +204,8 @@ const fjord: MapDef = {
     ],
   ],
   obstacles: [
+    { kind: 'rock', x: 1069, y: 111, r: 30, ry: 18, rot: -0.35, blocks: true }, // sled
+    { kind: 'rock', x: 1084, y: 736, r: 50, ry: 16, rot: -0.12, blocks: true }, // fence
     { kind: 'ice', x: 533, y: 398, r: 106, ry: 70, blocks: true, rot: 0.05 },
     { kind: 'ice', x: 1310, y: 557, r: 107, ry: 64, blocks: true, rot: -0.06 },
     { kind: 'pine', x: 155, y: 323, r: 44, blocks: true },
@@ -220,6 +237,7 @@ const candy: MapDef = {
     ],
   ],
   obstacles: [
+    { kind: 'cupcake', x: 738, y: 126, r: 26, blocks: true }, // painted cupcake
     { kind: 'choco', x: 290, y: 572, r: 207, ry: 205, blocks: true },
     { kind: 'choco', x: 1321, y: 570, r: 209, ry: 209, blocks: true },
     { kind: 'lollipop', x: 795, y: 295, r: 48, blocks: true },

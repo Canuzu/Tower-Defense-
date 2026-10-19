@@ -254,8 +254,12 @@ export class Renderer {
     this.time += dt;
     this.dt = dt;
     this.particles.update(dt);
-    for (const b of this.beams) b.life -= dt;
-    this.beams = this.beams.filter((b) => b.life > 0);
+    let nb = 0;
+    for (const b of this.beams) {
+      b.life -= dt;
+      if (b.life > 0) this.beams[nb++] = b;
+    }
+    this.beams.length = nb;
     if (this.shakeT > 0) this.shakeT -= dt;
     if (this.damageFlash > 0) this.damageFlash -= dt;
     if (this.fxQueue.length) {
@@ -1443,13 +1447,14 @@ export class Renderer {
       p.hop = -3 - Math.sin(this.time * 4) * 2;
       drawTowerSprite(ctx, spr, gh.x, gh.y, def.radius, p, res, tx, ty);
       if (!gh.valid) {
-        const r = def.radius;
-        const cy = gh.y + TOWER_TUNING.spoolK * r * 0.12;
+        const S = TOWER_TUNING.spoolK * def.radius;
         ctx.beginPath();
-        ctx.ellipse(gh.x, cy, r * 1.4, r * 0.56, 0, 0, TAU);
+        ctx.ellipse(gh.x, gh.y + S * 0.13, S * 0.6, S * 0.24, 0, 0, TAU);
         ctx.strokeStyle = '#ff4d4d';
-        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.85;
+        ctx.lineWidth = Math.max(2, S * 0.05);
         ctx.stroke();
+        ctx.globalAlpha = 1;
       }
       return;
     }
@@ -1478,12 +1483,13 @@ export class Renderer {
   // -------------------------------------------------------------------------------------------
 
   /** Crystal shatter of a star (bosses get the big multi-stage version). */
-  shatter(e: Enemy) {
+  shatter(e: Enemy, merged = 0) {
     const spr = starSprite(e);
     const cy = spr ? starCenterY(e) : e.y;
     const pal = shardPalette(e.type, e.def.color, e.def.accent);
-    if (e.def.boss) this.bossShatter(e.x, cy, e.radius, pal);
-    else this.shatterAt(e.x, cy, e.radius, pal);
+    if (e.def.boss && merged === 0) this.bossShatter(e.x, cy, e.radius, pal);
+    else if (e.def.boss) this.shatterAt(e.x + rand(-0.5, 0.5) * e.radius, cy + rand(-0.4, 0.4) * e.radius, e.radius * 0.45, pal, 4);
+    else this.shatterAt(e.x, cy, e.radius, pal, merged === 0 ? 0 : merged > 2 ? 1 : 2);
   }
 
   /** Legacy name used by the menu demo: shatter at a point with a single colour. */
@@ -1493,12 +1499,13 @@ export class Renderer {
     else this.shatterAt(x, y, r, pal);
   }
 
-  private shatterAt(x: number, y: number, r: number, pal: string[]) {
+  /** `lite` > 0: a pop inside a cascade, only that many shards and no flash. */
+  private shatterAt(x: number, y: number, r: number, pal: string[], lite = 0) {
     const P = this.particles;
     const load = P.list.length;
-    const busy = load > 900;
+    const busy = lite > 0 || load > 900;
     // fewer shards the more is already flying, so constant streams of pops stay readable
-    const n = this.reducedEffects ? 3 : busy ? 2 : load > 450 ? 4 : 5 + ((Math.random() * 2) | 0);
+    const n = lite > 0 ? (this.reducedEffects ? 1 : lite) : this.reducedEffects ? 3 : busy ? 2 : load > 450 ? 4 : 5 + ((Math.random() * 2) | 0);
     const a0 = Math.random() * TAU;
     for (let i = 0; i < n; i++) {
       // evenly spread directions with jitter so the star visibly bursts apart
@@ -1613,7 +1620,17 @@ export class Renderer {
     this.particles.spawn(PK.Text, x + rand(-8, 8), y, { vy: -55, drag: 2.5, life: big ? 1.4 : 0.75, text: w, color: cols[Math.floor(Math.random() * cols.length)], font: big ? 30 : 15 });
   }
 
+  private lastText = '';
+  private lastTextT = -1;
+  private lastTextX = 0;
+  private lastTextY = 0;
   floatText(x: number, y: number, text: string, color: string, size = 16) {
+    // the same words stacking up on one spot read as spam: keep the first
+    if (text === this.lastText && this.time - this.lastTextT < 0.35 && Math.abs(x - this.lastTextX) < 90 && Math.abs(y - this.lastTextY) < 60) return;
+    this.lastText = text;
+    this.lastTextT = this.time;
+    this.lastTextX = x;
+    this.lastTextY = y;
     this.particles.spawn(PK.Text, x, y, { vy: -38, drag: 1.5, life: 1.1, text, color, font: size });
   }
 

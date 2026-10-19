@@ -72,11 +72,11 @@ function regrowSprite(): HTMLCanvasElement {
   ctx.stroke();
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = 'rgba(190,255,200,0.9)';
-  ctx.setLineDash([10, 9]);
+  ctx.setLineDash(dash(10, 9));
   ctx.beginPath();
   ctx.arc(0, 0, 52, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.setLineDash(NO_DASH);
   const fl = flareSprite('#6dff9a');
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * Math.PI * 2;
@@ -184,12 +184,26 @@ function stunStarSprite(): HTMLCanvasElement {
 }
 
 /** World-space size of a star sprite: full width/height and body diameter. */
-export function starSize(e: Enemy, spr: LoadedSprite) {
+const sizeOut = { w: 0, h: 0, body: 0 };
+/** Shared result object (no per-star allocation): read it right away, do not keep it. */
+export function starSize(e: Enemy, spr: LoadedSprite): { readonly w: number; readonly h: number; readonly body: number } {
   const k = e.def.boss ? STAR_TUNING.bossK[e.type] ?? 2.2 : STAR_TUNING.bodyK;
   const body = k * e.radius;
   const maxSide = body / (spr.body ?? 1);
   const m = Math.max(spr.w, spr.h);
-  return { w: (maxSide * spr.w) / m, h: (maxSide * spr.h) / m, body };
+  sizeOut.w = (maxSide * spr.w) / m;
+  sizeOut.h = (maxSide * spr.h) / m;
+  sizeOut.body = body;
+  return sizeOut;
+}
+
+// reused dash arrays (setLineDash copies its argument)
+const NO_DASH: number[] = [];
+const DASH = [0, 0];
+function dash(a: number, b: number): number[] {
+  DASH[0] = a;
+  DASH[1] = b;
+  return DASH;
 }
 
 /** Painted sprite for this star right now (null -> use procedural art). */
@@ -313,7 +327,8 @@ export function drawStar(ctx: CanvasRenderingContext2D, e: Enemy, spr: LoadedSpr
   ctx.drawImage(img, dx, dy, W, H);
   if (e.hitFlash > 0) {
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = Math.min(1, e.hitFlash / 0.07) * 0.65;
+    // bosses are under constant fire: a softer flash so they don't strobe white
+    ctx.globalAlpha = Math.min(1, e.hitFlash / 0.07) * (def.boss ? 0.28 : 0.65);
     ctx.drawImage(scaledSprite(spr, pxW, SV.White), dx, dy, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -322,17 +337,21 @@ export function drawStar(ctx: CanvasRenderingContext2D, e: Enemy, spr: LoadedSpr
 
   const bodyR = size.body * 0.5;
   if (camo) {
-    // shimmering dashed outline + a glint sweeping around it
-    const a = time * 1.6 + e.phase;
+    // shimmering dashed outline + a glint sweeping around it (big crowds: plain outline only)
     ctx.globalAlpha = 0.45 + Math.sin(time * 3.2 + e.phase) * 0.15;
     ctx.strokeStyle = '#d6fbff';
     ctx.lineWidth = Math.max(1, r * 0.08);
-    ctx.setLineDash([r * 0.42, r * 0.3]);
-    ctx.lineDashOffset = -time * r * 1.2;
+    if (!crowded) {
+      ctx.setLineDash(dash(r * 0.42, r * 0.3));
+      ctx.lineDashOffset = -time * r * 1.2;
+    } else ctx.globalAlpha *= 0.6;
     ctx.beginPath();
     ctx.arc(x, y, bodyR * 1.04, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.setLineDash([]);
+    if (!crowded) ctx.setLineDash(NO_DASH);
+  }
+  if (camo && !crowded) {
+    const a = time * 1.6 + e.phase;
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.8;
     const gs = r * 0.9;
@@ -346,8 +365,9 @@ export function drawStar(ctx: CanvasRenderingContext2D, e: Enemy, spr: LoadedSpr
     const a = time * 1.4 + e.phase;
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.55 + pulse * 0.35;
-    const cs = Math.cos(a) * res;
-    const sn = Math.sin(a) * res;
+    // rotated draws are slow without GPU raster: crowds keep the ring still
+    const cs = crowded ? res : Math.cos(a) * res;
+    const sn = crowded ? 0 : Math.sin(a) * res;
     ctx.setTransform(cs, sn, -sn, cs, x * res + tx, y * res + ty);
     ctx.drawImage(regrowSprite(), -rr * 1.23, -rr * 1.23, rr * 2.46, rr * 2.46);
     ctx.setTransform(res, 0, 0, res, tx, ty);
@@ -375,12 +395,12 @@ export function drawStar(ctx: CanvasRenderingContext2D, e: Enemy, spr: LoadedSpr
   if (e.markT > 0) {
     ctx.strokeStyle = 'rgba(255,70,70,0.85)';
     ctx.lineWidth = Math.max(1.5, r * 0.08);
-    ctx.setLineDash([r * 0.25, r * 0.2]);
+    ctx.setLineDash(dash(r * 0.25, r * 0.2));
     ctx.lineDashOffset = time * 20;
     ctx.beginPath();
     ctx.arc(x, y, bodyR * 1.15, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.setLineDash(NO_DASH);
   }
   if (e.type === 'golden') {
     ctx.globalCompositeOperation = 'lighter';

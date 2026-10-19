@@ -14,7 +14,7 @@ import { shadowSprite } from './starView';
 
 export const TOWER_TUNING = {
   /** spool platform width = spoolK * tower radius */
-  spoolK: 2.6,
+  spoolK: 3.5,
   /** facing turn duration (s) */
   turnTime: 0.16,
   /** fire: vertical squash amplitude, decay (1/s) and wobble frequency (rad/s) */

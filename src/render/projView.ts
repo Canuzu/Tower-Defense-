@@ -103,7 +103,7 @@ export function drawProjectileSprite(ctx: CanvasRenderingContext2D, p: Projectil
 
 // --- drones -------------------------------------------------------------------------------------
 
-const DRONE_LEN: Record<string, number> = { bee: 22, wasp: 30, queen: 34, phoenix: 46 };
+const DRONE_LEN: Record<string, number> = { bee: 32, wasp: 38, queen: 42, phoenix: 54 };
 interface DroneVis {
   angle: number;
   bank: number;

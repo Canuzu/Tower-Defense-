@@ -287,20 +287,30 @@
 
 .lvl-card {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 2px;
-  width: clamp(calc(76px * var(--k, 1)), 15vh, calc(104px * var(--k, 1)));
+  column-gap: calc(6px * var(--k, 1));
+  row-gap: 3px;
+  width: clamp(calc(138px * var(--k, 1)), 30vh, calc(184px * var(--k, 1)));
+  margin-top: calc(6px * var(--k, 1));
+  margin-left: calc(20px * var(--k, 1));
+  padding: calc(6px * var(--k, 1)) calc(14px * var(--k, 1)) calc(6px * var(--k, 1)) 0;
+  border-radius: var(--r-pill);
+  border: var(--bw) solid var(--c-ink);
+  background: linear-gradient(180deg, rgba(52, 40, 121, 0.94), rgba(23, 16, 54, 0.94));
+  box-shadow: var(--hl), var(--sh-drop), 0 8px 18px rgba(5, 2, 20, 0.35);
 }
 
 .lvl-star {
   position: relative;
-  width: clamp(calc(50px * var(--k, 1)), 12.6vh, calc(72px * var(--k, 1)));
+  grid-row: 1 / span 2;
+  width: clamp(calc(50px * var(--k, 1)), 12.6vh, calc(66px * var(--k, 1)));
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  margin-bottom: -6px;
+  margin: calc(-12px * var(--k, 1)) 0 calc(-12px * var(--k, 1)) calc(-24px * var(--k, 1));
   z-index: 1;
 }
 
@@ -315,24 +325,26 @@
 
 .lvl-star .emoji {
   position: absolute;
-  font-size: clamp(calc(42px * var(--k, 1)), 11vh, calc(62px * var(--k, 1)));
+  font-size: clamp(calc(42px * var(--k, 1)), 11vh, calc(58px * var(--k, 1)));
 }
 
 .lvl-star b {
   --stroke: 5px;
   position: relative;
-  font-size: clamp(calc(18px * var(--k, 1)), 4.6vh, calc(26px * var(--k, 1)));
+  font-size: clamp(calc(17px * var(--k, 1)), 4.4vh, calc(24px * var(--k, 1)));
   line-height: 1;
   margin-top: 6%;
 }
 
 .lvl-card .bar {
-  --bar-h: clamp(calc(12px * var(--k, 1)), 2.8vh, calc(15px * var(--k, 1)));
+  --bar-h: clamp(calc(11px * var(--k, 1)), 2.6vh, calc(14px * var(--k, 1)));
   width: 100%;
+  align-self: end;
 }
 
 .lvl-xp {
   --stroke: 3.5px;
+  align-self: start;
   font-size: clamp(calc(11px * var(--k, 1)), 2.4vh, calc(14px * var(--k, 1)));
   line-height: 1.05;
   white-space: nowrap;
@@ -557,16 +569,18 @@
 }
 
 .mc-medals .off {
-  filter: grayscale(1) brightness(0.35) contrast(0.9);
-  opacity: 0.75;
+  filter: grayscale(1) brightness(0.75);
+  opacity: 0.4;
 }
 
 @container (max-width: 250px) {
   .mc-medals {
-    display: grid;
-    grid-template-columns: repeat(2, auto);
-    border-radius: 12px;
-    padding: 3px 4px;
+    gap: 0;
+    padding: 1px 3px;
+  }
+  .mc-medals .ico {
+    width: 15px;
+    height: 15px;
   }
   .mc-tier {
     font-size: calc(11px * var(--k, 1));
