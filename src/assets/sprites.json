@@ -1417,13 +1417,6 @@
   "ay": 0.809,
   "foot": 0.905
  },
- "ui_appicon": {
-  "file": "sprites/ui_appicon.webp",
-  "w": 1024,
-  "h": 1024,
-  "ax": 0,
-  "ay": 0
- },
  "ui_battery": {
   "file": "sprites/ui_battery.webp",
   "w": 144,

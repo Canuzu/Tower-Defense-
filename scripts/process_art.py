@@ -224,6 +224,7 @@ def main():
             continue
         rule = rule_for(id_, overrides)
         if rule is None:
+            index.pop(id_, None)  # not a game sprite (e.g. source sheets, the native app icon)
             continue
         stamps[id_] = _stamp(id_, rule)
         out = os.path.join(OUT, f'{id_}.webp')
