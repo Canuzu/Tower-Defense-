@@ -1,7 +1,345 @@
 {
+ "ab_absoluteZero": {
+  "file": "sprites/ab_absoluteZero.webp",
+  "w": 192,
+  "h": 192,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_earthquake": {
+  "file": "sprites/ab_earthquake.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_featherStorm": {
+  "file": "sprites/ab_featherStorm.webp",
+  "w": 191,
+  "h": 192,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_firestorm": {
+  "file": "sprites/ab_firestorm.webp",
+  "w": 192,
+  "h": 189,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_focus": {
+  "file": "sprites/ab_focus.webp",
+  "w": 192,
+  "h": 189,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_generic": {
+  "file": "sprites/ab_generic.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_jackpot": {
+  "file": "sprites/ab_jackpot.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_killerSwarm": {
+  "file": "sprites/ab_killerSwarm.webp",
+  "w": 192,
+  "h": 189,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_meltdown": {
+  "file": "sprites/ab_meltdown.webp",
+  "w": 192,
+  "h": 190,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_missileStrike": {
+  "file": "sprites/ab_missileStrike.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_orbital": {
+  "file": "sprites/ab_orbital.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_quake": {
+  "file": "sprites/ab_quake.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_roar": {
+  "file": "sprites/ab_roar.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_royalDecree": {
+  "file": "sprites/ab_royalDecree.webp",
+  "w": 192,
+  "h": 189,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_supernova": {
+  "file": "sprites/ab_supernova.webp",
+  "w": 192,
+  "h": 189,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_superstorm": {
+  "file": "sprites/ab_superstorm.webp",
+  "w": 192,
+  "h": 190,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_supplyDrop": {
+  "file": "sprites/ab_supplyDrop.webp",
+  "w": 190,
+  "h": 192,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ab_thornado": {
+  "file": "sprites/ab_thornado.webp",
+  "w": 192,
+  "h": 191,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_bad": {
+  "file": "sprites/e_bad.webp",
+  "w": 713,
+  "h": 768,
+  "ax": 0.4881,
+  "ay": 0.5969,
+  "body": 0.9787
+ },
+ "e_bad_d1": {
+  "file": "sprites/e_bad_d1.webp",
+  "w": 712,
+  "h": 768,
+  "ax": 0.4888,
+  "ay": 0.5969,
+  "body": 0.9787
+ },
+ "e_bad_d2": {
+  "file": "sprites/e_bad_d2.webp",
+  "w": 699,
+  "h": 768,
+  "ax": 0.4841,
+  "ay": 0.5969,
+  "body": 0.9455
+ },
+ "e_bad_f": {
+  "file": "sprites/e_bad_f.webp",
+  "w": 721,
+  "h": 768,
+  "ax": 0.4893,
+  "ay": 0.6031,
+  "body": 1.0
+ },
+ "e_bfb": {
+  "file": "sprites/e_bfb.webp",
+  "w": 560,
+  "h": 506,
+  "ax": 0.4906,
+  "ay": 0.5015,
+  "body": 0.8468
+ },
+ "e_bfb_d1": {
+  "file": "sprites/e_bfb_d1.webp",
+  "w": 560,
+  "h": 505,
+  "ax": 0.4844,
+  "ay": 0.5094,
+  "body": 0.817
+ },
+ "e_bfb_d2": {
+  "file": "sprites/e_bfb_d2.webp",
+  "w": 560,
+  "h": 532,
+  "ax": 0.4969,
+  "ay": 0.5033,
+  "body": 0.8158
+ },
+ "e_bfb_f": {
+  "file": "sprites/e_bfb_f.webp",
+  "w": 560,
+  "h": 540,
+  "ax": 0.4844,
+  "ay": 0.5412,
+  "body": 0.8357
+ },
+ "e_black": {
+  "file": "sprites/e_black.webp",
+  "w": 154,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_blue": {
+  "file": "sprites/e_blue.webp",
+  "w": 157,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_ceramic": {
+  "file": "sprites/e_ceramic.webp",
+  "w": 186,
+  "h": 200,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_ceramic_d1": {
+  "file": "sprites/e_ceramic_d1.webp",
+  "w": 187,
+  "h": 200,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_ceramic_d2": {
+  "file": "sprites/e_ceramic_d2.webp",
+  "w": 178,
+  "h": 200,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_ceramic_f": {
+  "file": "sprites/e_ceramic_f.webp",
+  "w": 185,
+  "h": 200,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_ddt": {
+  "file": "sprites/e_ddt.webp",
+  "w": 512,
+  "h": 388,
+  "ax": 0.6906,
+  "ay": 0.5485,
+  "body": 0.5563
+ },
+ "e_ddt_d1": {
+  "file": "sprites/e_ddt_d1.webp",
+  "w": 512,
+  "h": 398,
+  "ax": 0.6844,
+  "ay": 0.5508,
+  "body": 0.5721
+ },
+ "e_ddt_d2": {
+  "file": "sprites/e_ddt_d2.webp",
+  "w": 512,
+  "h": 412,
+  "ax": 0.6281,
+  "ay": 0.532,
+  "body": 0.5416
+ },
+ "e_ddt_f": {
+  "file": "sprites/e_ddt_f.webp",
+  "w": 512,
+  "h": 404,
+  "ax": 0.6719,
+  "ay": 0.5188,
+  "body": 0.585
+ },
+ "e_golden": {
+  "file": "sprites/e_golden.webp",
+  "w": 162,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_green": {
+  "file": "sprites/e_green.webp",
+  "w": 158,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_lead": {
+  "file": "sprites/e_lead.webp",
+  "w": 159,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_lead_f": {
+  "file": "sprites/e_lead_f.webp",
+  "w": 155,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_moab": {
+  "file": "sprites/e_moab.webp",
+  "w": 512,
+  "h": 400,
+  "ax": 0.6594,
+  "ay": 0.572,
+  "body": 0.6041
+ },
+ "e_moab_d1": {
+  "file": "sprites/e_moab_d1.webp",
+  "w": 512,
+  "h": 398,
+  "ax": 0.6406,
+  "ay": 0.5588,
+  "body": 0.5876
+ },
+ "e_moab_d2": {
+  "file": "sprites/e_moab_d2.webp",
+  "w": 512,
+  "h": 438,
+  "ax": 0.6281,
+  "ay": 0.5443,
+  "body": 0.5807
+ },
+ "e_moab_f": {
+  "file": "sprites/e_moab_f.webp",
+  "w": 512,
+  "h": 403,
+  "ax": 0.6531,
+  "ay": 0.5598,
+  "body": 0.6247
+ },
  "e_pink": {
   "file": "sprites/e_pink.webp",
   "w": 163,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_purple": {
+  "file": "sprites/e_purple.webp",
+  "w": 155,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_rainbow": {
+  "file": "sprites/e_rainbow.webp",
+  "w": 159,
   "h": 168,
   "ax": 0.5,
   "ay": 0.5
@@ -13,6 +351,135 @@
   "ax": 0.5,
   "ay": 0.5
  },
+ "e_white": {
+  "file": "sprites/e_white.webp",
+  "w": 147,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_yellow": {
+  "file": "sprites/e_yellow.webp",
+  "w": 159,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_zebra": {
+  "file": "sprites/e_zebra.webp",
+  "w": 155,
+  "h": 168,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "e_zomg": {
+  "file": "sprites/e_zomg.webp",
+  "w": 640,
+  "h": 474,
+  "ax": 0.4906,
+  "ay": 0.5105,
+  "body": 0.6564
+ },
+ "e_zomg_d1": {
+  "file": "sprites/e_zomg_d1.webp",
+  "w": 640,
+  "h": 501,
+  "ax": 0.4781,
+  "ay": 0.499,
+  "body": 0.6093
+ },
+ "e_zomg_d2": {
+  "file": "sprites/e_zomg_d2.webp",
+  "w": 640,
+  "h": 531,
+  "ax": 0.4906,
+  "ay": 0.5386,
+  "body": 0.6352
+ },
+ "e_zomg_f": {
+  "file": "sprites/e_zomg_f.webp",
+  "w": 640,
+  "h": 541,
+  "ax": 0.4969,
+  "ay": 0.5434,
+  "body": 0.6669
+ },
+ "h_grizz_1": {
+  "file": "sprites/h_grizz_1.webp",
+  "w": 333,
+  "h": 360,
+  "ax": 0.4895,
+  "ay": 0.8309,
+  "foot": 0.6547
+ },
+ "h_grizz_2": {
+  "file": "sprites/h_grizz_2.webp",
+  "w": 333,
+  "h": 360,
+  "ax": 0.497,
+  "ay": 0.836,
+  "foot": 0.6456
+ },
+ "h_grizz_3": {
+  "file": "sprites/h_grizz_3.webp",
+  "w": 341,
+  "h": 360,
+  "ax": 0.4575,
+  "ay": 0.8472,
+  "foot": 0.5865
+ },
+ "h_nova_1": {
+  "file": "sprites/h_nova_1.webp",
+  "w": 311,
+  "h": 360,
+  "ax": 0.4695,
+  "ay": 0.8262,
+  "foot": 0.7331
+ },
+ "h_nova_2": {
+  "file": "sprites/h_nova_2.webp",
+  "w": 324,
+  "h": 360,
+  "ax": 0.4583,
+  "ay": 0.8287,
+  "foot": 0.6821
+ },
+ "h_nova_3": {
+  "file": "sprites/h_nova_3.webp",
+  "w": 360,
+  "h": 352,
+  "ax": 0.5181,
+  "ay": 0.8248,
+  "foot": 0.6139
+ },
+ "m_candy": {
+  "file": "sprites/m_candy.webp",
+  "w": 2400,
+  "h": 1357,
+  "ax": 0,
+  "ay": 0
+ },
+ "m_caverns": {
+  "file": "sprites/m_caverns.webp",
+  "w": 2400,
+  "h": 1357,
+  "ax": 0,
+  "ay": 0
+ },
+ "m_fjord": {
+  "file": "sprites/m_fjord.webp",
+  "w": 2400,
+  "h": 1357,
+  "ax": 0,
+  "ay": 0
+ },
+ "m_forge": {
+  "file": "sprites/m_forge.webp",
+  "w": 2400,
+  "h": 1357,
+  "ax": 0,
+  "ay": 0
+ },
  "m_meadow": {
   "file": "sprites/m_meadow.webp",
   "w": 2400,
@@ -20,11 +487,214 @@
   "ax": 0,
   "ay": 0
  },
+ "m_rivers": {
+  "file": "sprites/m_rivers.webp",
+  "w": 2400,
+  "h": 1357,
+  "ax": 0,
+  "ay": 0
+ },
+ "p_arcane": {
+  "file": "sprites/p_arcane.webp",
+  "w": 128,
+  "h": 124,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_bee": {
+  "file": "sprites/p_bee.webp",
+  "w": 122,
+  "h": 128,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_bigmissile": {
+  "file": "sprites/p_bigmissile.webp",
+  "w": 128,
+  "h": 64,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_bolt": {
+  "file": "sprites/p_bolt.webp",
+  "w": 128,
+  "h": 59,
+  "ax": 0.76,
+  "ay": 0.5
+ },
  "p_bomb": {
   "file": "sprites/p_bomb.webp",
   "w": 128,
   "h": 105,
   "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_coil": {
+  "file": "sprites/p_coil.webp",
+  "w": 128,
+  "h": 125,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_crate": {
+  "file": "sprites/p_crate.webp",
+  "w": 97,
+  "h": 128,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_feather": {
+  "file": "sprites/p_feather.webp",
+  "w": 128,
+  "h": 103,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_fireball": {
+  "file": "sprites/p_fireball.webp",
+  "w": 128,
+  "h": 80,
+  "ax": 0.79,
+  "ay": 0.47
+ },
+ "p_firebolt": {
+  "file": "sprites/p_firebolt.webp",
+  "w": 128,
+  "h": 59,
+  "ax": 0.82,
+  "ay": 0.5
+ },
+ "p_foxspirit": {
+  "file": "sprites/p_foxspirit.webp",
+  "w": 128,
+  "h": 86,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_honey": {
+  "file": "sprites/p_honey.webp",
+  "w": 128,
+  "h": 123,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_iceball": {
+  "file": "sprites/p_iceball.webp",
+  "w": 128,
+  "h": 123,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_javelin": {
+  "file": "sprites/p_javelin.webp",
+  "w": 128,
+  "h": 47,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_lance": {
+  "file": "sprites/p_lance.webp",
+  "w": 128,
+  "h": 40,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_loot": {
+  "file": "sprites/p_loot.webp",
+  "w": 128,
+  "h": 105,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_lootgold": {
+  "file": "sprites/p_lootgold.webp",
+  "w": 128,
+  "h": 103,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_minibomb": {
+  "file": "sprites/p_minibomb.webp",
+  "w": 128,
+  "h": 90,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_missile": {
+  "file": "sprites/p_missile.webp",
+  "w": 128,
+  "h": 61,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_nuke": {
+  "file": "sprites/p_nuke.webp",
+  "w": 128,
+  "h": 76,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_phoenix": {
+  "file": "sprites/p_phoenix.webp",
+  "w": 112,
+  "h": 128,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_queen": {
+  "file": "sprites/p_queen.webp",
+  "w": 128,
+  "h": 125,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_quill": {
+  "file": "sprites/p_quill.webp",
+  "w": 128,
+  "h": 70,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_shard": {
+  "file": "sprites/p_shard.webp",
+  "w": 128,
+  "h": 67,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_spirit": {
+  "file": "sprites/p_spirit.webp",
+  "w": 128,
+  "h": 99,
+  "ax": 0.77,
+  "ay": 0.68
+ },
+ "p_star": {
+  "file": "sprites/p_star.webp",
+  "w": 128,
+  "h": 107,
+  "ax": 0.58,
+  "ay": 0.55
+ },
+ "p_stinger": {
+  "file": "sprites/p_stinger.webp",
+  "w": 128,
+  "h": 49,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_wasp": {
+  "file": "sprites/p_wasp.webp",
+  "w": 128,
+  "h": 124,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "p_wisp": {
+  "file": "sprites/p_wisp.webp",
+  "w": 128,
+  "h": 73,
+  "ax": 0.78,
   "ay": 0.5
  },
  "t_acorn": {
@@ -35,6 +705,78 @@
   "ay": 0.798,
   "foot": 0.9508
  },
+ "t_acorn_p1_3": {
+  "file": "sprites/t_acorn_p1_3.webp",
+  "w": 244,
+  "h": 320,
+  "ax": 0.5102,
+  "ay": 0.8003,
+  "foot": 0.9549
+ },
+ "t_acorn_p1_4": {
+  "file": "sprites/t_acorn_p1_4.webp",
+  "w": 254,
+  "h": 320,
+  "ax": 0.5039,
+  "ay": 0.7876,
+  "foot": 0.9764
+ },
+ "t_acorn_p1_5": {
+  "file": "sprites/t_acorn_p1_5.webp",
+  "w": 249,
+  "h": 320,
+  "ax": 0.504,
+  "ay": 0.7921,
+  "foot": 0.9598
+ },
+ "t_acorn_p2_3": {
+  "file": "sprites/t_acorn_p2_3.webp",
+  "w": 243,
+  "h": 320,
+  "ax": 0.5144,
+  "ay": 0.8045,
+  "foot": 0.9383
+ },
+ "t_acorn_p2_4": {
+  "file": "sprites/t_acorn_p2_4.webp",
+  "w": 284,
+  "h": 320,
+  "ax": 0.5053,
+  "ay": 0.7918,
+  "foot": 0.8556
+ },
+ "t_acorn_p2_5": {
+  "file": "sprites/t_acorn_p2_5.webp",
+  "w": 243,
+  "h": 320,
+  "ax": 0.5,
+  "ay": 0.8003,
+  "foot": 0.9588
+ },
+ "t_acorn_p3_3": {
+  "file": "sprites/t_acorn_p3_3.webp",
+  "w": 249,
+  "h": 320,
+  "ax": 0.498,
+  "ay": 0.8062,
+  "foot": 0.9076
+ },
+ "t_acorn_p3_4": {
+  "file": "sprites/t_acorn_p3_4.webp",
+  "w": 245,
+  "h": 320,
+  "ax": 0.4837,
+  "ay": 0.8087,
+  "foot": 0.9102
+ },
+ "t_acorn_p3_5": {
+  "file": "sprites/t_acorn_p3_5.webp",
+  "w": 252,
+  "h": 320,
+  "ax": 0.498,
+  "ay": 0.7972,
+  "foot": 0.9246
+ },
  "t_boomer": {
   "file": "sprites/t_boomer.webp",
   "w": 268,
@@ -42,6 +784,78 @@
   "ax": 0.5037,
   "ay": 0.8214,
   "foot": 0.7761
+ },
+ "t_boomer_p1_3": {
+  "file": "sprites/t_boomer_p1_3.webp",
+  "w": 271,
+  "h": 320,
+  "ax": 0.4797,
+  "ay": 0.8231,
+  "foot": 0.7601
+ },
+ "t_boomer_p1_4": {
+  "file": "sprites/t_boomer_p1_4.webp",
+  "w": 301,
+  "h": 320,
+  "ax": 0.4983,
+  "ay": 0.7944,
+  "foot": 0.7973
+ },
+ "t_boomer_p1_5": {
+  "file": "sprites/t_boomer_p1_5.webp",
+  "w": 270,
+  "h": 320,
+  "ax": 0.513,
+  "ay": 0.8145,
+  "foot": 0.7593
+ },
+ "t_boomer_p2_3": {
+  "file": "sprites/t_boomer_p2_3.webp",
+  "w": 279,
+  "h": 320,
+  "ax": 0.4839,
+  "ay": 0.8197,
+  "foot": 0.7527
+ },
+ "t_boomer_p2_4": {
+  "file": "sprites/t_boomer_p2_4.webp",
+  "w": 283,
+  "h": 320,
+  "ax": 0.477,
+  "ay": 0.818,
+  "foot": 0.7491
+ },
+ "t_boomer_p2_5": {
+  "file": "sprites/t_boomer_p2_5.webp",
+  "w": 299,
+  "h": 320,
+  "ax": 0.5401,
+  "ay": 0.8208,
+  "foot": 0.6856
+ },
+ "t_boomer_p3_3": {
+  "file": "sprites/t_boomer_p3_3.webp",
+  "w": 285,
+  "h": 320,
+  "ax": 0.4719,
+  "ay": 0.8222,
+  "foot": 0.7263
+ },
+ "t_boomer_p3_4": {
+  "file": "sprites/t_boomer_p3_4.webp",
+  "w": 265,
+  "h": 320,
+  "ax": 0.5113,
+  "ay": 0.8239,
+  "foot": 0.7736
+ },
+ "t_boomer_p3_5": {
+  "file": "sprites/t_boomer_p3_5.webp",
+  "w": 289,
+  "h": 320,
+  "ax": 0.4862,
+  "ay": 0.814,
+  "foot": 0.737
  },
  "t_buzz": {
   "file": "sprites/t_buzz.webp",
@@ -51,6 +865,78 @@
   "ay": 0.8349,
   "foot": 0.8
  },
+ "t_buzz_p1_3": {
+  "file": "sprites/t_buzz_p1_3.webp",
+  "w": 303,
+  "h": 320,
+  "ax": 0.4719,
+  "ay": 0.8332,
+  "foot": 0.6403
+ },
+ "t_buzz_p1_4": {
+  "file": "sprites/t_buzz_p1_4.webp",
+  "w": 320,
+  "h": 311,
+  "ax": 0.5109,
+  "ay": 0.8362,
+  "foot": 0.5781
+ },
+ "t_buzz_p1_5": {
+  "file": "sprites/t_buzz_p1_5.webp",
+  "w": 305,
+  "h": 320,
+  "ax": 0.4902,
+  "ay": 0.8292,
+  "foot": 0.6393
+ },
+ "t_buzz_p2_3": {
+  "file": "sprites/t_buzz_p2_3.webp",
+  "w": 320,
+  "h": 304,
+  "ax": 0.5109,
+  "ay": 0.8271,
+  "foot": 0.5969
+ },
+ "t_buzz_p2_4": {
+  "file": "sprites/t_buzz_p2_4.webp",
+  "w": 236,
+  "h": 320,
+  "ax": 0.4661,
+  "ay": 0.8349,
+  "foot": 0.8136
+ },
+ "t_buzz_p2_5": {
+  "file": "sprites/t_buzz_p2_5.webp",
+  "w": 313,
+  "h": 320,
+  "ax": 0.4952,
+  "ay": 0.8366,
+  "foot": 0.607
+ },
+ "t_buzz_p3_3": {
+  "file": "sprites/t_buzz_p3_3.webp",
+  "w": 194,
+  "h": 320,
+  "ax": 0.518,
+  "ay": 0.8393,
+  "foot": 0.9433
+ },
+ "t_buzz_p3_4": {
+  "file": "sprites/t_buzz_p3_4.webp",
+  "w": 268,
+  "h": 320,
+  "ax": 0.4272,
+  "ay": 0.834,
+  "foot": 0.7201
+ },
+ "t_buzz_p3_5": {
+  "file": "sprites/t_buzz_p3_5.webp",
+  "w": 225,
+  "h": 320,
+  "ax": 0.4733,
+  "ay": 0.8509,
+  "foot": 0.7689
+ },
  "t_dojo": {
   "file": "sprites/t_dojo.webp",
   "w": 249,
@@ -58,6 +944,78 @@
   "ax": 0.512,
   "ay": 0.8273,
   "foot": 0.8072
+ },
+ "t_dojo_p1_3": {
+  "file": "sprites/t_dojo_p1_3.webp",
+  "w": 265,
+  "h": 320,
+  "ax": 0.4755,
+  "ay": 0.8281,
+  "foot": 0.7547
+ },
+ "t_dojo_p1_4": {
+  "file": "sprites/t_dojo_p1_4.webp",
+  "w": 221,
+  "h": 320,
+  "ax": 0.5249,
+  "ay": 0.8264,
+  "foot": 0.914
+ },
+ "t_dojo_p1_5": {
+  "file": "sprites/t_dojo_p1_5.webp",
+  "w": 233,
+  "h": 320,
+  "ax": 0.5279,
+  "ay": 0.8284,
+  "foot": 0.8412
+ },
+ "t_dojo_p2_3": {
+  "file": "sprites/t_dojo_p2_3.webp",
+  "w": 248,
+  "h": 320,
+  "ax": 0.5081,
+  "ay": 0.8264,
+  "foot": 0.8145
+ },
+ "t_dojo_p2_4": {
+  "file": "sprites/t_dojo_p2_4.webp",
+  "w": 269,
+  "h": 320,
+  "ax": 0.4851,
+  "ay": 0.807,
+  "foot": 0.8364
+ },
+ "t_dojo_p2_5": {
+  "file": "sprites/t_dojo_p2_5.webp",
+  "w": 202,
+  "h": 320,
+  "ax": 0.5272,
+  "ay": 0.8425,
+  "foot": 0.9059
+ },
+ "t_dojo_p3_3": {
+  "file": "sprites/t_dojo_p3_3.webp",
+  "w": 264,
+  "h": 320,
+  "ax": 0.4773,
+  "ay": 0.8264,
+  "foot": 0.7652
+ },
+ "t_dojo_p3_4": {
+  "file": "sprites/t_dojo_p3_4.webp",
+  "w": 227,
+  "h": 320,
+  "ax": 0.5573,
+  "ay": 0.829,
+  "foot": 0.8767
+ },
+ "t_dojo_p3_5": {
+  "file": "sprites/t_dojo_p3_5.webp",
+  "w": 269,
+  "h": 320,
+  "ax": 0.461,
+  "ay": 0.8098,
+  "foot": 0.8104
  },
  "t_ember": {
   "file": "sprites/t_ember.webp",
@@ -67,6 +1025,78 @@
   "ay": 0.8264,
   "foot": 0.7113
  },
+ "t_ember_p1_3": {
+  "file": "sprites/t_ember_p1_3.webp",
+  "w": 286,
+  "h": 320,
+  "ax": 0.4493,
+  "ay": 0.829,
+  "foot": 0.6958
+ },
+ "t_ember_p1_4": {
+  "file": "sprites/t_ember_p1_4.webp",
+  "w": 267,
+  "h": 320,
+  "ax": 0.4644,
+  "ay": 0.8332,
+  "foot": 0.7266
+ },
+ "t_ember_p1_5": {
+  "file": "sprites/t_ember_p1_5.webp",
+  "w": 285,
+  "h": 320,
+  "ax": 0.4439,
+  "ay": 0.8273,
+  "foot": 0.7053
+ },
+ "t_ember_p2_3": {
+  "file": "sprites/t_ember_p2_3.webp",
+  "w": 291,
+  "h": 320,
+  "ax": 0.4502,
+  "ay": 0.8264,
+  "foot": 0.6942
+ },
+ "t_ember_p2_4": {
+  "file": "sprites/t_ember_p2_4.webp",
+  "w": 284,
+  "h": 320,
+  "ax": 0.456,
+  "ay": 0.829,
+  "foot": 0.7007
+ },
+ "t_ember_p2_5": {
+  "file": "sprites/t_ember_p2_5.webp",
+  "w": 288,
+  "h": 320,
+  "ax": 0.4635,
+  "ay": 0.8275,
+  "foot": 0.684
+ },
+ "t_ember_p3_3": {
+  "file": "sprites/t_ember_p3_3.webp",
+  "w": 289,
+  "h": 320,
+  "ax": 0.4464,
+  "ay": 0.8264,
+  "foot": 0.699
+ },
+ "t_ember_p3_4": {
+  "file": "sprites/t_ember_p3_4.webp",
+  "w": 306,
+  "h": 320,
+  "ax": 0.517,
+  "ay": 0.82,
+  "foot": 0.633
+ },
+ "t_ember_p3_5": {
+  "file": "sprites/t_ember_p3_5.webp",
+  "w": 255,
+  "h": 320,
+  "ax": 0.4627,
+  "ay": 0.8399,
+  "foot": 0.7294
+ },
  "t_frost": {
   "file": "sprites/t_frost.webp",
   "w": 297,
@@ -74,6 +1104,78 @@
   "ax": 0.4663,
   "ay": 0.8258,
   "foot": 0.67
+ },
+ "t_frost_p1_3": {
+  "file": "sprites/t_frost_p1_3.webp",
+  "w": 293,
+  "h": 320,
+  "ax": 0.471,
+  "ay": 0.8298,
+  "foot": 0.6758
+ },
+ "t_frost_p1_4": {
+  "file": "sprites/t_frost_p1_4.webp",
+  "w": 266,
+  "h": 320,
+  "ax": 0.5169,
+  "ay": 0.8273,
+  "foot": 0.7556
+ },
+ "t_frost_p1_5": {
+  "file": "sprites/t_frost_p1_5.webp",
+  "w": 300,
+  "h": 320,
+  "ax": 0.48,
+  "ay": 0.825,
+  "foot": 0.6667
+ },
+ "t_frost_p2_3": {
+  "file": "sprites/t_frost_p2_3.webp",
+  "w": 278,
+  "h": 320,
+  "ax": 0.4568,
+  "ay": 0.8467,
+  "foot": 0.6403
+ },
+ "t_frost_p2_4": {
+  "file": "sprites/t_frost_p2_4.webp",
+  "w": 270,
+  "h": 320,
+  "ax": 0.4426,
+  "ay": 0.8393,
+  "foot": 0.6778
+ },
+ "t_frost_p2_5": {
+  "file": "sprites/t_frost_p2_5.webp",
+  "w": 289,
+  "h": 320,
+  "ax": 0.513,
+  "ay": 0.823,
+  "foot": 0.686
+ },
+ "t_frost_p3_3": {
+  "file": "sprites/t_frost_p3_3.webp",
+  "w": 292,
+  "h": 320,
+  "ax": 0.476,
+  "ay": 0.8281,
+  "foot": 0.6849
+ },
+ "t_frost_p3_4": {
+  "file": "sprites/t_frost_p3_4.webp",
+  "w": 299,
+  "h": 320,
+  "ax": 0.4716,
+  "ay": 0.8315,
+  "foot": 0.6555
+ },
+ "t_frost_p3_5": {
+  "file": "sprites/t_frost_p3_5.webp",
+  "w": 320,
+  "h": 319,
+  "ax": 0.5109,
+  "ay": 0.8236,
+  "foot": 0.6281
  },
  "t_hoot": {
   "file": "sprites/t_hoot.webp",
@@ -83,6 +1185,78 @@
   "ay": 0.8273,
   "foot": 0.7153
  },
+ "t_hoot_p1_3": {
+  "file": "sprites/t_hoot_p1_3.webp",
+  "w": 285,
+  "h": 320,
+  "ax": 0.4491,
+  "ay": 0.825,
+  "foot": 0.7018
+ },
+ "t_hoot_p1_4": {
+  "file": "sprites/t_hoot_p1_4.webp",
+  "w": 292,
+  "h": 320,
+  "ax": 0.4555,
+  "ay": 0.8233,
+  "foot": 0.6918
+ },
+ "t_hoot_p1_5": {
+  "file": "sprites/t_hoot_p1_5.webp",
+  "w": 285,
+  "h": 320,
+  "ax": 0.4596,
+  "ay": 0.825,
+  "foot": 0.7018
+ },
+ "t_hoot_p2_3": {
+  "file": "sprites/t_hoot_p2_3.webp",
+  "w": 283,
+  "h": 320,
+  "ax": 0.4488,
+  "ay": 0.8264,
+  "foot": 0.7138
+ },
+ "t_hoot_p2_4": {
+  "file": "sprites/t_hoot_p2_4.webp",
+  "w": 285,
+  "h": 320,
+  "ax": 0.4491,
+  "ay": 0.8284,
+  "foot": 0.6877
+ },
+ "t_hoot_p2_5": {
+  "file": "sprites/t_hoot_p2_5.webp",
+  "w": 316,
+  "h": 320,
+  "ax": 0.5016,
+  "ay": 0.8242,
+  "foot": 0.6361
+ },
+ "t_hoot_p3_3": {
+  "file": "sprites/t_hoot_p3_3.webp",
+  "w": 261,
+  "h": 320,
+  "ax": 0.4904,
+  "ay": 0.8264,
+  "foot": 0.7739
+ },
+ "t_hoot_p3_4": {
+  "file": "sprites/t_hoot_p3_4.webp",
+  "w": 233,
+  "h": 320,
+  "ax": 0.5494,
+  "ay": 0.8298,
+  "foot": 0.8498
+ },
+ "t_hoot_p3_5": {
+  "file": "sprites/t_hoot_p3_5.webp",
+  "w": 288,
+  "h": 320,
+  "ax": 0.434,
+  "ay": 0.8267,
+  "foot": 0.6875
+ },
  "t_spike": {
   "file": "sprites/t_spike.webp",
   "w": 253,
@@ -90,6 +1264,78 @@
   "ax": 0.4941,
   "ay": 0.8267,
   "foot": 0.7826
+ },
+ "t_spike_p1_3": {
+  "file": "sprites/t_spike_p1_3.webp",
+  "w": 279,
+  "h": 320,
+  "ax": 0.4516,
+  "ay": 0.8264,
+  "foot": 0.724
+ },
+ "t_spike_p1_4": {
+  "file": "sprites/t_spike_p1_4.webp",
+  "w": 251,
+  "h": 320,
+  "ax": 0.49,
+  "ay": 0.825,
+  "foot": 0.7968
+ },
+ "t_spike_p1_5": {
+  "file": "sprites/t_spike_p1_5.webp",
+  "w": 287,
+  "h": 320,
+  "ax": 0.4913,
+  "ay": 0.8281,
+  "foot": 0.6969
+ },
+ "t_spike_p2_3": {
+  "file": "sprites/t_spike_p2_3.webp",
+  "w": 286,
+  "h": 320,
+  "ax": 0.458,
+  "ay": 0.8281,
+  "foot": 0.6993
+ },
+ "t_spike_p2_4": {
+  "file": "sprites/t_spike_p2_4.webp",
+  "w": 309,
+  "h": 320,
+  "ax": 0.4644,
+  "ay": 0.8256,
+  "foot": 0.657
+ },
+ "t_spike_p2_5": {
+  "file": "sprites/t_spike_p2_5.webp",
+  "w": 294,
+  "h": 320,
+  "ax": 0.4558,
+  "ay": 0.8248,
+  "foot": 0.6939
+ },
+ "t_spike_p3_3": {
+  "file": "sprites/t_spike_p3_3.webp",
+  "w": 265,
+  "h": 320,
+  "ax": 0.4755,
+  "ay": 0.8264,
+  "foot": 0.7623
+ },
+ "t_spike_p3_4": {
+  "file": "sprites/t_spike_p3_4.webp",
+  "w": 293,
+  "h": 320,
+  "ax": 0.4642,
+  "ay": 0.8248,
+  "foot": 0.6962
+ },
+ "t_spike_p3_5": {
+  "file": "sprites/t_spike_p3_5.webp",
+  "w": 304,
+  "h": 320,
+  "ax": 0.5395,
+  "ay": 0.8264,
+  "foot": 0.6645
  },
  "t_zap": {
   "file": "sprites/t_zap.webp",
@@ -99,6 +1345,78 @@
   "ay": 0.8281,
   "foot": 0.738
  },
+ "t_zap_p1_3": {
+  "file": "sprites/t_zap_p1_3.webp",
+  "w": 246,
+  "h": 320,
+  "ax": 0.5061,
+  "ay": 0.8377,
+  "foot": 0.752
+ },
+ "t_zap_p1_4": {
+  "file": "sprites/t_zap_p1_4.webp",
+  "w": 270,
+  "h": 320,
+  "ax": 0.4889,
+  "ay": 0.8317,
+  "foot": 0.7111
+ },
+ "t_zap_p1_5": {
+  "file": "sprites/t_zap_p1_5.webp",
+  "w": 268,
+  "h": 320,
+  "ax": 0.4925,
+  "ay": 0.8298,
+  "foot": 0.7388
+ },
+ "t_zap_p2_3": {
+  "file": "sprites/t_zap_p2_3.webp",
+  "w": 279,
+  "h": 320,
+  "ax": 0.552,
+  "ay": 0.8349,
+  "foot": 0.6882
+ },
+ "t_zap_p2_4": {
+  "file": "sprites/t_zap_p2_4.webp",
+  "w": 249,
+  "h": 320,
+  "ax": 0.5663,
+  "ay": 0.8166,
+  "foot": 0.8434
+ },
+ "t_zap_p2_5": {
+  "file": "sprites/t_zap_p2_5.webp",
+  "w": 259,
+  "h": 320,
+  "ax": 0.4884,
+  "ay": 0.8172,
+  "foot": 0.8224
+ },
+ "t_zap_p3_3": {
+  "file": "sprites/t_zap_p3_3.webp",
+  "w": 278,
+  "h": 320,
+  "ax": 0.4856,
+  "ay": 0.8281,
+  "foot": 0.7194
+ },
+ "t_zap_p3_4": {
+  "file": "sprites/t_zap_p3_4.webp",
+  "w": 252,
+  "h": 320,
+  "ax": 0.4901,
+  "ay": 0.8425,
+  "foot": 0.7262
+ },
+ "t_zap_p3_5": {
+  "file": "sprites/t_zap_p3_5.webp",
+  "w": 242,
+  "h": 320,
+  "ax": 0.5351,
+  "ay": 0.809,
+  "foot": 0.905
+ },
  "ui_appicon": {
   "file": "sprites/ui_appicon.webp",
   "w": 1024,
@@ -106,8 +1424,85 @@
   "ax": 0,
   "ay": 0
  },
+ "ui_book": {
+  "file": "sprites/ui_book.webp",
+  "w": 156,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_calendar": {
+  "file": "sprites/ui_calendar.webp",
+  "w": 143,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_camo": {
+  "file": "sprites/ui_camo.webp",
+  "w": 160,
+  "h": 150,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_check": {
+  "file": "sprites/ui_check.webp",
+  "w": 160,
+  "h": 140,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_close": {
+  "file": "sprites/ui_close.webp",
+  "w": 160,
+  "h": 154,
+  "ax": 0.5,
+  "ay": 0.5
+ },
  "ui_coin": {
   "file": "sprites/ui_coin.webp",
+  "w": 152,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_crown": {
+  "file": "sprites/ui_crown.webp",
+  "w": 160,
+  "h": 159,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_fast": {
+  "file": "sprites/ui_fast.webp",
+  "w": 160,
+  "h": 140,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_gear": {
+  "file": "sprites/ui_gear.webp",
+  "w": 156,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_heart": {
+  "file": "sprites/ui_heart.webp",
+  "w": 160,
+  "h": 136,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_home": {
+  "file": "sprites/ui_home.webp",
+  "w": 160,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_info": {
+  "file": "sprites/ui_info.webp",
   "w": 155,
   "h": 160,
   "ax": 0.5,
@@ -120,10 +1515,101 @@
   "ax": 0,
   "ay": 0
  },
+ "ui_lantern": {
+  "file": "sprites/ui_lantern.webp",
+  "w": 97,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_lock": {
+  "file": "sprites/ui_lock.webp",
+  "w": 125,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
  "ui_logo": {
   "file": "sprites/ui_logo.webp",
   "w": 900,
   "h": 494,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_mask": {
+  "file": "sprites/ui_mask.webp",
+  "w": 160,
+  "h": 87,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_medal1": {
+  "file": "sprites/ui_medal1.webp",
+  "w": 148,
+  "h": 192,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_medal2": {
+  "file": "sprites/ui_medal2.webp",
+  "w": 149,
+  "h": 192,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_medal3": {
+  "file": "sprites/ui_medal3.webp",
+  "w": 151,
+  "h": 192,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_medal4": {
+  "file": "sprites/ui_medal4.webp",
+  "w": 192,
+  "h": 190,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_pause": {
+  "file": "sprites/ui_pause.webp",
+  "w": 140,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_play": {
+  "file": "sprites/ui_play.webp",
+  "w": 138,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_sack": {
+  "file": "sprites/ui_sack.webp",
+  "w": 145,
+  "h": 160,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_target": {
+  "file": "sprites/ui_target.webp",
+  "w": 160,
+  "h": 159,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_trophy": {
+  "file": "sprites/ui_trophy.webp",
+  "w": 160,
+  "h": 156,
+  "ax": 0.5,
+  "ay": 0.5
+ },
+ "ui_xp": {
+  "file": "sprites/ui_xp.webp",
+  "w": 160,
+  "h": 157,
   "ax": 0.5,
   "ay": 0.5
  }

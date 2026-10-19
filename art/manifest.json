@@ -1,1 +1,10 @@
-[]
+[
+ {"id": "t_frost_p2_5", "anchor": [0.513, 0.823], "foot": 0.686, "_note": "robe hides the spool outline"},
+ {"id": "t_ember_p3_4", "anchor": [0.517, 0.82], "foot": 0.633, "_note": "ghost raccoons widen the spool outline"},
+ {"id": "p_fireball", "anchor": [0.79, 0.47], "_note": "projectiles with a tail: anchor on the head"},
+ {"id": "p_firebolt", "anchor": [0.82, 0.5]},
+ {"id": "p_bolt", "anchor": [0.76, 0.5]},
+ {"id": "p_spirit", "anchor": [0.77, 0.68]},
+ {"id": "p_wisp", "anchor": [0.78, 0.5]},
+ {"id": "p_star", "anchor": [0.58, 0.55]}
+]
