@@ -5,6 +5,7 @@
  */
 import { getSprite, pickSprite, type LoadedSprite } from '../assets/sprites';
 import { GLOOPS, type GloopId } from '../game/gloops';
+import spriteIndex from '../assets/sprites.json';
 
 /** Sprite file URL usable as <img src>. */
 export function spriteUrl(s: LoadedSprite | null): string | null {
@@ -81,3 +82,9 @@ export const enemyIconUrl = (type: GloopId) => spriteUrl(enemyArt(type));
 export const mapImageUrl = (mapId: string) => spriteUrl(mapArt(mapId));
 export const abilityIconUrl = (abilityId: string) => spriteUrl(abilityArt(abilityId));
 export const uiIconUrl = (name: string) => spriteUrl(uiArt(name));
+
+/** URL of a UI sprite straight from the index, usable before loadSprites() finished (loading screen). */
+export function uiIconUrlEager(name: string): string | null {
+  const info = (spriteIndex as Record<string, { file: string }>)['ui_' + name];
+  return info ? (import.meta.env.BASE_URL || './') + info.file : null;
+}

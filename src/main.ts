@@ -3,17 +3,21 @@ import { App } from './ui/App';
 import { Capacitor } from '@capacitor/core';
 import { restoreFromNative } from './save/durable';
 import { loadSprites } from './assets/sprites';
+import { showLoader } from './ui/loading';
 
 async function boot() {
   const root = document.getElementById('app')!;
+  const loader = showLoader(root);
+  const sprites = loadSprites((p) => loader.progress(p));
   // wait for the bundled font so canvas text renders with it
   try {
     await Promise.race([document.fonts.load('800 20px "Baloo 2"'), new Promise((r) => setTimeout(r, 1500))]);
   } catch {
     /* ignore */
   }
-  await Promise.all([restoreFromNative(), loadSprites()]);
+  await Promise.all([restoreFromNative(), sprites]);
   const app = new App(root);
+  loader.done();
   (window as any).__app = app;
   if (Capacitor.isNativePlatform()) {
     try {

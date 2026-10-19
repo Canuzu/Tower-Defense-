@@ -15,9 +15,11 @@ For every sprite:
       foot  (towers/heroes: spool platform width / image width, used to scale the sprite)
       body  (enemies: body diameter / max(w, h), used to scale the sprite)
 
-Usage: python3 scripts/process_art.py [id ...]
+Usage: python3 scripts/process_art.py [--force] [id ...]
+Unchanged sprites (same raw file, same rule, same script) are skipped; --force reprocesses everything.
 """
-import json, os, sys
+import hashlib, json, os, sys
+from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 from PIL import Image
 
@@ -26,6 +28,8 @@ MANIFEST = os.path.join(ROOT, 'art', 'manifest.json')
 RAW = os.path.join(ROOT, 'art', 'raw')
 OUT = os.path.join(ROOT, 'public', 'sprites')
 INDEX = os.path.join(ROOT, 'src', 'assets', 'sprites.json')
+# build cache (gitignored via node_modules): raw-file stamp + rule + script hash per id
+CACHE = os.path.join(ROOT, 'node_modules', '.cache', 'process_art.json')
 
 BOSS = {'e_moab': 512, 'e_bfb': 560, 'e_zomg': 640, 'e_ddt': 512, 'e_bad': 768}
 RULES = [
@@ -33,6 +37,14 @@ RULES = [
     ('m_', {'size': 2400, 'trim': False, 'anchor': [0, 0], 'quality': 84, 'clean': False}),
     ('t_', {'size': 320, 'anchor': 'spool'}),
     ('h_', {'size': 360, 'anchor': 'spool'}),
+    # bosses that are not star-shaped (comets, moon, ringed planet): anchor + body from the largest
+    # inscribed circle of the opaque mask, i.e. the comet head / moon / planet ball without tail or ring
+    ('e_moab', {'anchor': 'inscribed'}),
+    ('e_ddt', {'anchor': 'inscribed'}),
+    ('e_bfb', {'anchor': 'inscribed'}),
+    ('e_zomg', {'anchor': 'inscribed'}),
+    # crowned star: centre = inscribed circle centre (ignores the crown); body = outer star diameter
+    ('e_bad', {'anchor': 'inscribed', 'bodyScale': 1.8}),
     ('e_ceramic', {'size': 200, 'anchor': [0.5, 0.5]}),
     ('e_', {'size': 168, 'anchor': [0.5, 0.5]}),
     ('p_', {'size': 128, 'anchor': [0.5, 0.5]}),
@@ -109,6 +121,31 @@ def spool_anchor(a):
     return cx / W, ay, S / W
 
 
+def inscribed(a, thresh=150):
+    """Largest circle inside the opaque mask: returns (cx, cy, r) in pixels of `a`."""
+    H, W = a.shape
+    k = 160 / max(H, W)
+    sw, sh = max(1, round(W * k)), max(1, round(H * k))
+    m = np.array(Image.fromarray(a).resize((sw, sh), Image.BILINEAR)) > thresh
+    pad = np.pad(m, 1, constant_values=False)
+    near_in = np.zeros_like(pad)
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        near_in |= np.roll(np.roll(pad, dy, 0), dx, 1)
+    oy, ox = np.nonzero(~pad & near_in)
+    iy, ix = np.nonzero(pad)
+    best, bi = -1.0, 0
+    for c in range(0, len(iy), 4096):
+        d2 = (iy[c:c + 4096, None] - oy[None, :]) ** 2 + (ix[c:c + 4096, None] - ox[None, :]) ** 2
+        dm = d2.min(axis=1)
+        j = int(dm.argmax())
+        if dm[j] > best:
+            best, bi = float(dm[j]), c + j
+    # pad offset of 1, pixel centres
+    cx = (ix[bi] - 1 + 0.5) / k
+    cy = (iy[bi] - 1 + 0.5) / k
+    return cx, cy, (best ** 0.5 - 0.5) / k
+
+
 def process(id_, rule):
     src = raw_path(id_)
     im = Image.open(src).convert('RGBA')
@@ -134,6 +171,9 @@ def process(id_, rule):
     if anchor == 'spool':
         ax, ay, foot = spool_anchor(np.array(im.getchannel('A')))
         info.update(ax=round(ax, 4), ay=round(ay, 4), foot=round(foot, 4))
+    elif anchor == 'inscribed':
+        cx, cy, r = inscribed(np.array(im.getchannel('A')))
+        info.update(ax=round(cx / w, 4), ay=round(cy / h, 4), body=round(min(1.0, 2 * r / max(w, h) * rule.get('bodyScale', 1)), 4))
     else:
         info.update(ax=anchor[0], ay=anchor[1])
     if 'body' in rule:
@@ -143,29 +183,72 @@ def process(id_, rule):
     return info
 
 
+def _stamp(id_, rule):
+    src = raw_path(id_)
+    st = os.stat(src)
+    h = hashlib.sha1()
+    h.update(open(__file__, 'rb').read())
+    h.update(json.dumps(rule, sort_keys=True).encode())
+    h.update(f'{os.path.basename(src)}|{st.st_size}|{st.st_mtime_ns}'.encode())
+    return h.hexdigest()
+
+
+def _job(args):
+    id_, rule = args
+    try:
+        return id_, process(id_, rule), None
+    except Exception as e:  # e.g. a raw file that is still being written; retried on the next run
+        return id_, None, e
+
+
 def main():
+    args = sys.argv[1:]
+    force = '--force' in args
+    only = {a for a in args if not a.startswith('--')}
     overrides = {}
     if os.path.exists(MANIFEST):
         for e in json.load(open(MANIFEST)):
-            overrides[e['id']] = {k: v for k, v in e.items() if k != 'id'}
-    only = set(sys.argv[1:])
+            overrides[e['id']] = {k: v for k, v in e.items() if k != 'id' and not k.startswith('_')}
     index = json.load(open(INDEX)) if os.path.exists(INDEX) else {}
+    cache = {}
+    if os.path.exists(CACHE):
+        try:
+            cache = json.load(open(CACHE))
+        except Exception:
+            cache = {}
     ids = sorted({os.path.splitext(f)[0] for f in os.listdir(RAW) if f.endswith(('.webp', '.png'))})
+    todo = []
+    stamps = {}
     for id_ in ids:
         if only and id_ not in only:
             continue
         rule = rule_for(id_, overrides)
         if rule is None:
             continue
-        index[id_] = process(id_, rule)
-        i = index[id_]
-        print('ok', id_, i['w'], 'x', i['h'], 'anchor', i['ax'], i['ay'], ('foot %s' % i['foot']) if 'foot' in i else '')
+        stamps[id_] = _stamp(id_, rule)
+        out = os.path.join(OUT, f'{id_}.webp')
+        if not force and cache.get(id_) == stamps[id_] and id_ in index and os.path.exists(out):
+            continue
+        todo.append((id_, rule))
+    with ProcessPoolExecutor(max_workers=max(1, (os.cpu_count() or 2))) as ex:
+        for id_, info, err in ex.map(_job, todo):
+            if err is not None:
+                print('skip', id_, '(%s)' % err)
+                continue
+            index[id_] = info
+            cache[id_] = stamps[id_]
+            i = info
+            print('ok', id_, i['w'], 'x', i['h'], 'anchor', i['ax'], i['ay'], ('foot %s' % i['foot']) if 'foot' in i else '', ('body %s' % i['body']) if 'body' in i else '')
+    print(f'{len(todo)} processed, {len(stamps) - len(todo)} unchanged')
     # drop index entries whose raw art is gone
     for id_ in list(index):
         if raw_path(id_) is None:
             del index[id_]
+            cache.pop(id_, None)
     os.makedirs(os.path.dirname(INDEX), exist_ok=True)
     json.dump(dict(sorted(index.items())), open(INDEX, 'w'), indent=1)
+    os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+    json.dump(cache, open(CACHE, 'w'))
 
 
 if __name__ == '__main__':
