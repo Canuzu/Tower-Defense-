@@ -88,7 +88,7 @@ const spike: TowerDef = {
       {
         name: 'Scrap Ballista',
         cost: 3200,
-        desc: 'Massive harpoons that crack Diamonds and wreck bosses.',
+        desc: 'Massive harpoons that crack Emeralds and wreck bosses.',
         apply: (s) => {
           const a = atk(s, 'quill', 'shoot');
           a.proj.damage += 6;
@@ -554,7 +554,7 @@ const hoot: TowerDef = {
       {
         name: 'Armor Breaker',
         cost: 2800,
-        desc: '18 damage, extra vs Diamond/Meteor and strips Fortified armour.',
+        desc: '18 damage, extra vs Emerald/Meteor and strips Fortified armour.',
         apply: (s) => {
           const a = atk(s, 'shot', 'hitscan');
           a.damage = 18;

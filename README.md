@@ -10,7 +10,7 @@ Sounds und Musik werden live synthetisiert. Die Grafiken werden aktuell noch im 
 |---|---|
 | **Türme** | 9 Waschbär-Banditen (Schleuderer, Boomer, Frosti, Späher, Mystiker, Funki, Buzz, Sammler, Sensei) mit je 3 Upgrade-Pfaden × 5 Stufen (135 Upgrades), Crosspath-Regel wie in BTD6 (max. 2 Pfade, nur einer über Stufe 2) |
 | **Helden** | Kosmo, der Weltraumbandit & Rocco, der Schrottplatz-Boss, Level 1–20, je 2 aktive Fähigkeiten |
-| **Gegner** | 17 Sterntypen vom Roten Zwerg bis zum Polarlicht und Diamanten, mit Schichtsystem, Immunitäten (Explosion, Frost, Magie, Spitzes), Camo, Regrow, Fortified und 5 Bossen (Komet, Mondkoloss, Ringtitan, Schattenkomet, Sternenkaiser), dazu der seltene ✨ **Glücksstern** (Bonusgeld, wenn man ihn erwischt) |
+| **Gegner** | 17 Sterntypen vom Roten Zwerg bis zum Polarlicht und Smaragd, mit Schichtsystem, Immunitäten (Explosion, Frost, Magie, Spitzes), Camo, Regrow, Fortified und 5 Bossen (Komet, Mondkoloss, Ringtitan, Schattenkomet, Sternenkaiser), dazu der seltene ✨ **Glücksstern** (Bonusgeld, wenn man ihn erwischt) |
 | **Runden** | 100 handgebaute Runden + endloser Freeplay-Modus mit steigender Boss-Stärke |
 | **Karten** | 6 Karten (Anfänger bis Experte): Waschbärwiese, Kristallmine, Frostsee, Schrottschmiede, Zuckergasse und Zwillingsflüsse mit 2 Pfaden |
 | **Modi** | Easy, Medium, Hard, Champion (1 Leben) und Sandbox |

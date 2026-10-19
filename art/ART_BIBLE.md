@@ -58,7 +58,7 @@ Each hero has 3 looks: level 1–6, 7–13 and 14–20 (more gear and glow).
 | zebra | Eclipse | Finsternis | half black hole, half ice star |
 | lead | Meteor | Meteor | star encased in heavy grey iron-rock armour; sharp hits bounce off |
 | rainbow | Aurora | Polarlicht | rainbow prismatic star |
-| ceramic | Diamond | Diamant | big diamond-shell star (3 damage states) |
+| ceramic | Emerald | Smaragd | big chunky star with a thick faceted green emerald shell and a glowing rainbow core (3 damage states) |
 | moab | Comet | Komet | boss: big icy-blue comet head with a face and a flaming tail |
 | bfb | Moon Brute | Mondkoloss | boss: huge grumpy red-grey cratered moon |
 | zomg | Ringed Titan | Ringtitan | boss: angry green ringed planet |

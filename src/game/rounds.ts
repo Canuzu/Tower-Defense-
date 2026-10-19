@@ -77,7 +77,7 @@ add([g('yellow', 160, 0.09), g('zebra', 6, 0.7, 10)]);
 add([g('pink', 35, 0.2), g('black', 30, 0.25, 4), g('white', 25, 0.3, 9), g('rainbow', 5, 0.8, 14)], 'Auroras hide 2 Eclipses each.');
 add([g('pink', 140, 0.09)]);
 add([g('black', 25, 0.2), g('white', 25, 0.2, 3), g('white', 7, 0.5, 6, 'c'), g('lead', 10, 0.6, 8), g('zebra', 15, 0.4, 12)]);
-add([g('pink', 42, 0.15), g('white', 17, 0.3, 3), g('lead', 14, 0.5, 6), g('zebra', 10, 0.5, 10), g('ceramic', 4, 1, 14)], 'Diamonds have a tough shell.');
+add([g('pink', 42, 0.15), g('white', 17, 0.3, 3), g('lead', 14, 0.5, 6), g('zebra', 10, 0.5, 10), g('ceramic', 4, 1, 14)], 'Emeralds have a tough shell.');
 add([g('black', 10, 0.3), g('white', 10, 0.3, 2), g('lead', 20, 0.4, 4), g('zebra', 20, 0.35, 8), g('rainbow', 18, 0.45, 13)]);
 add([g('rainbow', 10, 0.6), g('moab', 1, 1, 8)], 'A COMET APPROACHES!');
 // --- 41-50 ------------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ add([g('bfb', 1, 1)], 'MOON BRUTE! Bring serious firepower.');
 // --- 61-70 ------------------------------------------------------------------------------------
 add([g('zebra', 150, 0.07), g('moab', 5, 1.5, 6)]);
 add([g('pink', 300, 0.04, 0, 'r'), g('rainbow', 20, 0.3, 8), g('ceramic', 10, 0.4, 13, 'f')]);
-add([g('lead', 75, 0.12), g('ceramic', 82, 0.15, 6)], 'Diamond rush!');
+add([g('lead', 75, 0.12), g('ceramic', 82, 0.15, 6)], 'Emerald rush!');
 add([g('moab', 9, 1)]);
 add([g('zebra', 50, 0.1), g('bfb', 2, 3, 6)]);
 add([g('ceramic', 20, 0.3, 0, 'c'), g('moab', 3, 1.4, 6, 'f')]);

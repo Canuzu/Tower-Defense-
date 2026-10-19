@@ -44,7 +44,7 @@ export function heroArt(heroId: string, level: number): LoadedSprite | null {
 }
 
 /**
- * Star sprite. Fortified stars use the `_f` variant; Diamond and bosses switch to damage states
+ * Star sprite. Fortified stars use the `_f` variant; the Emerald and bosses switch to damage states
  * `_d1` / `_d2` as their shell loses HP (fortified ones keep the armoured look).
  */
 export function enemyArt(type: GloopId, opts: { fortified?: boolean; hpFrac?: number } = {}): LoadedSprite | null {
