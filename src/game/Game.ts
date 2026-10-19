@@ -767,8 +767,9 @@ export class Game {
       }
     }
     this.fx.sound('roundEnd');
-    this.events.emit('roundEnd', { round: n, bonus });
+    // advance first: roundEnd listeners save the game, and a save must resume at the *next* round
     this.round++;
+    this.events.emit('roundEnd', { round: n, bonus });
     if (n >= this.lastRound && !this.won && !this.sandbox) {
       this.won = true;
       this.fx.sound('victory');
@@ -1257,7 +1258,8 @@ export class Game {
       t.fireAnim += dt;
       if (t.upgradeFlash > 0) t.upgradeFlash -= dt * 1.5;
       if (t.timed.length) t.timed = t.timed.filter((b) => b.until > this.time);
-      for (const [id, cd] of t.abilityCd) if (cd > 0) t.abilityCd.set(id, cd - dt);
+      // abilities recharge only while stars are coming (no farming Jackpot / Supply Drop between rounds)
+      if (this.roundActive || this.enemies.length) for (const [id, cd] of t.abilityCd) if (cd > 0) t.abilityCd.set(id, cd - dt);
       const rf = t.rateFactor(this.time, frenzy);
       for (const a of t.stats.attacks) this.runAttack(t, a, dt, rf);
       // traps lifetime

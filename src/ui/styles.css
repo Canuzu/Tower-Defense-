@@ -1543,6 +1543,11 @@ html.reduce-fx .badge {
   left: calc((100% - var(--map-r) - var(--up-w) - 16px) / 2);
 }
 
+.hud.up-left > .abilities,
+.hud.up-right > .abilities {
+  max-width: calc(100% - var(--map-r) - var(--up-w) - 40px - var(--safe-l));
+}
+
 .hud.up-left .toast,
 .hud.up-right .toast {
   max-width: calc(100% - var(--map-r) - var(--up-w) - 40px);
@@ -2802,8 +2807,17 @@ html.reduce-fx .badge {
   bottom: calc(10px + var(--safe-b));
   transform: translateX(-50%);
   display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: center;
   gap: clamp(8px, 2vh, 14px);
+  /* many abilities wrap upwards instead of running off the map */
+  max-width: calc(100% - var(--map-r) - var(--safe-l) - 24px);
   pointer-events: none;
+}
+
+/* the sandbox spawn panel owns the bottom-left strip */
+.hud.sandbox > .abilities {
+  bottom: calc(100px + var(--safe-b));
 }
 
 .ability {

@@ -63,6 +63,7 @@ export class App {
   private devUnlock = new URLSearchParams(location.search).has('dev') || location.hash === '#dev';
   private setupDiff: Difficulty = 'easy';
   private xpGainedThisGame = 0;
+  private victoryShown = new WeakSet<Game>();
   private menuTop: HTMLElement | null = null;
   private menuDock: HTMLElement | null = null;
 
@@ -110,7 +111,7 @@ export class App {
   back() {
     const modalEl = this.root.querySelector('.modal-wrap');
     if (this.scene === 'game' && this.hud) {
-      if (this.hud.isModalOpen) this.hud.closeModal();
+      if (this.hud.isModalOpen) this.hud.dismissModal();
       else this.hud.openPause();
       return;
     }
@@ -588,6 +589,12 @@ export class App {
     this.profile.stats.games++;
     saveProfile(this.profile);
     const tutorial = !this.profile.tutorialDone && g.config.difficulty !== 'sandbox' && !g.config.challenge && g.round === g.diff.startRound && g.towers.length === 0;
+    this.makeHud(g, tutorial);
+    audio.music?.start('game');
+  }
+
+  /** Builds the in-game HUD (again after a language switch, so every label is re-translated). */
+  private makeHud(g: Game, tutorial: boolean) {
     this.hud = new Hud(
       g,
       this.renderer,
@@ -616,7 +623,6 @@ export class App {
     this.resize();
     // after the sidebar has laid out
     requestAnimationFrame(() => this.resize());
-    audio.music?.start('game');
   }
 
   private onRoundEnd(g: Game, round: number) {
@@ -646,6 +652,9 @@ export class App {
   }
 
   private onVictory(g: Game) {
+    // Play after a victory re-emits it; stats and rewards are only counted once per game
+    if (this.victoryShown.has(g)) return;
+    this.victoryShown.add(g);
     const p = this.profile;
     this.trackStats(g);
     let first = false;
@@ -667,7 +676,8 @@ export class App {
     if (g.stats.leaked === 0) p.stats.flawless = (p.stats.flawless ?? 0) + 1;
     this.claimAchievements(g);
     saveProfile(p);
-    clearGame(g.map.id, g.config.difficulty);
+    // daily runs are never saved; don't wipe the player's normal game on the same map/difficulty
+    if (!g.config.challenge) clearGame(g.map.id, g.config.difficulty);
     const hud = this.hud!;
     const d = g.config.difficulty;
     const medal = !g.config.challenge && MEDAL[d] ? uiIcon(MEDAL[d], MEDAL_EMOJI[d], 'medal-pop') : null;
@@ -693,11 +703,19 @@ export class App {
           },
           { icon: uiIcon('fast', '∞') },
         ),
-        btn(t('Maps'), 'green', this.tap(() => this.showMaps()), { icon: uiIcon('play', '▶') }),
+        btn(
+          t('Maps'),
+          'green',
+          this.tap(() => {
+            this.endGame();
+            this.showMaps();
+          }),
+          { icon: uiIcon('play', '▶') },
+        ),
         btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
       ],
     );
-    const wrap = hud.openModal(m);
+    const wrap = hud.openModal(m, true, { locked: true });
     confetti(wrap, 90);
     this.renderer.confetti(800, 300, 120);
   }
@@ -706,7 +724,7 @@ export class App {
     const p = this.profile;
     this.trackStats(g);
     saveProfile(p);
-    clearGame(g.map.id, g.config.difficulty);
+    if (!g.config.challenge) clearGame(g.map.id, g.config.difficulty);
     const hud = this.hud!;
     setTimeout(() => {
       if (this.hud !== hud) return;
@@ -725,6 +743,8 @@ export class App {
             btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
           ],
         ),
+        true,
+        { locked: true },
       );
     }, 900);
   }
@@ -736,7 +756,8 @@ export class App {
       [star('red'), t('Stars shattered'), s.pops, fmt],
       [star('moab'), t('Bosses defeated'), s.bossesPopped, fmt],
       [uiIcon('coin', '🪙'), t('Cash earned'), Math.floor(s.cashEarned), (n) => '$' + fmt(n)],
-      [uiIcon('target', '🎯'), t('Best combo'), s.bestCombo, (n) => fmt(n) + 'x'],
+      // the combo still running when the game ends has not been folded into bestCombo yet
+      [uiIcon('target', '🎯'), t('Best combo'), Math.max(s.bestCombo, g.combo), (n) => fmt(n) + 'x'],
       [star('golden'), t('Lucky Stars'), s.goldenPopped ?? 0, fmt],
       won ? [uiIcon('heart', '❤️'), t('Lives left'), Math.max(0, g.lives), fmt] : [uiIcon('sack', '💰'), t('Round reached'), g.round, fmt],
     ];
@@ -759,10 +780,10 @@ export class App {
   // Settings & codex
   // -------------------------------------------------------------------------------------------
 
-  private modalHost(): { open: (el: HTMLElement) => void; close: () => void } {
+  private modalHost(): { open: (el: HTMLElement, onDismiss?: () => void) => void; close: () => void } {
     if (this.hud) {
       const hud = this.hud;
-      return { open: (el) => hud.openModal(el), close: () => hud.closeModal() };
+      return { open: (el, onDismiss) => hud.openModal(el, true, { onDismiss }), close: () => hud.closeModal() };
     }
     return {
       open: (el) => {
@@ -831,6 +852,11 @@ export class App {
         if (this.scene === 'menu') this.showMenu();
         else if (this.scene === 'maps') this.showMaps();
         else if (this.scene === 'setup') this.showSetup(this.lastSetupMap);
+        else if (this.scene === 'game' && this.game) {
+          this.hud?.destroy();
+          this.renderer.selected = null;
+          this.makeHud(this.game, false);
+        }
         this.openSettings(back);
       });
       seg.append(b);
@@ -845,19 +871,19 @@ export class App {
         h(
           'div',
           { class: 'settings-list' },
-          slider('🔊', t('Sound effects'), s.sfx, (x) => (s.sfx = x)),
-          slider('🎵', t('Music'), s.music, (x) => (s.music = x)),
-          sw('📳', t('Haptics'), s.haptics, (x) => (s.haptics = x)),
-          sw('✨', t('Reduced effects (better battery)'), s.reducedEffects, (x) => (s.reducedEffects = x)),
+          slider(uiIcon('sound', '🔊'), t('Sound effects'), s.sfx, (x) => (s.sfx = x)),
+          slider(uiIcon('music', '🎵'), t('Music'), s.music, (x) => (s.music = x)),
+          sw(uiIcon('haptics', '📳'), t('Haptics'), s.haptics, (x) => (s.haptics = x)),
+          sw(uiIcon('battery', '✨'), t('Reduced effects (better battery)'), s.reducedEffects, (x) => (s.reducedEffects = x)),
           sw(uiIcon('fast', '⏩'), t('Auto-start rounds by default'), s.autoStart, (x) => (s.autoStart = x)),
-          sw('📈', t('Show FPS'), s.showFps, (x) => (s.showFps = x)),
-          h('div', { class: 'setting full' }, label('🌐', t('Language')), seg),
+          sw(uiIcon('chart', '📈'), t('Show FPS'), s.showFps, (x) => (s.showFps = x)),
+          h('div', { class: 'setting full' }, label(uiIcon('globe', '🌐'), t('Language')), seg),
         ),
         h('p', { class: 'settings-foot-note' }, t('Star Bandits v0.1 · Made with ❤️')),
       ],
       [btn(t('Done'), 'green', this.tap(done), { icon: uiIcon('check', '✔') })],
     );
-    host.open(m);
+    host.open(m, done);
   }
 
   openCodex(tab: AtlasTab = 'bandits') {

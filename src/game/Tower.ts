@@ -150,6 +150,7 @@ export class Tower {
   }
 
   sellValue(sandbox: boolean): number {
-    return Math.floor(this.spent * (sandbox ? 1 : this.stats.sellMul));
+    // epsilon: 170 * 0.7 is 118.99999999999999 in floating point
+    return Math.floor(this.spent * (sandbox ? 1 : this.stats.sellMul) + 1e-6);
   }
 }

@@ -99,6 +99,8 @@ export class Hud {
   private lastLives = -1;
   private lastCombo = 0;
   private modalOpen = false;
+  /** what Escape / Android back does with the open modal */
+  private modalDismiss: (() => void) | 'locked' | null = null;
   private tutorialStep = 0;
   private unsub: (() => void)[] = [];
   private fpsEl: HTMLElement;
@@ -122,10 +124,14 @@ export class Hud {
     this.root.append(this.comboEl);
     this.fpsEl = h('div', { class: 'fps hidden' });
     this.root.append(this.fpsEl);
-    if (game.sandbox) this.buildSandbox();
+    if (game.sandbox) {
+      this.root.classList.add('sandbox');
+      this.buildSandbox();
+    }
     this.bindGame();
     this.bindInput();
     if (host.tutorial) this.tutorial(0);
+    else this.tutorialStep = -1;
   }
 
   destroy() {
@@ -262,6 +268,7 @@ export class Hud {
       const hero = this.game.hero;
       if (hero) hero.addHeroXp(Math.max(0, heroXpFor(hero.heroLevel + 1) - hero.heroXp));
       this.panelKey = '';
+      this.lastCash = -1; // refresh the hero shop card (sandbox cash never changes)
     });
     const clr = h('button', { title: tr('Clear stars') }, '🧹');
     clr.addEventListener('click', () => {
@@ -422,7 +429,7 @@ export class Hud {
 
   private onKey = (e: KeyboardEvent) => {
     if (this.modalOpen) {
-      if (e.key === 'Escape') this.closeModal();
+      if (e.key === 'Escape') this.dismissModal();
       return;
     }
     const k = e.key.toLowerCase();
@@ -927,7 +934,8 @@ export class Hud {
       toggle(this.livesPill, 'low', !g.sandbox && g.lives > 0 && g.lives <= Math.max(5, g.diff.lives * 0.2));
       this.lastLives = g.lives;
     }
-    setText(this.roundEl, String(g.round));
+    // after the last round the counter is already one past it; don't show 41/40 behind the victory screen
+    setText(this.roundEl, String(g.freeplay || g.sandbox ? g.round : Math.min(g.round, g.lastRound)));
     setText(this.roundSub, g.sandbox ? '' : g.freeplay ? '∞' : `/${g.lastRound}`);
     // frenzy
     const ready = g.frenzyReady;
@@ -1140,8 +1148,11 @@ export class Hud {
   // Modals
   // -------------------------------------------------------------------------------------------
 
-  openModal(content: HTMLElement, pause = true) {
+  /** `locked` modals (game over, victory) only close through their own buttons; `onDismiss`
+   * replaces the plain close for Escape / Android back (e.g. settings returning to pause). */
+  openModal(content: HTMLElement, pause = true, opts: { locked?: boolean; onDismiss?: () => void } = {}) {
     this.closeModal();
+    this.modalDismiss = opts.locked ? 'locked' : opts.onDismiss ?? null;
     const wrap = h('div', { class: 'modal-wrap' }, content);
     wrap.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.root.append(wrap);
@@ -1154,7 +1165,16 @@ export class Hud {
     const w = this.root.querySelector('.modal-wrap');
     if (w) w.remove();
     this.modalOpen = false;
+    this.modalDismiss = null;
     this.game.paused = false;
+  }
+
+  /** Escape / Android back on an open modal. */
+  dismissModal() {
+    const d = this.modalDismiss;
+    if (d === 'locked') return;
+    if (d) d();
+    else this.closeModal();
   }
 
   get isModalOpen() {
