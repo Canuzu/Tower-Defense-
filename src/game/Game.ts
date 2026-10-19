@@ -1,4 +1,5 @@
 import { Emitter } from '../core/events';
+import type { UpgradeLimits } from './progression';
 import { SpatialGrid } from '../core/spatial';
 import { TAU, clamp, dist2, rand } from '../core/math';
 import { Path } from './path';
@@ -52,6 +53,8 @@ export interface GameConfig {
   heroId: HeroId | null;
   perks?: string[];
   challenge?: ChallengeDef;
+  /** highest upgrade tier per path the player has unlocked for each tower (undefined = all) */
+  upgradeLimits?: UpgradeLimits;
 }
 
 export interface SavedTower {
@@ -366,7 +369,18 @@ export class Game {
   }
 
   canUpgrade(t: Tower, path: number): boolean {
-    return !!t.def && canTier(t.tiers, path);
+    return !!t.def && canTier(t.tiers, path) && t.tiers[path] < this.upgradeLimit(t, path);
+  }
+
+  /** Highest tier the player has unlocked on this path (bandit progression); 5 when unrestricted. */
+  upgradeLimit(t: Tower, path: number): number {
+    if (!t.def || this.sandbox) return 5;
+    return this.config.upgradeLimits?.[t.def.id]?.[path] ?? 5;
+  }
+
+  /** True when the next tier of the path is blocked only by the bandit progression (not crosspath rules). */
+  upgradeLocked(t: Tower, path: number): boolean {
+    return !!t.def && canTier(t.tiers, path) && t.tiers[path] >= this.upgradeLimit(t, path);
   }
 
   placeTower(id: TowerId, x: number, y: number): Tower | null {
@@ -2202,8 +2216,8 @@ export class Game {
     };
   }
 
-  static restore(s: SaveState): Game {
-    const g = new Game({ mapId: s.mapId, difficulty: s.difficulty, heroId: s.heroId, perks: s.perks, challenge: s.challenge });
+  static restore(s: SaveState, upgradeLimits?: UpgradeLimits): Game {
+    const g = new Game({ mapId: s.mapId, difficulty: s.difficulty, heroId: s.heroId, perks: s.perks, challenge: s.challenge, upgradeLimits });
     g.round = s.round;
     g.cash = s.cash;
     g.lives = s.lives;

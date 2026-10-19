@@ -1,4 +1,5 @@
 import type { SaveState } from '../game/Game';
+import type { ProgressState } from '../game/progression';
 import type { Difficulty } from '../game/types';
 import { mirrorToNative } from './durable';
 
@@ -39,6 +40,12 @@ export interface Profile {
   perks: string[];
   achievements: Record<string, number>;
   dailyDone: Record<string, boolean>;
+  /** bandit progression (see game/progression.ts) */
+  towerXp: ProgressState['towerXp'];
+  towerXpTotal: ProgressState['towerXpTotal'];
+  towerUnlocks: ProgressState['towerUnlocks'];
+  /** boss types whose intro banner was already shown */
+  seenBosses: string[];
 }
 
 const KEY = 'gloop-guardians/profile/v1';
@@ -55,6 +62,10 @@ export const defaultProfile = (): Profile => ({
   perks: [],
   achievements: {},
   dailyDone: {},
+  towerXp: {},
+  towerXpTotal: {},
+  towerUnlocks: {},
+  seenBosses: [],
 });
 
 function read<T>(key: string): T | null {
@@ -89,6 +100,10 @@ export function loadProfile(): Profile {
     perks: p.perks ?? [],
     achievements: p.achievements ?? {},
     dailyDone: p.dailyDone ?? {},
+    towerXp: p.towerXp ?? {},
+    towerXpTotal: p.towerXpTotal ?? {},
+    towerUnlocks: p.towerUnlocks ?? {},
+    seenBosses: p.seenBosses ?? [],
   };
 }
 

@@ -7,6 +7,7 @@ import { describe, it } from 'vitest';
 import { Game } from '../src/game/Game';
 import type { TowerId } from '../src/game/towerTypes';
 import { TOWERS } from '../src/game/towers';
+import { addTowerXp, canUnlock, limitsFor, roundXp, unlockNext, type ProgressState } from '../src/game/progression';
 
 type Action = { place: TowerId } | { up: number; path: number };
 
@@ -98,8 +99,18 @@ function bestSpot(g: Game, id: TowerId): [number, number] | null {
   return best;
 }
 
-function play(mapId: string, diff: 'easy' | 'medium' | 'hard') {
-  const g = new Game({ mapId, difficulty: diff, heroId: 'nova' });
+function play(mapId: string, diff: 'easy' | 'medium' | 'hard', prog?: ProgressState) {
+  const g = new Game({ mapId, difficulty: diff, heroId: 'nova', upgradeLimits: prog ? limitsFor(prog, false) : undefined });
+  const popsAt = new Map<number, number>();
+  // a player with bandit progression unlocks the next tier of a path it wants as soon as it has the XP
+  const unlock = (t: { def: { id: TowerId } | null }, path: number) => {
+    if (!prog || !t.def) return;
+    const id = t.def.id;
+    if (canUnlock(prog, id, path)) {
+      const tier = unlockNext(prog, id, path)!;
+      g.config.upgradeLimits![id]![path] = tier;
+    }
+  };
   let step = 0;
   let heroPlaced = false;
   const order: number[] = [];
@@ -119,6 +130,7 @@ function play(mapId: string, diff: 'easy' | 'medium' | 'hard') {
         step++;
       } else {
         const t = g.towers.filter((x) => !x.isHero)[a.up];
+        if (t && g.upgradeLocked(t, a.path)) unlock(t, a.path);
         if (!t || !g.canUpgrade(t, a.path)) {
           step++;
           continue;
@@ -145,14 +157,33 @@ function play(mapId: string, diff: 'easy' | 'medium' | 'hard') {
     tryActions();
     g.startRound();
     let guard = 0;
+    const roundNo = g.round;
     while (g.roundActive && guard++ < 60 * 600) {
       g.step(1 / 60);
       if (g.frenzyReady) g.activateFrenzy();
       for (const t of g.towers) for (const ab of t.stats.abilities) if (g.abilityReady(t, ab.id) && g.enemies.length > 20) g.useAbility(t, ab);
     }
+    if (prog)
+      for (const t of g.towers) {
+        if (!t.def) continue;
+        addTowerXp(prog, t.def.id, roundXp(roundNo, t.pops - (popsAt.get(t.id) ?? 0), g.diff.xpMul));
+        popsAt.set(t.id, t.pops);
+      }
   }
   return { round: g.round, won: g.won, lives: g.lives, towers: g.towers.length, step, pops: g.stats.pops };
 }
+
+describe.runIf(process.env.BALANCE)('balance with bandit progression (fresh profile)', () => {
+  it('first games', () => {
+    const prog: ProgressState = { towerXp: {}, towerXpTotal: {}, towerUnlocks: {} };
+    for (const [map, diff] of [['meadow', 'easy'], ['meadow', 'easy'], ['meadow', 'medium'], ['caverns', 'easy']] as const) {
+      const r = play(map, diff, prog);
+      const xp = Object.entries(prog.towerXpTotal).map(([k, v]) => `${k}:${Math.round(v!)}`).join(' ');
+      const un = Object.entries(prog.towerUnlocks).map(([k, v]) => `${k}:${v!.join('')}`).join(' ');
+      console.log(`fresh ${map} ${diff} -> round ${r.round}${r.won ? ' WON' : ''} lives ${r.lives} | xp ${xp} | unlocks ${un}`);
+    }
+  }, 900000);
+});
 
 describe.runIf(process.env.BALANCE)('balance', () => {
   for (const map of ['meadow', 'caverns', 'forge', 'rivers']) {

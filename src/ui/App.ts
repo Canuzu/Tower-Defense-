@@ -1,4 +1,7 @@
 import './screens.css';
+import { addTowerXp, limitsFor, nextUnlockCost, roundXp, unlockNext, xpOf } from '../game/progression';
+import type { Tower } from '../game/Tower';
+import type { TowerId } from '../game/towerTypes';
 import { Game, type SaveState, type ChallengeDef } from '../game/Game';
 import { MAPS, type MapDef } from '../game/maps';
 import { DIFFICULTIES, type Difficulty } from '../game/types';
@@ -64,6 +67,10 @@ export class App {
   private setupDiff: Difficulty = 'easy';
   private xpGainedThisGame = 0;
   private victoryShown = new WeakSet<Game>();
+  /** pops of each tower at the previous round end (for per-round bandit XP) */
+  private popsAtRound = new WeakMap<Tower, number>();
+  /** bandit XP earned per raccoon type in the current game (shown on the result screens) */
+  towerXpThisGame: Partial<Record<TowerId, number>> = {};
   private menuTop: HTMLElement | null = null;
   private menuDock: HTMLElement | null = null;
 
@@ -475,7 +482,9 @@ export class App {
     if (!challenge) clearGame(mapId, diff);
     // daily challenges are the same for everyone, so permanent perks are switched off there
     const perks = diff === 'sandbox' || challenge ? [] : [...this.profile.perks];
-    const g = new Game({ mapId, difficulty: diff, heroId: challenge?.noHero ? null : heroId, perks, challenge });
+    // bandit progression: only unlocked upgrade tiers can be bought (everything is open in sandbox, dev mode and dailies)
+    const upgradeLimits = limitsFor(this.profile, this.devUnlock || diff === 'sandbox' || !!challenge);
+    const g = new Game({ mapId, difficulty: diff, heroId: challenge?.noHero ? null : heroId, perks, challenge, upgradeLimits });
     this.enterGame(g);
   }
 
@@ -558,7 +567,7 @@ export class App {
   resume(s: SaveState) {
     let g: Game;
     try {
-      g = Game.restore(s);
+      g = Game.restore(s, limitsFor(this.profile, this.devUnlock || s.difficulty === 'sandbox' || !!s.challenge));
     } catch {
       clearGame(s.mapId, s.difficulty);
       this.showMenu();
@@ -572,6 +581,7 @@ export class App {
     this.endGame();
     this.game = g;
     this.xpGainedThisGame = 0;
+    this.towerXpThisGame = {};
     this.recorded = { pops: g.stats.pops, bosses: g.stats.bossesPopped, golden: g.stats.goldenPopped };
     this.statTimer = 0;
     g.events.on('frenzyStart', () => {
@@ -616,6 +626,25 @@ export class App {
           this.profile.tutorialDone = true;
           saveProfile(this.profile);
         },
+        progress: {
+          xp: (id) => xpOf(this.profile, id),
+          nextCost: (id, path) => nextUnlockCost(this.profile, id, path),
+          unlock: (id, path) => {
+            const tier = unlockNext(this.profile, id, path);
+            if (tier === null) return false;
+            const lim = g.config.upgradeLimits?.[id];
+            if (lim) lim[path] = Math.max(lim[path], tier);
+            saveProfile(this.profile);
+            audio.play('upgrade');
+            return true;
+          },
+        },
+        firstBoss: (type) => {
+          if (this.profile.seenBosses.includes(type)) return false;
+          this.profile.seenBosses.push(type);
+          saveProfile(this.profile);
+          return true;
+        },
       },
       this.root,
     );
@@ -627,6 +656,15 @@ export class App {
 
   private onRoundEnd(g: Game, round: number) {
     if (g.sandbox) return;
+    // bandit progression: each raccoon on the field earns XP for its type (more for the stars it shattered)
+    for (const tw of g.towers) {
+      if (!tw.def) continue;
+      const before = this.popsAtRound.get(tw) ?? 0;
+      this.popsAtRound.set(tw, tw.pops);
+      const gained = roundXp(round, Math.max(0, tw.pops - before), g.diff.xpMul);
+      addTowerXp(this.profile, tw.def.id, gained);
+      this.towerXpThisGame[tw.def.id] = (this.towerXpThisGame[tw.def.id] ?? 0) + gained;
+    }
     const xp = Math.round((20 + round * 2) * g.diff.xpMul);
     this.addXp(xp);
     this.profile.stats.bestRound = Math.max(this.profile.stats.bestRound, round);

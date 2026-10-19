@@ -47,6 +47,16 @@ export interface HudHost {
   onTutorialDone(): void;
   tutorial: boolean;
   heroId: HeroId | null;
+  /** bandit progression: per-tower XP and unlocking upgrade tiers with it */
+  progress: {
+    xp(id: TowerId): number;
+    /** XP price of the next locked tier on that path, null when fully unlocked */
+    nextCost(id: TowerId, path: number): number | null;
+    /** spend XP to unlock the next tier; true on success */
+    unlock(id: TowerId, path: number): boolean;
+  };
+  /** true the first time a boss type ever appears (its intro banner is shown only then) */
+  firstBoss(type: string): boolean;
 }
 
 interface Placing {
@@ -295,7 +305,8 @@ export class Hud {
         if (this.tutorialStep === 2 && round >= 1) this.tutorial(3);
       }),
       g.events.on('boss', (e) => {
-        this.banner(tr(e.def.name).toUpperCase(), tr(e.def.desc), true);
+        // the intro banner only plays the very first time the player meets this boss type
+        if (this.host.firstBoss(e.type)) this.banner(tr(e.def.name).toUpperCase(), tr(e.def.desc), true);
         haptic('heavy');
       }),
       g.events.on('hint', (text) => {
