@@ -172,6 +172,7 @@ export const DE: Record<string, string> = {
   'Polishing the stars…': 'Die Sterne werden poliert …',
   'Sharpening the tin shards…': 'Blechsplitter werden geschärft …',
   'Counting the stash…': 'Der Schatz wird gezählt …',
+  Loading: 'Lädt',
   // in-world texts
   'CRIT!': 'KRIT!',
   'YANK!': 'ZACK!',

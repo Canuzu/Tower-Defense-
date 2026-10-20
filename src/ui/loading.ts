@@ -34,7 +34,7 @@ export function showLoader(root: HTMLElement): Loader {
   } else logo.classList.add('ready');
   const el = h(
     'div',
-    { class: 'loader', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-label': 'Loading' },
+    { class: 'loader', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-label': t('Loading') },
     h('div', { class: 'ld-glow' }),
     twinkles(26, 11, 18),
     h('div', { class: 'ld-center' }, logo, h('div', { class: 'ld-bar' }, fill, h('div', { class: 'ld-shine' })), h('div', { class: 'ld-row' }, tip, pct)),
