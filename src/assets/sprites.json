@@ -1594,8 +1594,8 @@
  },
  "ui_medal4": {
   "file": "sprites/ui_medal4.webp",
-  "w": 192,
-  "h": 190,
+  "w": 149,
+  "h": 192,
   "ax": 0.5,
   "ay": 0.5
  },
