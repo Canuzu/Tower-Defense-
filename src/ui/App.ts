@@ -16,8 +16,9 @@ import { Hud } from './hud';
 import { h, clear } from './dom';
 import { setHaptics } from './haptics';
 import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, wisdomPoints, type Profile } from '../save/storage';
-import { perksModal, achievementsModal, dailyModal } from './meta';
-import { newlyUnlocked, bondCount } from '../game/achievements';
+import { perksModal, achievementsModal, dailyModal, achievementIcon } from './meta';
+import { banditsModal, banditXpStrip, unlockableTypes, type BanditsOpts } from './bandits';
+import { newlyUnlocked, bondCount, type AchievementDef } from '../game/achievements';
 import { dailyFor, todayKey } from '../game/daily';
 import { SYNERGIES } from '../game/synergy';
 import { t, setLang, type LangSetting } from '../i18n';
@@ -71,8 +72,15 @@ export class App {
   private popsAtRound = new WeakMap<Tower, number>();
   /** bandit XP earned per raccoon type in the current game (shown on the result screens) */
   towerXpThisGame: Partial<Record<TowerId, number>> = {};
+  /** achievements unlocked during the current game (listed on the result screens) */
+  private achThisGame: AchievementDef[] = [];
+  /** player level when the current game started (level-up chip on the result screens) */
+  private levelAtStart = 1;
+  /** the HUD tutorial is running (kept across a language switch) */
+  private tutorialActive = false;
   private menuTop: HTMLElement | null = null;
   private menuDock: HTMLElement | null = null;
+  private rotateEl: HTMLElement;
 
   constructor(private root: HTMLElement) {
     this.profile = loadProfile();
@@ -84,7 +92,8 @@ export class App {
     root.append(this.backdrop);
     this.screen = h('div', { class: 'layer' });
     root.append(this.screen);
-    root.append(h('div', { class: 'rotate' }, h('div', null, h('div', { class: 'phone' }, '📱'), h('p', null, t('Rotate your device to landscape to play')))));
+    this.rotateEl = this.buildRotate();
+    root.append(this.rotateEl);
     this.applySettings();
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
@@ -112,6 +121,13 @@ export class App {
 
   get level() {
     return levelFromXp(this.profile.xp).level;
+  }
+
+  /** "Rotate your device" overlay for portrait phones (rebuilt when the language changes). */
+  private buildRotate(): HTMLElement {
+    const phone =
+      '<svg viewBox="0 0 64 100" width="100%" height="100%" aria-hidden="true"><rect x="7" y="5" width="50" height="90" rx="11" fill="#2c2163" stroke="#120a2b" stroke-width="7"/><rect x="7" y="5" width="50" height="90" rx="11" fill="none" stroke="#fff6e0" stroke-width="3"/><rect x="14" y="15" width="36" height="64" rx="4" fill="#5fd3ff"/><path d="M18 70 30 50l7 9 5-6 6 17z" fill="#8f7bff"/><circle cx="40" cy="27" r="5" fill="#ffcf3f"/><circle cx="32" cy="87" r="3" fill="#fff6e0"/></svg>';
+    return h('div', { class: 'rotate' }, h('div', null, h('div', { class: 'phone', html: phone }), h('p', null, t('Rotate your device to landscape to play'))));
   }
 
   /** Android back button / Escape-like navigation. */
@@ -292,7 +308,9 @@ export class App {
     const pts = wisdomPoints(this.profile);
     const unseen = newlyUnlocked(this.profile, null).length;
     const dailyDone = !!this.profile.dailyDone[todayKey()];
+    const unlockable = unlockableTypes(this.profile).length;
     const items = [
+      roundBtn(uiIcon('mask', '🦝'), t('Bandits'), this.tap(() => this.openBandits()), unlockable > 0 ? String(unlockable) : null, 'bandits-btn'),
       roundBtn(uiIcon('calendar', '📅'), t('Daily'), this.tap(() => this.openDaily()), dailyDone ? null : '!'),
       roundBtn(uiIcon('lantern', '🧠'), t('Wisdom'), this.tap(() => this.openPerks()), pts > 0 ? String(pts) : null),
       roundBtn(uiIcon('trophy', '🏅'), t('Achievements'), this.tap(() => this.openAchievements()), unseen > 0 ? String(unseen) : null),
@@ -532,14 +550,58 @@ export class App {
     );
   }
 
-  /** Records unlocked achievements, grants their XP and announces them. */
-  private claimAchievements(g: Game | null) {
+  /**
+   * Bandit menu (raccoon XP, upgrade tier unlocks, heroes). `back` runs instead of returning to the
+   * main menu when it closes (Star Atlas, result screens).
+   */
+  openBandits(opts: BanditsOpts & { back?: () => void } = {}) {
+    const host = this.modalHost();
+    const close = () => {
+      host.close();
+      if (opts.back) opts.back();
+      else this.refreshMenu();
+    };
+    host.open(
+      banditsModal(
+        {
+          profile: this.profile,
+          playerLevel: this.level,
+          devUnlock: this.devUnlock,
+          onUnlock: (id, path, tier) => this.raiseLiveLimit(id, path, tier),
+          close: this.tap(close),
+        },
+        opts,
+      ),
+      close,
+    );
+  }
+
+  /** A tier unlocked from a menu during a game (result screen, freeplay) can be bought right away. */
+  private raiseLiveLimit(id: TowerId, path: number, tier: number) {
+    const lim = this.game?.config.upgradeLimits?.[id];
+    if (lim) lim[path] = Math.max(lim[path], tier);
+  }
+
+  /**
+   * Records unlocked achievements and grants their XP. Several at once share one toast (a new toast
+   * replaces the previous one); `announce` is off when the result screen lists them instead.
+   */
+  private claimAchievements(g: Game | null, announce = true) {
     const fresh = newlyUnlocked(this.profile, g);
     if (!fresh.length) return;
+    let xp = 0;
     for (const a of fresh) {
       this.profile.achievements[a.id] = Date.now();
-      this.addXp(a.xp);
-      this.hud?.toast(t('🏅 Achievement unlocked: {name} (+{xp} XP)', { name: t(a.name), xp: a.xp }), 3200);
+      this.addXp(a.xp, announce);
+      xp += a.xp;
+      if (g) this.achThisGame.push(a);
+    }
+    if (announce && this.hud) {
+      const msg =
+        fresh.length === 1
+          ? t('Achievement unlocked: {name} (+{xp} XP)', { name: t(fresh[0].name), xp })
+          : t('{n} achievements unlocked: {list} (+{xp} XP)', { n: fresh.length, list: fresh.map((a) => t(a.name)).join(', '), xp });
+      this.hud.toast(msg, 3600);
     }
     audio.play('levelup', 0.8);
     saveProfile(this.profile);
@@ -582,6 +644,8 @@ export class App {
     this.game = g;
     this.xpGainedThisGame = 0;
     this.towerXpThisGame = {};
+    this.achThisGame = [];
+    this.levelAtStart = this.level;
     this.recorded = { pops: g.stats.pops, bosses: g.stats.bossesPopped, golden: g.stats.goldenPopped };
     this.statTimer = 0;
     g.events.on('frenzyStart', () => {
@@ -605,6 +669,7 @@ export class App {
 
   /** Builds the in-game HUD (again after a language switch, so every label is re-translated). */
   private makeHud(g: Game, tutorial: boolean) {
+    this.tutorialActive = tutorial;
     this.hud = new Hud(
       g,
       this.renderer,
@@ -623,6 +688,7 @@ export class App {
         onVictory: () => this.onVictory(g),
         onDefeat: () => this.onDefeat(g),
         onTutorialDone: () => {
+          this.tutorialActive = false;
           this.profile.tutorialDone = true;
           saveProfile(this.profile);
         },
@@ -673,19 +739,20 @@ export class App {
     saveProfile(this.profile);
   }
 
-  private addXp(xp: number) {
+  /** `banner` is off while the result screen opens (it shows the level-up itself). */
+  private addXp(xp: number, banner = true) {
     const before = this.level;
     this.profile.xp += xp;
     this.xpGainedThisGame += xp;
     const after = this.level;
-    if (after > before && this.hud) {
+    if (after > before && this.hud) this.hud.setPlayerLevel(after);
+    if (after > before && this.hud && banner) {
       const unlocked = [
         ...TOWER_ORDER.filter((id) => TOWERS[id].unlock > before && TOWERS[id].unlock <= after).map((id) => t(TOWERS[id].name)),
         ...HERO_ORDER.filter((id) => HEROES[id].unlock > before && HEROES[id].unlock <= after).map((id) => t(HEROES[id].name)),
       ];
       this.hud.banner(t('LEVEL {n}!', { n: after }), unlocked.length ? t('Unlocked: {list}', { list: unlocked.join(', ') }) : t('Player level up'), false);
       audio.play('levelup');
-      this.hud.setPlayerLevel(after);
     }
   }
 
@@ -701,18 +768,18 @@ export class App {
       if (!p.dailyDone[key] && g.config.challenge.id === 'daily-' + key) {
         p.dailyDone[key] = true;
         p.stats.dailies = (p.stats.dailies ?? 0) + 1;
-        this.addXp(500);
+        this.addXp(500, false);
         first = true;
       }
     } else {
       if (!p.medals[g.map.id]) p.medals[g.map.id] = {};
       first = !p.medals[g.map.id][g.config.difficulty];
       p.medals[g.map.id][g.config.difficulty] = true;
-      if (first) this.addXp(Math.round(300 * g.diff.xpMul));
+      if (first) this.addXp(Math.round(300 * g.diff.xpMul), false);
     }
     p.stats.wins++;
     if (g.stats.leaked === 0) p.stats.flawless = (p.stats.flawless ?? 0) + 1;
-    this.claimAchievements(g);
+    this.claimAchievements(g, false);
     saveProfile(p);
     // daily runs are never saved; don't wipe the player's normal game on the same map/difficulty
     if (!g.config.challenge) clearGame(g.map.id, g.config.difficulty);
@@ -726,10 +793,12 @@ export class App {
       first ? h('br') : null,
       first ? chip(g.config.challenge ? uiIcon('calendar', '📅') : this.medalIcon(d), g.config.challenge ? '+500 XP' : t('New medal!'), 'gold anim-pop') : null,
     );
-    const hero = h('div', { class: 'result-hero' }, h('div', { class: 'result-art' }, h('div', { class: 'rays' }), uiIcon('trophy', '🏆'), medal), msg);
-    const m = modal(
+    const hero = h('div', { class: 'result-hero' }, h('div', { class: 'result-art' }, h('div', { class: 'rays' }), uiIcon('trophy', '🏆'), medal), msg, this.resultAchievements());
+    let m: HTMLElement;
+    const strip = this.banditStrip(() => hud.openModal(m, true, { locked: true }));
+    m = modal(
       { title: t('VICTORY!'), color: 'gold', size: 'wide', cls: 'win' },
-      [h('div', { class: 'result' }, hero, h('div', null, this.resultStats(g, true), this.xpReward()))],
+      [h('div', { class: 'result' }, hero, h('div', null, this.resultStats(g, true), this.xpReward())), strip],
       [
         btn(
           t('Freeplay'),
@@ -769,39 +838,40 @@ export class App {
       const crack =
         '<svg class="crack" viewBox="0 0 100 100" aria-hidden="true"><path d="M52 18 L44 38 L58 50 L42 66 L54 86" fill="none" stroke="#120a2b" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/><path d="M52 18 L44 38 L58 50 L42 66 L54 86" fill="none" stroke="#2a1840" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
       const art = h('div', { class: 'result-art' }, uiIcon('heart', '💔'), h('div', { class: 'crack-wrap', html: uiIconUrl('heart') ? crack : '' }));
-      const hero = h('div', { class: 'result-hero' }, art, h('p', { class: 'result-msg' }, t('The stars broke through on round {n}.', { n: g.round })));
+      const hero = h('div', { class: 'result-hero' }, art, h('p', { class: 'result-msg' }, t('The stars broke through on round {n}.', { n: g.round })), this.resultAchievements());
       const snap = g.roundSnapshot;
-      hud.openModal(
-        modal(
-          { title: t('GAME OVER'), color: 'red', size: 'wide', cls: 'lose' },
-          [h('div', { class: 'result lose' }, hero, h('div', null, this.resultStats(g, false), this.xpReward()))],
-          [
-            snap ? btn(t('Retry round {n}', { n: snap.round }), 'gold', this.tap(() => this.resume(snap)), { icon: restartIcon() }) : null,
-            btn(t('Restart'), 'green', this.tap(() => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge)), { icon: uiIcon('play', '▶') }),
-            btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
-          ],
-        ),
-        true,
-        { locked: true },
+      let m: HTMLElement;
+      const strip = this.banditStrip(() => hud.openModal(m, true, { locked: true }));
+      m = modal(
+        { title: t('GAME OVER'), color: 'red', size: 'wide', cls: 'lose' },
+        [h('div', { class: 'result lose' }, hero, h('div', null, this.resultStats(g, false), this.xpReward())), strip],
+        [
+          snap ? btn(t('Retry round {n}', { n: snap.round }), 'gold', this.tap(() => this.resume(snap)), { icon: restartIcon() }) : null,
+          btn(t('Restart'), 'green', this.tap(() => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge)), { icon: uiIcon('play', '▶') }),
+          btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
+        ],
       );
+      hud.openModal(m, true, { locked: true });
     }, 900);
   }
 
   private resultStats(g: Game, won: boolean) {
     const s = g.stats;
     const star = (id: Parameters<typeof starPortraitUrl>[0]) => img(starPortraitUrl(id), 'ico');
-    const items: [HTMLElement, string, number, (n: number) => string][] = [
-      [star('red'), t('Stars shattered'), s.pops, fmt],
-      [star('moab'), t('Bosses defeated'), s.bossesPopped, fmt],
-      [uiIcon('coin', '🪙'), t('Cash earned'), Math.floor(s.cashEarned), (n) => '$' + fmt(n)],
+    // [icon, label, value, format, counts up]
+    const items: [HTMLElement, string, number, (n: number) => string, boolean][] = [
+      [star('red'), t('Stars shattered'), s.pops, fmt, true],
+      [star('moab'), t('Bosses defeated'), s.bossesPopped, fmt, true],
+      [uiIcon('coin', '🪙'), t('Cash earned'), Math.floor(s.cashEarned), (n) => '$' + fmt(n), true],
       // the combo still running when the game ends has not been folded into bestCombo yet
-      [uiIcon('target', '🎯'), t('Best combo'), Math.max(s.bestCombo, g.combo), (n) => fmt(n) + 'x'],
-      [star('golden'), t('Lucky Stars'), s.goldenPopped ?? 0, fmt],
-      won ? [uiIcon('heart', '❤️'), t('Lives left'), Math.max(0, g.lives), fmt] : [uiIcon('sack', '💰'), t('Round reached'), g.round, fmt],
+      [uiIcon('target', '🎯'), t('Best combo'), Math.max(s.bestCombo, g.combo), (n) => fmt(n) + 'x', true],
+      [star('golden'), t('Lucky Stars'), s.goldenPopped ?? 0, fmt, true],
+      won ? [uiIcon('heart', '❤️'), t('Lives left'), Math.max(0, g.lives), fmt, false] : [uiIcon('sack', '💰'), t('Round reached'), g.round, fmt, false],
     ];
-    const tiles = items.map(([icon, label, value, format], i) => {
-      const val = h('b', { class: 't-num' }, format(0));
-      countUp(val, value, { delay: 350 + i * 110, format });
+    const tiles = items.map(([icon, label, value, format, counts], i) => {
+      // small numbers and the round/lives are shown as they are; the rest counts up while its tile rises in
+      const val = h('b', { class: 't-num' }, format(counts && value > 12 ? 0 : value));
+      if (counts && value > 12) countUp(val, value, { delay: 160 + i * 50, format });
       return h('div', { class: 'stat well' }, icon, h('div', { class: 'stat-text' }, h('small', null, label), val));
     });
     stagger(tiles, 'anim-rise', 2);
@@ -811,7 +881,27 @@ export class App {
   private xpReward() {
     const val = h('b', { class: 't-num' }, '+0');
     countUp(val, this.xpGainedThisGame, { delay: 1000, format: (n) => '+' + fmt(n) });
-    return h('div', { class: 'reward anim-pop', style: '--d:900ms' }, uiIcon('xp', '⭐'), val, h('small', null, t('XP earned')));
+    const lv = this.level;
+    const up = lv > this.levelAtStart ? chip(uiIcon('xp', '⭐'), t('Level {n}!', { n: lv }), 'gold lvl-up anim-pop') : null;
+    if (up) up.style.setProperty('--d', '1500ms');
+    return h('div', { class: 'reward anim-pop', style: '--d:900ms' }, uiIcon('xp', '⭐'), val, h('small', null, t('XP earned')), up);
+  }
+
+  /** Achievements unlocked during this game (their toasts would hide behind the result modal). */
+  private resultAchievements(): HTMLElement | null {
+    if (!this.achThisGame.length) return null;
+    const chips = this.achThisGame.map((a, i) => {
+      const c = chip(achievementIcon(a), t(a.name), 'gold anim-pop');
+      c.style.setProperty('--d', `${1200 + i * 120}ms`);
+      c.title = `${t(a.desc)} (+${fmt(a.xp)} XP)`;
+      return c;
+    });
+    return h('div', { class: 'result-ach' }, h('span', { class: 't-up' }, t('Achievements')), h('div', { class: 'result-ach-row' }, ...chips));
+  }
+
+  /** Bandit XP earned per raccoon + a way into the Bandit menu when a tier can be unlocked. */
+  private banditStrip(reopen: () => void): HTMLElement | null {
+    return banditXpStrip(this.profile, this.towerXpThisGame, () => this.openBandits({ back: reopen }));
   }
 
   // -------------------------------------------------------------------------------------------
@@ -887,13 +977,25 @@ export class App {
         save();
         audio.play('click');
         host.close();
+        const rot = this.buildRotate();
+        this.rotateEl.replaceWith(rot);
+        this.rotateEl = rot;
         if (this.scene === 'menu') this.showMenu();
         else if (this.scene === 'maps') this.showMaps();
         else if (this.scene === 'setup') this.showSetup(this.lastSetupMap);
         else if (this.scene === 'game' && this.game) {
+          const g = this.game;
           this.hud?.destroy();
           this.renderer.selected = null;
-          this.makeHud(this.game, false);
+          this.renderer.ghost = null;
+          // the tutorial can only start over from its first step (nothing placed yet); later on it is
+          // finished for good so it does not pop up again in the next game
+          const restartTutorial = this.tutorialActive && g.towers.length === 0 && !g.roundActive;
+          if (this.tutorialActive && !restartTutorial) {
+            this.profile.tutorialDone = true;
+            saveProfile(this.profile);
+          }
+          this.makeHud(g, restartTutorial);
         }
         this.openSettings(back);
       });
@@ -950,15 +1052,27 @@ export class App {
         b.setAttribute('aria-selected', String(tabs[i][0] === id));
       });
       clear(grid);
+      grid.classList.toggle('two', id === 'heroes');
       const cards: HTMLElement[] = [];
+      // bandit and hero cards open the Bandit menu (skills, XP unlocks); closing it comes back here
+      const toBandits = (o: BanditsOpts) => () => {
+        audio.play('click');
+        host.close();
+        this.openBandits({ ...o, back: () => this.openCodex(id) });
+      };
+      const cta = (text: string, o: BanditsOpts) => {
+        const b = btn(t('Bandits'), 'green', toBandits(o), { size: 'small', icon: uiIcon('mask', '🦝'), cls: 'glint' });
+        return h('div', { class: 'atlas-cta well' }, uiIcon('mask', '🦝', 'cta-ico'), h('p', null, text), b);
+      };
       if (id === 'bandits') {
+        grid.append(cta(t('Every raccoon earns its own XP. Open the Bandit menu to see all upgrade tiers and unlock new ones.'), {}));
         for (const tid of TOWER_ORDER) {
           const d = TOWERS[tid];
           const locked = !this.devUnlock && level < d.unlock;
           cards.push(
             h(
-              'div',
-              { class: 'tile atlas-card' + (locked ? ' locked' : '') },
+              'button',
+              { class: 'tile atlas-card' + (locked ? ' locked' : ''), type: 'button', onclick: toBandits({ towerId: tid }), 'aria-label': t(d.name) },
               h('div', { class: 'portrait' }, img(towerPortraitUrl(tid), '', t(d.name))),
               h(
                 'div',
@@ -972,14 +1086,15 @@ export class App {
           );
         }
       } else if (id === 'heroes') {
+        grid.append(cta(t('Heroes level up during a game. See every skill they learn, level by level.'), { heroId: HERO_ORDER[0] }));
         for (const hid of HERO_ORDER) {
           const d = HEROES[hid];
           const locked = !this.devUnlock && level < d.unlock;
           const looks = h('div', { class: 'hero-looks' }, ...[1, 7, 14].map((lv) => h('div', { class: 'look', title: t('Level {n}', { n: lv }) }, img(heroPortraitUrl(hid, lv)), h('span', null, t('Lv {n}', { n: lv })))));
           cards.push(
             h(
-              'div',
-              { class: 'tile atlas-card hero-tile' + (locked ? ' locked' : '') },
+              'button',
+              { class: 'tile atlas-card hero-tile' + (locked ? ' locked' : ''), type: 'button', onclick: toBandits({ heroId: hid }), 'aria-label': t(d.name) },
               h('div', { class: 'portrait' }, img(heroPortraitUrl(hid, 1), '', t(d.name))),
               h('div', { class: 'atlas-text' }, h('b', { class: 't-outline' }, t(d.name)), h('small', null, t(d.title)), h('p', null, t(d.desc)), locked ? h('div', null, lockedChip(d.unlock)) : looks),
             ),
@@ -995,13 +1110,13 @@ export class App {
           cards.push(h('div', { class: 'tile atlas-card' }, h('div', { class: 'portrait' }, img(starPortraitUrl(gid), '', t(d.name))), h('div', { class: 'atlas-text' }, h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), chips), h('p', null, t(d.desc)))));
         }
       } else {
-        grid.append(h('p', { class: 'atlas-note', style: 'grid-column:1/-1' }, t('⚡ Bonds: place these pairs close together and both get stronger')));
+        grid.append(h('p', { class: 'atlas-note' }, uiIcon('bond', '⚡'), h('span', null, t('Bonds: place these pairs close together and both get stronger'))));
         for (const syn of SYNERGIES) {
           cards.push(
             h(
               'div',
               { class: 'tile atlas-card', style: `--bc:${syn.color}` },
-              h('div', { class: 'bond-pair' }, img(towerPortraitUrl(syn.a)), img(towerPortraitUrl(syn.b)), h('span', { class: 'zap' }, '⚡')),
+              h('div', { class: 'bond-pair' }, img(towerPortraitUrl(syn.a)), img(towerPortraitUrl(syn.b)), h('span', { class: 'zap' }, uiIcon('bond', '⚡'))),
               h(
                 'div',
                 { class: 'atlas-text' },
@@ -1018,7 +1133,7 @@ export class App {
       const body = grid.parentElement;
       if (body) body.scrollTop = 0;
     };
-    const m = modal({ title: t('Star Atlas'), color: 'blue', icon: uiIcon('book', '📖'), size: 'xwide', onClose: this.tap(() => host.close()), head: [h('div', { class: 'tabs atlas-tabs', role: 'tablist' }, ...tabEls)] }, [grid]);
+    const m = modal({ title: t('Star Atlas'), color: 'blue', icon: uiIcon('book', '📖'), size: 'xwide', cls: 'atlas', onClose: this.tap(() => host.close()), head: [h('div', { class: 'tabs atlas-tabs', role: 'tablist' }, ...tabEls)] }, [grid]);
     select(tab);
     host.open(m);
   }

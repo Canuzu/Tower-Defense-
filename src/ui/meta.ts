@@ -1,5 +1,7 @@
 import { PERKS, PERK_BY_ID, type PerkDef } from '../game/perks';
-import { ACHIEVEMENTS } from '../game/achievements';
+import { ACHIEVEMENTS, type AchievementDef } from '../game/achievements';
+import type { GloopId } from '../game/gloops';
+import { abilityIconUrl, towerIconUrl } from '../render/art';
 import { dailyFor, todayKey } from '../game/daily';
 import { MAP_BY_ID } from '../game/maps';
 import { TOWERS } from '../game/towers';
@@ -9,7 +11,74 @@ import { saveProfile, wisdomPoints, type Profile } from '../save/storage';
 import { audio } from '../audio/audio';
 import { h, clear } from './dom';
 import { t, getLang } from '../i18n';
-import { uiIcon, img, btn, modal, bar, chip, socket, stagger, bump, fmt, mapImageSrc, towerPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
+import { uiIcon, img, btn, modal, bar, chip, socket, stagger, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
+
+// Painted art for perk and achievement icons (their data still carries an emoji, used only as the
+// fallback when a sprite is missing): ui icons, raccoon and hero portraits, star and ability art.
+type ArtRef = { ui: string } | { tower: string; tiers?: number[] } | { hero: string; level: number } | { star: GloopId } | { ability: string };
+
+const PERK_ART: Record<string, ArtRef> = {
+  cash1: { ui: 'coin' },
+  cash2: { ui: 'sack' },
+  bonus: { ui: 'chart' },
+  thrift: { tower: 'dojo', tiers: [0, 0, 3] },
+  acorns: { tower: 'acorn' },
+  spike: { tower: 'spike' },
+  boomer: { tower: 'boomer' },
+  frost: { tower: 'frost' },
+  hoot: { tower: 'hoot' },
+  range: { ui: 'target' },
+  camo: { ui: 'camo' },
+  hero1: { ui: 'star' },
+  hero2: { ui: 'book' },
+  hero3: { hero: 'nova', level: 7 },
+  herocost: { ui: 'crown' },
+  frenzy1: { ability: 'firestorm' },
+  frenzy2: { ui: 'fast' },
+  lives: { ui: 'heart' },
+  abilities: { ui: 'restart' },
+  bonds: { ui: 'bond' },
+};
+
+const ACH_ART: Record<string, ArtRef> = {
+  firstwin: { ui: 'trophy' },
+  pop1k: { star: 'red' },
+  pop25k: { star: 'rainbow' },
+  pop500k: { star: 'ceramic' },
+  boss1: { star: 'moab' },
+  boss100: { star: 'bfb' },
+  gold1: { star: 'golden' },
+  gold15: { ui: 'crown' },
+  tier5: { ui: 'star' },
+  tier5x5: { tower: 'spike', tiers: [5, 0, 0] },
+  bond3: { ui: 'bond' },
+  bond8: { ability: 'superstorm' },
+  hard: { ui: 'medal3' },
+  champ: { ui: 'medal4' },
+  explorer: { ui: 'globe' },
+  combo500: { ui: 'target' },
+  frenzy10: { ability: 'firestorm' },
+  hero20: { hero: 'nova', level: 14 },
+  round120: { ui: 'chart' },
+  flawless: { ui: 'heart' },
+  tycoon: { ui: 'sack' },
+  daily1: { ui: 'calendar' },
+  daily7: { ui: 'calendar' },
+};
+
+function artIcon(ref: ArtRef | undefined, fallback: string): HTMLElement {
+  if (ref && 'ui' in ref) return uiIcon(ref.ui, fallback);
+  let url: string | null = null;
+  if (ref && 'tower' in ref) url = ref.tiers ? towerIconUrl(ref.tower, ref.tiers) ?? towerPortraitUrl(ref.tower) : towerPortraitUrl(ref.tower);
+  else if (ref && 'hero' in ref) url = heroPortraitUrl(ref.hero, ref.level);
+  else if (ref && 'star' in ref) url = starPortraitUrl(ref.star);
+  else if (ref && 'ability' in ref) url = abilityIconUrl(ref.ability);
+  if (url) return img(url, 'ico art' + (ref && ('tower' in ref || 'hero' in ref) ? ' portrait-ico' : ''));
+  return h('span', { class: 'ico emoji', 'aria-hidden': 'true' }, fallback);
+}
+
+export const perkIcon = (perk: PerkDef) => artIcon(PERK_ART[perk.id], perk.icon);
+export const achievementIcon = (a: AchievementDef) => artIcon(ACH_ART[a.id], a.icon);
 
 const BRANCHES: { id: PerkDef['branch']; name: string; color: string }[] = [
   { id: 'economy', name: 'Economy', color: '#ffd23c' },
@@ -55,7 +124,7 @@ export function perksModal(p: Profile, close: () => void, onChange: () => void):
         const b = h(
           'button',
           { class: 'tile perk' + state, type: 'button' },
-          socket(perk.icon, 42),
+          socket(perkIcon(perk), 42),
           h('span', { class: 'perk-text' }, h('b', null, t(perk.name)), h('small', null, t(perk.desc)), !reqOk ? h('small', { class: 'req' }, t('Needs {name}', { name: t(PERK_BY_ID[perk.requires!].name) })) : null),
           owned ? uiIcon('check', '✔', 'state') : can ? h('span', { class: 'plus' }, '+') : !reqOk ? uiIcon('lock', '🔒', 'state') : null,
         );
@@ -95,7 +164,7 @@ export function achievementsModal(p: Profile, g: Game | null, close: () => void)
       h(
         'div',
         { class: 'tile ach' + (got ? ' done' : '') },
-        socket(a.icon, 46, got ? 'gold' : ''),
+        socket(achievementIcon(a), 46, got ? 'gold' : ''),
         h('div', { class: 'ach-text' }, h('b', null, t(a.name)), h('small', null, t(a.desc)), got ? null : bar(prog, 'green', `${Math.floor(prog * 100)}%`, 16)),
         h('div', { class: 'ach-xp' }, got ? uiIcon('check', '✔') : uiIcon('xp', '⭐'), h('b', { class: 't-outline' }, `+${fmt(a.xp)}`)),
       ),

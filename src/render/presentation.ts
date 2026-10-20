@@ -5,7 +5,13 @@ import type { Renderer } from './Renderer';
 import { audio } from '../audio/audio';
 import { formatNum } from '../core/math';
 import { haptic } from '../ui/haptics';
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
+
+/** formatNum with German separators in German (1.500, 9,7M). */
+function localNum(n: number): string {
+  const s = formatNum(n);
+  return getLang() === 'de' ? s.replace(/[.,]/g, (c) => (c === ',' ? '.' : ',')) : s;
+}
 
 /** Bridges simulation events to visuals, sound and haptics. */
 export function makePresentation(r: Renderer): FxSink {
@@ -90,7 +96,7 @@ export function makePresentation(r: Renderer): FxSink {
       const now = performance.now();
       if (now > nextTink && Math.random() < 0.3) {
         nextTink = now + 350;
-        r.floatText(x, y - 12, 'tink', '#cfd8e3', 10);
+        r.floatText(x, y - 12, t('tink'), '#cfd8e3', 10);
       }
     },
     explosion(x, y, radius, visual) {
@@ -114,7 +120,7 @@ export function makePresentation(r: Renderer): FxSink {
       r.floatText(x, y, t(str), color, size);
     },
     cash(x, y, amount) {
-      r.floatText(x, y, '+$' + formatNum(Math.round(amount)), '#ffe066', amount >= 1000 ? 22 : 16);
+      r.floatText(x, y, '+$' + localNum(Math.round(amount)), '#ffe066', amount >= 1000 ? 22 : 16);
       r.coins(x, y, Math.min(8, 2 + Math.floor(Math.log10(Math.max(1, amount)) * 2)));
     },
     leak(e: Enemy, lives: number) {

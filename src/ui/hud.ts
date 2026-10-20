@@ -12,12 +12,42 @@ import { formatNum } from '../core/math';
 import { audio } from '../audio/audio';
 import { h, clear, setText, toggle } from './dom';
 import { haptic } from './haptics';
-import { t as tr } from '../i18n';
+import { t as tr, getLang } from '../i18n';
 import { modal, btn, chip, uiIcon, img, bar, closeBtn, restartIcon, bump, reducedMotion, watchScroll, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
 
 /** Accent per upgrade path (generic tier icons, pips). */
 const PATH_COLOR = ['#ff8a3c', '#3fb2ff', '#5bdc5a'];
 const HERO_LOOK_LEVELS = [1, 7, 14];
+/** localStorage key: is the ability dock expanded */
+const DOCK_KEY = 'sb.abilityDock';
+
+/** HUD number: compact like formatNum, with German separators (1.500 / 9,7M) in German. */
+function num(n: number): string {
+  const s = formatNum(n);
+  return getLang() === 'de' ? s.replace(/[.,]/g, (c) => (c === ',' ? '.' : ',')) : s;
+}
+
+/** Decimal with the locale's separator. */
+function dec(n: number, digits: number): string {
+  const s = n.toFixed(digits);
+  return getLang() === 'de' ? s.replace('.', ',') : s;
+}
+
+function readDockOpen(): boolean {
+  try {
+    return localStorage.getItem(DOCK_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+function saveDockOpen(open: boolean) {
+  try {
+    localStorage.setItem(DOCK_KEY, open ? '1' : '0');
+  } catch {
+    /* private mode / blocked storage: the dock just forgets */
+  }
+}
 
 /** Outlined glyphs drawn like the painted icons (ink stroke under a light stroke). */
 function glyph(d: string, w = 7, fill = '#fff6d6', cls = 'ico svg-ico'): HTMLElement {
@@ -30,6 +60,11 @@ function glyph(d: string, w = 7, fill = '#fff6d6', cls = 'ico svg-ico'): HTMLEle
 const CHEVRONS = ['M6 15.5 12 9.5l6 6', 'M6 11.5 12 5.5l6 6M6 18.5l6-6 6 6'];
 const ARROW_L = 'M14.5 5 8 12l6.5 7';
 const ARROW_R = 'M9.5 5 16 12l-6.5 7';
+/** little quad drone (stat chip) */
+const DRONE = 'M12 10v4M8.5 8.5 10.5 10.5M15.5 8.5 13.5 10.5M8.5 15.5 10.5 13.5M15.5 15.5 13.5 13.5M4.5 7.5h5M14.5 7.5h5M4.5 16.5h5M14.5 16.5h5';
+/** Tutorial pointer: a glossy gold arrow with an ink outline (points down; rotated by CSS). */
+const POINTER_SVG =
+  '<svg viewBox="0 0 48 56" width="100%" height="100%" aria-hidden="true"><path d="M15 4h18v22h11L24 52 4 26h11z" fill="#ffd23c" stroke="#120a2b" stroke-width="4.5" stroke-linejoin="round"/><path d="M19.5 8.5h6v19" fill="none" stroke="#fff6c8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/><path d="M33 26h4.5L24 44" fill="none" stroke="#e08a00" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/></svg>';
 const BOLT_SVG =
   '<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true"><path d="M13.5 2 5 13.5h6L9.5 22 19 9.8h-6.2z" fill="#ffd23c" stroke="#120a2b" stroke-width="2.6" stroke-linejoin="round"/><path d="M12.6 4.6 7.6 11.6" stroke="#fff6c8" stroke-width="1.6" stroke-linecap="round"/></svg>';
 
@@ -91,9 +126,26 @@ export class Hud {
   private panel: HTMLElement | null = null;
   private panelFor: Tower | null = null;
   private panelKey = '';
+  private panelSide: 'left' | 'right' = 'right';
+  /** path rows whose description the player tapped open */
+  private openDesc = new Set<number>();
+  /** "t.id:path" of a tier that was just unlocked with XP (its row flashes once) */
+  private justUnlocked = '';
   private abilitiesEl!: HTMLElement;
+  private dockEl!: HTMLElement;
+  private dockCount!: HTMLElement;
+  private dockOpen = readDockOpen();
+  private dockReady = false;
+  private dockRO: ResizeObserver | null = null;
   private abilityKey = '';
   private abilityBtns: { el: HTMLElement; cd: HTMLElement; n: HTMLElement; time: HTMLElement; id: string; towers: Tower[]; ab: AbilityDef; state: string }[] = [];
+  /** raccoon types already announced as "new tier unlockable" this game */
+  private unlockAnnounced = new Set<TowerId>();
+  private toastQ: { text: string; ms: number; icon?: string; cls?: string }[] = [];
+  private bannerEl: HTMLElement | null = null;
+  private bannerBig = false;
+  private bannerQ: (() => void)[] = [];
+  private destroyed = false;
   private speedBtn!: HTMLButtonElement;
   private speedLbl!: HTMLElement;
   private playIco!: HTMLElement;
@@ -128,8 +180,7 @@ export class Hud {
     parent.append(this.root);
     this.buildTop();
     this.buildSidebar();
-    this.abilitiesEl = h('div', { class: 'abilities' });
-    this.root.append(this.abilitiesEl);
+    this.buildDock();
     this.comboEl = h('div', { class: 'combo hidden' });
     this.root.append(this.comboEl);
     this.fpsEl = h('div', { class: 'fps hidden' });
@@ -145,11 +196,15 @@ export class Hud {
   }
 
   destroy() {
+    this.destroyed = true;
     for (const u of this.unsub) u();
     this.unsub = [];
+    this.dockRO?.disconnect();
+    this.renderer.panTarget = 0;
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('pointermove', this.onWinMove);
     window.removeEventListener('pointerup', this.onWinUp);
+    window.removeEventListener('resize', this.onResize);
     this.renderer.canvas.removeEventListener('pointerdown', this.onCanvasDown);
     this.renderer.canvas.removeEventListener('pointermove', this.onCanvasMove);
     this.renderer.canvas.removeEventListener('pointerup', this.onCanvasUp);
@@ -263,24 +318,58 @@ export class Hud {
     return card;
   }
 
+  /** Ability dock (bottom-left of the map): a chevron tab that expands/collapses the ability row. */
+  private buildDock() {
+    this.abilitiesEl = h('div', { class: 'abilities' });
+    this.dockCount = h('span', { class: 'dock-n' }, '0');
+    const tab = h(
+      'button',
+      { class: 'dock-tab', type: 'button', title: tr('Abilities'), 'aria-label': tr('Abilities'), 'aria-expanded': String(this.dockOpen) },
+      h('span', { class: 'dock-bolt', html: BOLT_SVG }),
+      glyph(CHEVRONS[0], 6.5, '#fff6d6', 'chev'),
+      this.dockCount,
+    );
+    tab.addEventListener('pointerdown', (e) => e.stopPropagation());
+    tab.addEventListener('click', () => {
+      audio.unlock();
+      audio.play('click');
+      this.dockOpen = !this.dockOpen;
+      saveDockOpen(this.dockOpen);
+      tab.setAttribute('aria-expanded', String(this.dockOpen));
+      toggle(this.dockEl, 'open', this.dockOpen);
+    });
+    this.dockEl = h('div', { class: 'ab-dock hidden' + (this.dockOpen ? ' open' : '') }, tab, this.abilitiesEl);
+    this.root.append(this.dockEl);
+    // toasts sit above the dock, however many rows it wraps into
+    const setH = () => this.root.style.setProperty('--dock-h', this.dockEl.classList.contains('hidden') ? '0px' : `${Math.ceil(this.dockEl.offsetHeight)}px`);
+    if (typeof ResizeObserver !== 'undefined') {
+      this.dockRO = new ResizeObserver(setH);
+      this.dockRO.observe(this.dockEl);
+    }
+    this.syncDockH = setH;
+  }
+
+  private syncDockH = () => {};
+
   private buildSandbox() {
     const p = h('div', { class: 'sandbox-panel' });
     for (const id of GLOOP_ORDER) {
-      const b = h('button', { title: tr('Spawn') + ' ' + tr(GLOOPS[id].name) }, img(starPortraitUrl(id as GloopId)));
+      const b = h('button', { type: 'button', title: tr('Spawn') + ' ' + tr(GLOOPS[id].name) }, img(starPortraitUrl(id as GloopId)));
       b.addEventListener('click', (e) => {
         const n = (e as MouseEvent).shiftKey ? 10 : 1;
         for (let i = 0; i < n; i++) this.game.spawn(id as GloopId, { dist: i * 14 });
       });
       p.append(b);
     }
-    const lvl = h('button', { title: tr('Hero +1 level') }, '⭐');
+    p.addEventListener('pointerdown', (e) => e.stopPropagation());
+    const lvl = h('button', { type: 'button', class: 'sb-tool', title: tr('Hero +1 level') }, uiIcon('xp', '⭐'));
     lvl.addEventListener('click', () => {
       const hero = this.game.hero;
       if (hero) hero.addHeroXp(Math.max(0, heroXpFor(hero.heroLevel + 1) - hero.heroXp));
       this.panelKey = '';
       this.lastCash = -1; // refresh the hero shop card (sandbox cash never changes)
     });
-    const clr = h('button', { title: tr('Clear stars') }, '🧹');
+    const clr = h('button', { type: 'button', class: 'sb-tool', title: tr('Clear stars') }, uiIcon('close', '✕'));
     clr.addEventListener('click', () => {
       for (const e of this.game.enemies) e.alive = false;
     });
@@ -300,9 +389,11 @@ export class Hud {
         if (this.tutorialStep === 1) this.tutorial(2);
       }),
       g.events.on('roundEnd', ({ round, bonus }) => {
-        this.toast(tr('Round {n} complete! +${bonus}', { n: round, bonus }), 1800);
+        this.toast(tr('Round {n} complete! +${bonus}', { n: round, bonus: num(bonus) }), 1800);
+        const before = this.unlockableTypes();
         this.host.onRoundEnd(round);
         if (this.tutorialStep === 2 && round >= 1) this.tutorial(3);
+        this.announceUnlockable(before);
       }),
       g.events.on('boss', (e) => {
         // the intro banner only plays the very first time the player meets this boss type
@@ -340,6 +431,46 @@ export class Hud {
     );
   }
 
+  /** Bandit progression is active in this game (sandbox, dev mode and dailies have every tier open). */
+  private get progression() {
+    return !this.game.sandbox && !!this.game.config.upgradeLimits;
+  }
+
+  /** XP-locked tier of `p` that the player can afford to unlock right now. */
+  private canUnlockPath(t: Tower, p: number) {
+    if (!t.def || !this.game.upgradeLocked(t, p)) return false;
+    const cost = this.host.progress.nextCost(t.def.id, p);
+    return cost !== null && this.host.progress.xp(t.def.id) >= cost;
+  }
+
+  /** Raccoon types on the field with at least one locked tier they could unlock with their XP. */
+  private unlockableTypes(): Set<TowerId> {
+    const out = new Set<TowerId>();
+    if (!this.progression) return out;
+    for (const t of this.game.towers) {
+      if (!t.def || out.has(t.def.id)) continue;
+      const id = t.def.id;
+      for (let p = 0; p < 3; p++) {
+        const cost = this.host.progress.nextCost(id, p);
+        if (cost !== null && this.host.progress.xp(id) >= cost) {
+          out.add(id);
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  /** After a round: one short toast per raccoon type (once per game) that just became able to unlock a tier. */
+  private announceUnlockable(before: Set<TowerId>) {
+    const fresh = [...this.unlockableTypes()].filter((id) => !before.has(id) && !this.unlockAnnounced.has(id));
+    if (!fresh.length) return;
+    for (const id of fresh) this.unlockAnnounced.add(id);
+    const names = fresh.map((id) => tr(TOWERS[id].name)).join(', ');
+    this.toast(tr('New tier unlockable: {name}!', { name: names }), 2600, { icon: 'xp', queue: true, cls: 'xp' });
+    this.panelKey = '';
+  }
+
   // -------------------------------------------------------------------------------------------
   // Input
   // -------------------------------------------------------------------------------------------
@@ -354,7 +485,14 @@ export class Hud {
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('pointermove', this.onWinMove);
     window.addEventListener('pointerup', this.onWinUp);
+    window.addEventListener('resize', this.onResize);
   }
+
+  /** Re-lay the upgrade panel (side + camera nudge) and the tutorial pointer for the new size. */
+  private onResize = () => {
+    this.panelKey = '';
+    if (this.tutorialStep === 0 || this.tutorialStep === 1) requestAnimationFrame(() => this.placePointer());
+  };
 
   private onContext = (e: Event) => {
     e.preventDefault();
@@ -520,7 +658,7 @@ export class Hud {
     if (!this.game.sandbox && this.game.cash < cost) {
       audio.play('error');
       this.flashCash();
-      this.toast(tr('Need ${n} more', { n: formatNum(cost - this.game.cash) }), 1200);
+      this.toast(tr('Need ${n} more', { n: num(cost - this.game.cash) }), 1200);
       return;
     }
     this.select(null);
@@ -563,7 +701,7 @@ export class Hud {
     if (this.tutorialStep === 0) this.tutorial(1);
     if (this.game.towers.length === 2 && t.bonds.length && !this.game.sandbox) {
       const syn = SYNERGIES.find((s) => s.id === t.bonds[0].synergyId);
-      if (syn) this.toast(tr('⚡ BOND: {name}! Paired bandits power each other up.', { name: tr(syn.name) }), 3000);
+      if (syn) this.toast(tr('BOND: {name}! Paired bandits power each other up.', { name: tr(syn.name) }), 3000, { icon: 'bond' });
     }
     this.cancelPlacing();
     this.select(t);
@@ -583,10 +721,14 @@ export class Hud {
     if (this.renderer.selected === t) return;
     this.renderer.selected = t;
     this.panelKey = '';
-    if (!t && this.panel) {
-      this.panel.remove();
-      this.panel = null;
-      this.panelFor = null;
+    this.openDesc.clear();
+    if (!t) {
+      this.renderer.panTarget = 0;
+      if (this.panel) {
+        this.panel.remove();
+        this.panel = null;
+        this.panelFor = null;
+      }
       this.root.classList.remove('up-left', 'up-right');
     }
     if (t) audio.play('click');
@@ -594,26 +736,41 @@ export class Hud {
 
   private buildPanel(t: Tower) {
     const g = this.game;
-    const side = this.renderer.worldToScreen(t.x, t.y).x < (window.innerWidth - this.sidebarWidth) / 2 ? 'right' : 'left';
-    const panel = h('div', { class: 'upanel ' + side + (t.hero ? ' is-hero' : '') });
-    toggle(this.root, 'up-left', side === 'left');
-    toggle(this.root, 'up-right', side === 'right');
+    const sameTower = this.panelFor === t;
+    // laid out on the left first; placePanel measures it and picks the side
+    const panel = h('div', { class: 'upanel left' + (t.hero ? ' is-hero' : '') });
     panel.addEventListener('pointerdown', (e) => e.stopPropagation());
     const look = t.hero ? heroPortraitUrl(t.hero.id, t.heroLevel) : towerPortraitUrl(t.def!.id, t.tiers);
     const sub = t.hero ? tr(t.hero.title) : `${tr(t.def!.species)} · ${tr(t.def!.role)}`;
     const statsLine = h('div', { class: 'stats-line' });
+    const meta = h('div', { class: 'meta' }, h('span', { class: 'meta-t' }, sub));
+    if (t.def && this.progression) {
+      // this raccoon type's unspent bandit XP (spent below to unlock tiers)
+      const can = [0, 1, 2].some((p) => this.canUnlockPath(t, p));
+      meta.append(
+        h(
+          'span',
+          { class: 'u-xp' + (can ? ' can' : ''), title: tr('{name} XP: unlocks new upgrade tiers', { name: tr(t.def.name) }) },
+          uiIcon('xp', '⭐'),
+          h('b', null, num(this.host.progress.xp(t.def.id))),
+          h('small', null, tr('XP')),
+        ),
+      );
+    }
     panel.append(
       h(
         'div',
         { class: 'uhead' },
         h('div', { class: 'u-portrait' }, img(look)),
-        h('div', { class: 'u-title' }, h('div', { class: 'name t-outline' }, tr(t.name)), h('div', { class: 'meta' }, sub), statsLine),
+        h('div', { class: 'u-title' }, h('div', { class: 'name t-outline' }, tr(t.name)), meta, statsLine),
         closeBtn(() => {
           audio.play('click');
           this.select(null);
         }),
       ),
     );
+    // paths, hero card and bonds scroll; the targeting / sell footer stays pinned
+    const body = h('div', { class: 'ubody' });
 
     if (t.def) {
       const def = t.def;
@@ -625,29 +782,39 @@ export class Hud {
         for (let i = 0; i < 5; i++) pips.append(h('i', { class: (i < tier ? 'on' : '') + (i === 4 ? ' five' : '') }));
         const head = h('div', { class: 'p-head' }, h('span', { class: 'pname' }, tr(def.pathNames[p])), pips);
         const row = h('div', { class: 'path', style: `--pc:${PATH_COLOR[p]}` });
+        if (this.justUnlocked === `${t.id}:${p}`) row.classList.add('unlocked-now');
         if (tier >= 5) {
           const u = def.paths[p][4];
           row.classList.add('maxed');
-          row.append(this.upgIcon(def.id, t.tiers, 5), h('div', { class: 'info' }, head, h('div', { class: 'uname' }, tr(u.name)), h('div', { class: 'udesc' }, tr(u.desc))), h('div', { class: 'maxmark' }, uiIcon('crown', '👑'), h('b', null, 'MAX')));
+          row.append(this.upgIcon(def.id, t.tiers, 5), this.pathInfo(row, p, head, tr(u.name), tr(u.desc)), h('div', { class: 'maxmark' }, uiIcon('crown', '👑'), h('b', null, tr('MAX'))));
+        } else if (!can) {
+          // crosspath rule: this path can never go further on this raccoon
+          const u = def.paths[p][tier];
+          const next = t.tiers.map((x, i) => (i === p ? x + 1 : x));
+          row.classList.add('closed');
+          const buy = h('button', { class: 'btn small buy dark closed', type: 'button', title: tr('Path closed') }, uiIcon('lock', '🔒', 'lock'), h('small', null, tr('Path closed')));
+          row.append(this.upgIcon(def.id, next, tier + 1), this.pathInfo(row, p, head, tr(u.name), tr('Only 2 paths, and only one past tier 2.')), buy);
+        } else if (g.upgradeLocked(t, p)) {
+          row.append(...this.xpLockedRow(t, p, row, head));
         } else {
           const u = def.paths[p][tier];
           const cost = g.upgradeCost(t, p)!;
           const next = t.tiers.map((x, i) => (i === p ? x + 1 : x));
           const buy = h(
             'button',
-            { class: 'btn small buy ' + (can ? 'gold' : 'dark closed'), type: 'button', title: can ? tr(u.name) : tr('Path closed') },
-            can ? h('span', { class: 'bp' }, uiIcon('coin', '$', 'coin'), h('span', null, formatNum(cost))) : uiIcon('lock', '🔒', 'lock'),
-            h('small', null, can ? tr('Tier {n}', { n: tier + 1 }) : tr('Path closed')),
+            { class: 'btn small buy gold', type: 'button', title: tr(u.name) },
+            h('span', { class: 'bp' }, uiIcon('coin', '$', 'coin'), h('span', null, num(cost))),
+            h('small', null, tr('Tier {n}', { n: tier + 1 })),
           ) as HTMLButtonElement;
           buy.dataset.cost = String(cost);
-          buy.dataset.can = can ? '1' : '0';
+          buy.dataset.can = '1';
           buy.addEventListener('click', () => this.buyUpgrade(t, p));
-          if (!can) row.classList.add('closed');
-          row.append(this.upgIcon(def.id, next, tier + 1), h('div', { class: 'info' }, head, h('div', { class: 'uname' }, tr(u.name)), h('div', { class: 'udesc' }, can ? tr(u.desc) : tr('Only 2 paths, and only one past tier 2.'))), buy);
+          row.append(this.upgIcon(def.id, next, tier + 1), this.pathInfo(row, p, head, tr(u.name), tr(u.desc)), buy);
         }
         paths.append(row);
       }
-      panel.append(paths);
+      this.justUnlocked = '';
+      body.append(paths);
     } else if (t.hero) {
       const hero = t.hero;
       const lvl = t.heroLevel;
@@ -660,7 +827,7 @@ export class Hud {
         { class: 'h-stages' },
         ...HERO_LOOK_LEVELS.map((lv) => h('div', { class: 'h-stage' + (heroStage(lv) === stage ? ' on' : lv > lvl ? ' future' : ''), title: tr('Level {n}', { n: lv }) }, img(heroPortraitUrl(hero.id, lv)), h('span', null, tr('Lv {n}', { n: lv })))),
       );
-      panel.append(
+      body.append(
         h(
           'div',
           { class: 'path hero-lv' },
@@ -668,7 +835,7 @@ export class Hud {
           h(
             'div',
             { class: 'info' },
-            h('div', { class: 'p-head' }, h('span', { class: 'pname' }, tr('Level {n}', { n: lvl }) + (lvl >= MAX_HERO_LEVEL ? ' · MAX' : ''))),
+            h('div', { class: 'p-head' }, h('span', { class: 'pname' }, tr('Level {n}', { n: lvl }) + (lvl >= MAX_HERO_LEVEL ? ' · ' + tr('MAX') : ''))),
             h('div', { class: 'uname' }, next ? tr('Next: ') + tr(next.desc) : tr('Fully powered!')),
             next ? xp : null,
           ),
@@ -687,9 +854,9 @@ export class Hud {
         seen.add(b.synergyId);
         const syn = SYNERGIES.find((s) => s.id === b.synergyId)!;
         const isA = t.def?.id === syn.a;
-        bonds.append(h('span', { class: 'bond', style: `--bc:${syn.color}`, title: tr(isA ? syn.descA : syn.descB) }, h('b', null, `⚡ ${tr(syn.name)}`), ' ' + tr(isA ? syn.descA : syn.descB)));
+        bonds.append(h('span', { class: 'bond', style: `--bc:${syn.color}`, title: tr(isA ? syn.descA : syn.descB) }, uiIcon('bond', '⚡', 'bond-ico'), h('span', null, h('b', null, tr(syn.name)), ' ' + tr(isA ? syn.descA : syn.descB))));
       }
-      panel.append(bonds);
+      body.append(bonds);
     }
 
     // footer: targeting, bank, sell
@@ -709,7 +876,7 @@ export class Hud {
     }
     const sellV = t.sellValue(g.sandbox) + Math.floor(t.stash);
     const sellLbl = h('span', null, tr('Sell'));
-    const sellBtn = btn(h('span', { class: 'sell-in' }, sellLbl, h('span', { class: 'sv' }, uiIcon('coin', '$', 'coin'), formatNum(sellV))), 'red', () => {
+    const sellBtn = btn(h('span', { class: 'sell-in' }, sellLbl, h('span', { class: 'sv' }, uiIcon('coin', '$', 'coin'), num(sellV))), 'red', () => {
       // expensive towers need a second tap so they are not sold by accident
       if (sellV >= 1000 && !sellBtn.classList.contains('armed') && !this.game.sandbox) {
         sellBtn.classList.add('armed');
@@ -724,13 +891,98 @@ export class Hud {
       this.sell(t);
     }, { size: 'small', cls: 'sell', title: tr('Sell (Backspace)') });
     foot.append(sellBtn);
-    panel.append(foot);
+    panel.append(body, foot);
 
     this.root.append(panel);
     this.panel?.remove();
     this.panel = panel;
     this.panelFor = t;
+    this.placePanel(t, panel, sameTower);
+    watchScroll(body);
     this.buildStats(t, statsLine);
+  }
+
+  /** Name + description of a path row; tapping it shows the full description (phones clamp it). */
+  private pathInfo(row: HTMLElement, p: number, head: HTMLElement, name: string, desc: string, extra: HTMLElement | null = null): HTMLElement {
+    const info = h('div', { class: 'info' }, head, h('div', { class: 'uname' }, name), h('div', { class: 'udesc' }, desc), extra);
+    if (this.openDesc.has(p)) row.classList.add('open');
+    info.addEventListener('click', () => {
+      const open = !row.classList.contains('open');
+      toggle(row, 'open', open);
+      if (open) this.openDesc.add(p);
+      else this.openDesc.delete(p);
+    });
+    return info;
+  }
+
+  /** Next tier exists but the player has not unlocked it with this raccoon type's XP yet. */
+  private xpLockedRow(t: Tower, p: number, row: HTMLElement, head: HTMLElement): HTMLElement[] {
+    const def = t.def!;
+    const tier = t.tiers[p];
+    const u = def.paths[p][tier];
+    const next = t.tiers.map((x, i) => (i === p ? x + 1 : x));
+    const cost = this.host.progress.nextCost(def.id, p) ?? 0;
+    const xp = this.host.progress.xp(def.id);
+    const afford = xp >= cost;
+    row.classList.add('xlock');
+    toggle(row, 'afford', afford);
+    const label = afford ? tr('Ready to unlock!') : `${num(xp)} / ${num(cost)} ${tr('XP')}`;
+    const xbar = h('div', { class: 'xbar' }, uiIcon('xp', '⭐'), bar(cost > 0 ? xp / cost : 1, afford ? 'gold' : '', label, 15));
+    const ico = this.upgIcon(def.id, next, tier + 1);
+    ico.append(h('span', { class: 'u-lock' }, uiIcon('lock', '🔒')));
+    const title = tr('Unlock tier {n} for {xp} XP', { n: tier + 1, xp: num(cost) });
+    const action = afford
+      ? h('button', { class: 'btn small buy unlock gold glint', type: 'button', title }, h('span', { class: 'bp' }, uiIcon('xp', '⭐', 'xpi'), h('span', null, num(cost))), h('small', null, tr('Unlock')))
+      : h('button', { class: 'btn small buy dark xlocked', type: 'button', title }, uiIcon('lock', '🔒', 'lock'), h('small', null, tr('Unlock with XP')));
+    action.addEventListener('click', () => this.unlockTier(t, p));
+    return [ico, this.pathInfo(row, p, head, tr(u.name), tr(u.desc), xbar), action];
+  }
+
+  private unlockTier(t: Tower, p: number) {
+    if (!t.def) return;
+    audio.unlock();
+    const id = t.def.id;
+    if (!this.canUnlockPath(t, p)) {
+      audio.play('error');
+      const cost = this.host.progress.nextCost(id, p) ?? 0;
+      this.toast(tr('{name} needs {n} more XP. Raccoons earn XP for every round they fight.', { name: tr(t.def.name), n: num(Math.max(0, cost - this.host.progress.xp(id))) }), 2800, { icon: 'xp' });
+      return;
+    }
+    if (this.host.progress.unlock(id, p)) {
+      haptic('light');
+      this.justUnlocked = `${t.id}:${p}`;
+      this.panelKey = '';
+      this.toast(tr('Tier {n} unlocked for every {name}!', { n: t.tiers[p] + 1, name: tr(t.def.name) }), 2200, { icon: 'xp', cls: 'xp' });
+    }
+  }
+
+  /**
+   * Puts the panel on the side that hides less of its tower and nudges the camera when the tower
+   * would still sit under it (short phones: the panel is wider than half the map).
+   */
+  private placePanel(t: Tower, panel: HTMLElement, keepSide: boolean) {
+    const r = this.renderer;
+    const mapW = window.innerWidth - this.sidebarWidth;
+    const w = panel.offsetWidth;
+    const leftEnd = panel.offsetLeft + w; // right edge of a left panel
+    const rightStart = mapW - 8 - w; // left edge of a right panel
+    const sx = r.worldToScreen(t.x, t.y).x - r.panX;
+    const m = t.radius * r.scale * 1.5 + 10;
+    const panL = Math.max(0, leftEnd + m - sx);
+    const panR = Math.min(0, rightStart - m - sx);
+    let side: 'left' | 'right';
+    if (keepSide) side = this.panelSide;
+    else if (panL === 0 && panR === 0) side = sx < mapW / 2 ? 'right' : 'left';
+    else side = panL <= -panR ? 'left' : 'right';
+    const max = r.maxPan;
+    r.panTarget = Math.max(-max, Math.min(max, side === 'left' ? panL : panR));
+    this.panelSide = side;
+    if (side === 'right') {
+      panel.classList.remove('left');
+      panel.classList.add('right');
+    }
+    toggle(this.root, 'up-left', side === 'left');
+    toggle(this.root, 'up-right', side === 'right');
   }
 
   /** Next-upgrade picture: the painted look for tier 3+, a path-coloured chevron emblem below. */
@@ -764,7 +1016,7 @@ export class Hud {
     const a = t.stats.attacks[0];
     if (a && ['shoot', 'radial', 'hitscan', 'chain', 'pulse', 'drone'].includes(a.kind)) {
       add('dmg', glyph('M5 19 17 7M14 4h6v6M7 15l2 2', 5.5, '#ffd0d0'), tr('Damage'));
-      if (a.kind === 'drone') add('drones', h('span', { class: 'ico emoji' }, '🛸'), tr('Drones'));
+      if (a.kind === 'drone') add('drones', glyph(DRONE, 4.6, '#ffe7a8'), tr('Drones'));
       else add('pierce', glyph('M4 12h13M13 6l6 6-6 6', 5.5, '#cfe8ff'), tr('Pierce'));
       if (a.kind !== 'drone') add('rate', glyph('M12 7v5l3 2M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17', 4.5, '#e0ffd0'), tr('Attacks per second'));
     }
@@ -774,11 +1026,11 @@ export class Hud {
 
   private updateStats(t: Tower) {
     const s = this.statEls;
-    if (s.pops) setText(s.pops, formatNum(t.pops));
-    if (s.stash && t.stats.bank) setText(s.stash, `$${formatNum(t.stash)}/${formatNum(t.stats.bank.capacity)}`);
+    if (s.pops) setText(s.pops, num(t.pops));
+    if (s.stash && t.stats.bank) setText(s.stash, `$${num(t.stash)}/${num(t.stats.bank.capacity)}`);
     if (s.income && t.stats.income) {
       const inc = t.stats.income;
-      setText(s.income, tr('${n}/round', { n: formatNum(inc.perDrop * inc.drops * t.buffs.incomeMul + inc.bonusPerRound) }));
+      setText(s.income, tr('${n}/round', { n: num(inc.perDrop * inc.drops * t.buffs.incomeMul + inc.bonusPerRound) }));
     }
     const a = t.stats.attacks[0];
     if (!a || !s.dmg) return;
@@ -807,7 +1059,7 @@ export class Hud {
     if (s.pierce) setText(s.pierce, String(pierce + t.buffs.pierceAdd));
     if (s.rate) {
       const rate = a.rate / t.rateFactor(this.game.time, this.game.frenzyT > 0);
-      setText(s.rate, rate > 0 ? `${(1 / rate).toFixed(rate < 1 ? 1 : 2)}/s` : '–');
+      setText(s.rate, rate > 0 ? `${dec(1 / rate, rate < 1 ? 1 : 2)}/s` : '–');
     }
   }
 
@@ -818,7 +1070,9 @@ export class Hud {
       this.select(null);
       return;
     }
-    const key = `${t.id}|${t.tiers.join('')}|${t.heroLevel}|${t.priority}|${t.camo}|${t.bonds.map((b) => b.synergyId).join(',')}`;
+    // bandit XP and unlocked tiers change the lock rows (round ends, unlocking)
+    const prog = t.def && this.progression ? `${this.host.progress.xp(t.def.id)}|${[0, 1, 2].map((p) => this.game.upgradeLimit(t, p)).join('')}` : '';
+    const key = `${t.id}|${t.tiers.join('')}|${t.heroLevel}|${t.priority}|${t.camo}|${t.bonds.map((b) => b.synergyId).join(',')}|${prog}`;
     if (key !== this.panelKey || this.panelFor !== t) {
       this.panelKey = key;
       this.buildPanel(t);
@@ -842,8 +1096,14 @@ export class Hud {
 
   private buyUpgrade(t: Tower, p: number) {
     if (!t.def) return;
-    if (!canTier(t.tiers, p)) {
+    if (!canTier(t.tiers, p) || t.tiers[p] >= 5) {
       audio.play('error');
+      return;
+    }
+    if (this.game.upgradeLocked(t, p)) {
+      // hotkeys never spend XP: the panel's unlock button does that
+      audio.play('error');
+      this.toast(tr('Unlock this tier with XP first'), 1600, { icon: 'lock' });
       return;
     }
     const cost = this.game.upgradeCost(t, p)!;
@@ -938,10 +1198,10 @@ export class Hud {
         const step = d * Math.min(1, dt * (d > 0 ? 8 : 14));
         this.shownCash += Math.abs(step) < 1 ? Math.sign(d) : step;
       }
-      setText(this.cashEl, g.sandbox ? '∞' : '$' + formatNum(Math.round(this.shownCash)));
+      setText(this.cashEl, g.sandbox ? '∞' : '$' + num(Math.round(this.shownCash)));
     }
     if (g.lives !== this.lastLives) {
-      setText(this.livesEl, g.sandbox ? '∞' : formatNum(Math.max(0, g.lives)));
+      setText(this.livesEl, g.sandbox ? '∞' : num(Math.max(0, g.lives)));
       toggle(this.livesPill, 'low', !g.sandbox && g.lives > 0 && g.lives <= Math.max(5, g.diff.lives * 0.2));
       this.lastLives = g.lives;
     }
@@ -996,7 +1256,11 @@ export class Hud {
       this.toastEl = null;
       el.classList.add('out');
       setTimeout(() => el.remove(), 220);
+      const next = this.toastQ.shift();
+      if (next) this.showToast(next.text, next.ms, next.icon, next.cls);
     }
+    // a raccoon placed some other way (restored save, script) still ends the "place a bandit" step
+    if (this.tutorialStep === 0 && g.towers.length > 0) this.tutorial(1);
     if (this.showFps) {
       this.fpsAcc += dt;
       this.fpsN++;
@@ -1022,9 +1286,9 @@ export class Hud {
       toggle(card, 'placed', placedHero);
       toggle(card, 'poor', unlocked && !banned && !placedHero && !g.sandbox && g.cash < cost);
       const pv = card.querySelector('.pv') as HTMLElement;
-      if (!unlocked) setText(pv, tr('Lvl {n}', { n: kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock }));
+      if (!unlocked) setText(pv, tr('Lv {n}', { n: kind === 'tower' ? TOWERS[id as TowerId].unlock : HEROES[id as HeroId].unlock }));
       else if (placedHero) setText(pv, tr('Lv {n}', { n: g.hero!.heroLevel }));
-      else setText(pv, formatNum(cost));
+      else setText(pv, num(cost));
       if (kind === 'hero') {
         // the hero card shows the hero's current look
         const stage = String(heroStage(g.hero?.heroLevel ?? 1));
@@ -1072,7 +1336,11 @@ export class Hud {
         this.abilitiesEl.append(el);
         this.abilityBtns.push({ el, cd, n, time, id, towers: gr.towers, ab: gr.ab, state: '' });
       }
+      toggle(this.dockEl, 'hidden', groups.size === 0);
+      setText(this.dockCount, String(groups.size));
+      this.syncDockH();
     }
+    let anyReady = false;
     for (const b of this.abilityBtns) {
       let best = Infinity;
       let ready = 0;
@@ -1097,6 +1365,12 @@ export class Hud {
       setText(b.time, ready ? '' : `${Math.ceil(best)}`);
       toggle(b.n, 'hidden', b.towers.length < 2);
       if (b.towers.length > 1) setText(b.n, `${ready}/${b.towers.length}`);
+      if (ready > 0) anyReady = true;
+    }
+    // the collapsed tab glows while something is ready to fire
+    if (anyReady !== this.dockReady) {
+      this.dockReady = anyReady;
+      toggle(this.dockEl, 'ready', anyReady);
     }
   }
 
@@ -1116,15 +1390,47 @@ export class Hud {
   // Banners, toasts, tutorial
   // -------------------------------------------------------------------------------------------
 
+  /**
+   * Centre-screen headline. Banners never stack: a small one (round start, ability name) is
+   * replaced by the next banner and skipped while a big one plays; big ones queue up.
+   */
   banner(text: string, sub: string | null, boss: boolean, small = false) {
-    const el = h('div', { class: 'banner' + (boss ? ' boss' : '') + (small ? ' small' : '') }, h('span', { class: 'b-main' }, text), sub ? h('small', null, sub) : null);
-    this.root.append(el);
-    setTimeout(() => el.remove(), 1900);
+    const show = () => {
+      if (this.destroyed) return;
+      const el = h('div', { class: 'banner' + (boss ? ' boss' : '') + (small ? ' small' : '') }, h('span', { class: 'b-main' }, text), sub ? h('small', null, sub) : null);
+      this.root.append(el);
+      this.bannerEl = el;
+      this.bannerBig = !small;
+      setTimeout(() => {
+        el.remove();
+        if (this.bannerEl !== el) return;
+        this.bannerEl = null;
+        this.bannerQ.shift()?.();
+      }, 1900);
+    };
+    if (!this.bannerEl) show();
+    else if (!this.bannerBig) {
+      this.bannerEl.remove();
+      this.bannerEl = null;
+      show();
+    } else if (!small && this.bannerQ.length < 3) this.bannerQ.push(show);
   }
 
-  toast(text: string, ms = 2500) {
+  /**
+   * Bottom-centre message. A new toast replaces the current one; `queue` waits for it instead
+   * (used for follow-ups such as the "new tier unlockable" note after "Round complete").
+   */
+  toast(text: string, ms = 2500, o: { icon?: string; queue?: boolean; cls?: string } = {}) {
+    if (o.queue && this.toastEl) {
+      if (this.toastQ.length < 4) this.toastQ.push({ text, ms, icon: o.icon, cls: o.cls });
+      return;
+    }
+    this.showToast(text, ms, o.icon, o.cls);
+  }
+
+  private showToast(text: string, ms: number, icon?: string, cls?: string) {
     this.toastEl?.remove();
-    this.toastEl = h('div', { class: 'toast', role: 'status' }, text);
+    this.toastEl = h('div', { class: 'toast' + (icon ? ' has-ico' : '') + (cls ? ' ' + cls : ''), role: 'status' }, icon ? uiIcon(icon, '', 't-ico') : null, h('span', null, text));
     this.root.append(this.toastEl);
     this.toastTimer = ms / 1000;
   }
@@ -1133,25 +1439,38 @@ export class Hud {
     this.tutorialStep = step;
     this.handEl?.remove();
     this.handEl = null;
-    const card = this.cards.get('tower:spike');
-    if (step === 0 && card) {
-      this.toast(tr('👋 Drag the Slinger from the shop onto the grass near the track!'), 999999);
-      const r = card.getBoundingClientRect();
-      this.handEl = h('div', { class: 'hand', style: `left:${r.left + r.width * 0.3}px;top:${r.top + r.height * 0.4}px;--dx:-${Math.round(window.innerWidth * 0.35)}px;--dy:0px` }, '👆');
+    if (step === 0 && this.cards.get('tower:spike')) {
+      this.toast(tr('Drag the Slinger from the shop onto the grass near the track!'), 999999);
+      this.handEl = h('div', { class: 'hand drag', html: POINTER_SVG });
       this.root.append(this.handEl);
+      this.placePointer();
     } else if (step === 1) {
-      this.toast(tr('Nice! Press ▶ to bring on the stars.'), 999999);
-      const r = this.playBtn.getBoundingClientRect();
-      this.handEl = h('div', { class: 'hand', style: `left:${r.left + r.width * 0.35}px;top:${r.top - 30}px;--dx:0px;--dy:14px` }, '👇');
+      this.toast(tr('Nice! Press Play to bring on the stars.'), 999999, { icon: 'play' });
+      this.handEl = h('div', { class: 'hand tap', html: POINTER_SVG });
       this.root.append(this.handEl);
+      this.placePointer();
     } else if (step === 2) {
-      this.toast(tr('Shatter them all! Every layer you crack earns cash. 🪙'), 3500);
+      this.toast(tr('Shatter them all! Every layer you crack earns cash.'), 3500, { icon: 'coin' });
     } else if (step === 3) {
       this.toast(tr('Tap a raccoon to upgrade it. Upgrades make your bandits WAY stronger!'), 6000);
     } else if (step === 4) {
-      this.toast(tr('🎉 You got it! Tip: place different bandits close together to form ⚡ BONDS.'), 5000);
+      this.toast(tr('You got it! Tip: place different bandits close together to form BONDS.'), 5000, { icon: 'bond' });
       this.tutorialStep = -1;
       this.host.onTutorialDone();
+    }
+  }
+
+  /** Points the tutorial arrow at the Slinger card (step 0) or the play button (step 1). */
+  private placePointer() {
+    const el = this.handEl;
+    if (!el) return;
+    if (this.tutorialStep === 0) {
+      const r = this.cards.get('tower:spike')!.getBoundingClientRect();
+      // sweeps from the card towards the map
+      el.style.cssText = `left:${r.left - 8}px;top:${r.top + r.height * 0.5}px;--dx:-${Math.round(Math.min(window.innerWidth * 0.3, 260))}px;--dy:0px`;
+    } else {
+      const r = this.playBtn.getBoundingClientRect();
+      el.style.cssText = `left:${r.left + r.width * 0.5}px;top:${r.top - 6}px;--dx:0px;--dy:-12px`;
     }
   }
 

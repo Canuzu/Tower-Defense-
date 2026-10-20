@@ -1522,30 +1522,29 @@ html.reduce-fx .badge {
 /* ================================================================================== in-game HUD
  * Sizes follow the viewport height (phones in landscape are ~360-430px tall) instead of --k.
  *   --hud-h   top bar height        --map-r  width taken by the sidebar on the right
- *   --ab-s    ability button size   (the map area is 0 .. 100% - --map-r)
+ *   --ab-s    ability button size   --up-w   upgrade panel width (the map area is 0 .. 100% - --map-r)
+ *   --dock-h  height of the ability dock (set by hud.ts; toasts sit above it)
+ * The map is fitted to the full height: the top bar floats over it, so nothing is reserved for it.
  */
 .hud {
-  --hud-h: clamp(34px, 8.4vh, 56px);
+  --hud-h: clamp(32px, 7.8vh, 52px);
   --hud-gap: clamp(5px, 1.1vh, 9px);
+  --hud-top: calc(4px + var(--safe-t));
   --map-r: calc(var(--sidebar-w) + var(--safe-r));
-  --ab-s: clamp(46px, 12vh, 74px);
+  --ab-s: clamp(40px, 11vh, 52px);
   --up-w: min(380px, 46vw);
+  --dock-h: 0px;
 }
 
-/* while the upgrade panel is open, toasts and ability buttons centre in the free part of the map */
+/* while the upgrade panel is open, toasts and banners centre in the free part of the map */
 .hud.up-left .toast,
-.hud.up-left > .abilities {
+.hud.up-left > .banner {
   left: calc(var(--up-w) + 16px + var(--safe-l) + (100% - var(--map-r) - var(--up-w) - 16px - var(--safe-l)) / 2);
 }
 
 .hud.up-right .toast,
-.hud.up-right > .abilities {
+.hud.up-right > .banner {
   left: calc((100% - var(--map-r) - var(--up-w) - 16px) / 2);
-}
-
-.hud.up-left > .abilities,
-.hud.up-right > .abilities {
-  max-width: calc(100% - var(--map-r) - var(--up-w) - 40px - var(--safe-l));
 }
 
 .hud.up-left .toast,
@@ -1555,11 +1554,22 @@ html.reduce-fx .badge {
   font-size: clamp(12px, 2.4vh, 18px);
 }
 
+.hud.up-left > .banner,
+.hud.up-right > .banner {
+  max-width: calc(100% - var(--map-r) - var(--up-w) - 32px);
+  font-size: clamp(22px, 6vh, 52px);
+}
+
+.hud.up-left > .banner .b-main,
+.hud.up-right > .banner .b-main {
+  white-space: normal;
+}
+
 .hud > .hud-bar {
   position: absolute;
   left: calc(8px + var(--safe-l));
   right: calc(var(--map-r) + 8px);
-  top: calc(6px + var(--safe-t));
+  top: var(--hud-top);
   display: flex;
   align-items: center;
   gap: var(--hud-gap);
@@ -1849,7 +1859,7 @@ html.reduce-fx .badge {
 .combo {
   position: absolute;
   left: calc(14px + var(--safe-l));
-  top: calc(var(--hud-h) + 14px + var(--safe-t));
+  top: calc(var(--hud-top) + var(--hud-h) + 10px);
   font-weight: 800;
   font-size: clamp(16px, 4vh, 32px);
   color: #ffe680;
@@ -1862,6 +1872,17 @@ html.reduce-fx .badge {
 
 .combo.bump {
   animation: hud-combo 0.18s;
+}
+
+/* keep the combo clear of a left upgrade panel and of the sandbox spawn panel (top-left) */
+.hud.up-left > .combo {
+  left: calc(var(--up-w) + 22px + var(--safe-l));
+}
+
+.hud.sandbox > .combo {
+  left: auto;
+  right: calc(var(--map-r) + 14px);
+  transform-origin: right center;
 }
 
 @keyframes hud-combo {
@@ -2217,8 +2238,8 @@ html.reduce-fx .badge {
 .upanel {
   --pad: clamp(6px, 1.5vh, 10px);
   position: absolute;
-  top: calc(var(--hud-h) + 12px + var(--safe-t));
-  max-height: calc(100% - var(--hud-h) - 22px - var(--safe-t) - var(--safe-b));
+  top: calc(var(--hud-top) + var(--hud-h) + 8px);
+  max-height: calc(100% - var(--hud-top) - var(--hud-h) - 16px - var(--safe-b));
   width: var(--up-w);
   display: flex;
   flex-direction: column;
@@ -2230,14 +2251,45 @@ html.reduce-fx .badge {
   background-size: 170px 130px, 170px 130px, 170px 130px, 170px 130px, 170px 130px, 170px 130px, auto;
   box-shadow: var(--hl), var(--sh-panel);
   animation: hud-slide 0.2s var(--ease-out);
-  overflow-y: auto;
-  scrollbar-width: none;
-  touch-action: pan-y;
+  overflow: hidden;
   z-index: 5;
 }
 
-.upanel::-webkit-scrollbar {
+.upanel > .uhead,
+.upanel > .ufoot {
+  flex: none;
+}
+
+/* paths, hero card and bonds scroll between the pinned header and footer (short phones) */
+.ubody {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pad) * 0.6);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+
+.ubody::-webkit-scrollbar {
   display: none;
+}
+
+.ubody.more-bottom {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent);
+}
+
+.ubody.more-top {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 16px);
+  mask-image: linear-gradient(180deg, transparent, #000 16px);
+}
+
+.ubody.more-top.more-bottom {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 16px, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 16px, #000 calc(100% - 22px), transparent);
 }
 
 .upanel.left {
@@ -2326,13 +2378,73 @@ html.reduce-fx .badge {
 }
 
 .uhead .meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   color: var(--c-muted);
   font-size: clamp(11px, 2.1vh, 14px);
   font-weight: 700;
   line-height: 1.2;
+}
+
+.uhead .meta-t {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* this raccoon type's unspent bandit XP */
+.u-xp {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  height: clamp(17px, 3.6vh, 22px);
+  padding: 0 7px 0 2px;
+  border-radius: var(--r-pill);
+  border: 2px solid rgba(9, 4, 28, 0.75);
+  background: linear-gradient(180deg, rgba(110, 90, 230, 0.55), rgba(48, 30, 130, 0.7));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: var(--c-cream);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.u-xp .ico {
+  height: 1.45em;
+  width: auto;
+  margin: 0 1px 0 -3px;
+  filter: drop-shadow(0 1px 0 rgba(9, 4, 28, 0.7));
+}
+
+.u-xp b {
+  font-weight: 800;
+}
+
+.u-xp small {
+  font-size: 0.78em;
+  font-weight: 800;
+  color: #c9bfff;
+}
+
+.u-xp.can {
+  border-color: var(--c-ink);
+  background: var(--g-gold);
+  color: #4a2700;
+  animation: hud-xp-can 1.4s var(--ease-in-out) infinite;
+}
+
+.u-xp.can small {
+  color: #7a4a00;
+}
+
+@keyframes hud-xp-can {
+  50% {
+    box-shadow: 0 0 0 2px rgba(255, 230, 120, 0.6), 0 0 12px rgba(255, 200, 60, 0.8);
+  }
 }
 
 .uhead .xbtn {
@@ -2385,6 +2497,8 @@ html.reduce-fx .badge {
 }
 
 .path {
+  position: relative;
+  flex: none;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -2407,7 +2521,8 @@ html.reduce-fx .badge {
   display: grid;
   place-items: center;
   border: var(--bw) solid var(--c-ink);
-  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--pc) 55%, #fff) 0%, var(--pc) 55%, color-mix(in srgb, var(--pc) 55%, #000) 100%);
+  /* light centre and dark rim layered over the path colour (no color-mix: works on every WebKit) */
+  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.45) 100%), var(--pc);
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), inset 0 -4px 0 rgba(0, 0, 0, 0.25), 0 3px 0 rgba(9, 4, 28, 0.6);
 }
 
@@ -2503,6 +2618,126 @@ html.reduce-fx .badge {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* tapping a row's text shows its whole description */
+.path .info {
+  cursor: pointer;
+}
+
+.path.open .udesc {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+/* ---- tier locked by bandit progression: unlock it with this raccoon type's XP */
+.u-ico .u-lock {
+  position: absolute;
+  z-index: 2;
+  left: -5px;
+  bottom: -5px;
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--c-ink);
+  background: radial-gradient(circle at 50% 30%, #7565c8, #2d2270);
+}
+
+.u-ico .u-lock .ico {
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+}
+
+.path.xlock {
+  border-color: rgba(143, 123, 255, 0.35);
+  background: linear-gradient(180deg, rgba(95, 70, 210, 0.2), rgba(7, 3, 24, 0.45));
+}
+
+.path.xlock .u-ico > img,
+.path.xlock .u-ico > .chev {
+  filter: saturate(0.35) brightness(0.7);
+}
+
+.path.xlock .udesc {
+  -webkit-line-clamp: 1;
+}
+
+.path.xlock.open .udesc {
+  -webkit-line-clamp: unset;
+}
+
+.xbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.xbar > .ico {
+  flex: none;
+  height: clamp(16px, 3.6vh, 21px);
+  width: auto;
+  filter: drop-shadow(0 1px 0 rgba(9, 4, 28, 0.7));
+}
+
+.xbar .bar {
+  flex: 1;
+  min-width: 0;
+  --bar-h: clamp(14px, 3.4vh, 18px);
+  border-width: 2px;
+}
+
+.xbar .bar > span {
+  font-size: clamp(9px, 2vh, 12px);
+  -webkit-text-stroke: 2.5px var(--c-ink);
+  paint-order: stroke fill;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.path.xlock.afford {
+  border-color: rgba(255, 207, 63, 0.55);
+  background: linear-gradient(180deg, rgba(255, 207, 63, 0.18), rgba(120, 70, 0, 0.2));
+}
+
+.path.xlock.afford .u-lock {
+  background: var(--g-gold);
+}
+
+.buy.xlocked {
+  min-width: clamp(68px, 17vh, 100px);
+  max-width: clamp(76px, 19vh, 110px);
+}
+
+.buy.xlocked .lock {
+  height: 1.05em;
+  width: auto;
+}
+
+.buy.xlocked small {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.05;
+  font-size: 0.56em;
+}
+
+.buy.unlock .xpi {
+  height: 1.2em;
+  width: auto;
+}
+
+.path.unlocked-now {
+  animation: hud-unlocked 0.9s var(--ease-out);
+}
+
+@keyframes hud-unlocked {
+  0% {
+    box-shadow: 0 0 0 3px rgba(255, 230, 120, 0.95), 0 0 26px rgba(255, 200, 60, 0.9);
+    transform: scale(1.03);
+  }
 }
 
 .buy {
@@ -2687,14 +2922,27 @@ html.reduce-fx .badge {
 }
 
 .bond {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
   font-size: clamp(10px, 1.9vh, 13px);
   font-weight: 700;
   line-height: 1.2;
-  padding: 3px 8px;
+  padding: 3px 8px 3px 5px;
   border-radius: var(--r-xs);
   color: var(--c-cream);
+  /* plain fallbacks first: color-mix needs Safari 16.2 */
+  background: rgba(7, 3, 24, 0.5);
   background: color-mix(in srgb, var(--bc) 22%, rgba(7, 3, 24, 0.5));
+  border: 2px solid var(--bc);
   border: 2px solid color-mix(in srgb, var(--bc) 70%, transparent);
+}
+
+.bond .bond-ico {
+  flex: none;
+  height: 1.4em;
+  width: auto;
+  filter: drop-shadow(0 1px 0 rgba(9, 4, 28, 0.7));
 }
 
 .bond b {
@@ -2800,24 +3048,142 @@ html.reduce-fx .badge {
   }
 }
 
-/* ---------------------------------------------------------------- abilities */
-.hud > .abilities {
+/* ---------------------------------------------------------------- ability dock (bottom-left of the map)
+ * .ab-dock[.open][.ready] > button.dock-tab (> .dock-bolt, .chev, .dock-n) + .abilities > button.ability */
+.hud > .ab-dock {
   position: absolute;
-  left: calc((100% - var(--map-r)) / 2);
-  bottom: calc(10px + var(--safe-b));
-  transform: translateX(-50%);
+  left: calc(8px + var(--safe-l));
+  bottom: calc(8px + var(--safe-b));
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: calc(100% - var(--map-r) - 16px - var(--safe-l));
+  pointer-events: none;
+  z-index: 4;
+}
+
+.hud > .ab-dock.hidden {
+  display: none;
+}
+
+/* a left upgrade panel owns the bottom-left corner: the dock moves next to it */
+.hud.up-left > .ab-dock {
+  left: calc(var(--up-w) + 16px + var(--safe-l));
+  max-width: calc(100% - var(--map-r) - var(--up-w) - 24px - var(--safe-l));
+}
+
+.hud.up-right > .ab-dock {
+  max-width: calc(100% - var(--map-r) - var(--up-w) - 24px - var(--safe-l));
+}
+
+.dock-tab {
+  pointer-events: auto;
+  position: relative;
+  flex: none;
+  width: calc(var(--ab-s) * 0.66);
+  height: var(--ab-s);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border-radius: var(--r-sm);
+  border: var(--bw) solid var(--c-ink);
+  background: linear-gradient(180deg, #7565c8 0%, #46389a 55%, #2d2270 100%);
+  box-shadow: inset 0 -4px 0 #1b1347, inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 3px 0 var(--c-ink);
+  transition: transform 0.16s var(--ease-spring), filter 0.15s;
+}
+
+.dock-tab:active {
+  transform: translateY(2px) scale(0.92);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dock-tab:hover {
+    filter: brightness(1.15);
+  }
+}
+
+.dock-tab .dock-bolt {
+  display: block;
+  width: 70%;
+  height: 46%;
+  margin-top: 2px;
+  filter: drop-shadow(0 1px 0 rgba(10, 5, 30, 0.6));
+}
+
+.dock-tab .chev {
+  display: block;
+  width: 58%;
+  height: 30%;
+  margin-top: -1px;
+  transform: rotate(90deg);
+  transition: transform 0.22s var(--ease-spring);
+}
+
+.ab-dock.open .dock-tab .chev {
+  transform: rotate(-90deg);
+}
+
+.dock-n {
+  position: absolute;
+  top: -8px;
+  right: -9px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: var(--c-night-1);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  -webkit-text-stroke: 2.5px var(--c-ink);
+  paint-order: stroke fill;
+}
+
+/* collapsed with something ready to fire: the tab turns gold and pulses */
+.ab-dock.ready:not(.open) .dock-tab {
+  background: linear-gradient(180deg, #fff2a8 0%, #ffcf3f 50%, #e08a00 100%);
+  box-shadow: inset 0 -4px 0 #a35c00, inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 3px 0 var(--c-ink);
+  animation: hud-tab-ready 1.2s var(--ease-in-out) infinite;
+}
+
+.ab-dock.ready:not(.open) .dock-n {
+  background: radial-gradient(circle at 50% 30%, #8af07a, #2fad45);
+}
+
+@keyframes hud-tab-ready {
+  50% {
+    box-shadow: inset 0 -4px 0 #a35c00, inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 3px 0 var(--c-ink), 0 0 0 3px rgba(255, 236, 140, 0.9), 0 0 18px 4px rgba(255, 200, 60, 0.85);
+  }
+}
+
+.ab-dock > .abilities {
   display: flex;
   flex-wrap: wrap-reverse;
-  justify-content: center;
-  gap: clamp(8px, 2vh, 14px);
-  /* many abilities wrap upwards instead of running off the map */
-  max-width: calc(100% - var(--map-r) - var(--safe-l) - 24px);
+  gap: clamp(6px, 1.6vh, 10px);
+  min-width: 0;
+  padding: 3px 4px 3px 2px;
   pointer-events: none;
 }
 
-/* the sandbox spawn panel owns the bottom-left strip */
-.hud.sandbox > .abilities {
-  bottom: calc(100px + var(--safe-b));
+.ab-dock:not(.open) > .abilities {
+  display: none;
+}
+
+.ab-dock.open > .abilities {
+  animation: hud-dock-in 0.22s var(--ease-out);
+}
+
+@keyframes hud-dock-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.9);
+  }
 }
 
 .ability {
@@ -2864,24 +3230,26 @@ html.reduce-fx .badge {
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: calc(var(--ab-s) * 0.32);
+  font-size: calc(var(--ab-s) * 0.34);
   color: #fff;
-  -webkit-text-stroke: 4px var(--c-ink);
+  -webkit-text-stroke: 3.5px var(--c-ink);
   paint-order: stroke fill;
   pointer-events: none;
 }
 
 .ability .n {
   position: absolute;
-  right: -6px;
-  bottom: -4px;
-  padding: 1px 6px 2px;
+  right: -7px;
+  bottom: -5px;
+  padding: 1px 5px 2px;
   border-radius: var(--r-pill);
   border: 2px solid var(--c-ink);
   background: var(--c-night-1);
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 800;
   line-height: 1;
+  -webkit-text-stroke: 2.5px var(--c-ink);
+  paint-order: stroke fill;
 }
 
 .ability.cooling .ab-ico {
@@ -2891,9 +3259,9 @@ html.reduce-fx .badge {
 .ability.ready::before {
   content: '';
   position: absolute;
-  inset: -4px;
+  inset: -3px;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(255, 230, 120, 0.95), 0 0 18px 4px rgba(255, 200, 60, 0.75);
+  box-shadow: 0 0 0 2.5px rgba(255, 230, 120, 0.95), 0 0 12px 3px rgba(255, 200, 60, 0.75);
   animation: hud-ready 1.2s var(--ease-in-out) infinite;
   pointer-events: none;
 }
@@ -2912,7 +3280,7 @@ html.reduce-fx .badge {
 
 @keyframes hud-ready {
   50% {
-    box-shadow: 0 0 0 4px rgba(255, 240, 160, 1), 0 0 28px 8px rgba(255, 200, 60, 0.9);
+    box-shadow: 0 0 0 3px rgba(255, 240, 160, 1), 0 0 20px 6px rgba(255, 200, 60, 0.9);
   }
 }
 
@@ -2994,7 +3362,7 @@ html.reduce-fx .badge {
 .toast {
   position: absolute;
   left: calc((100% - var(--map-r)) / 2);
-  bottom: calc(var(--ab-s) + 22px + var(--safe-b));
+  bottom: calc(var(--dock-h) + 18px + var(--safe-b));
   transform: translateX(-50%);
   width: max-content;
   max-width: min(560px, calc(100% - var(--map-r) - 28px));
@@ -3013,6 +3381,28 @@ html.reduce-fx .badge {
   z-index: 30;
 }
 
+.toast.has-ico {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 10px;
+  text-align: left;
+}
+
+.toast .t-ico {
+  flex: none;
+  height: 1.7em;
+  width: auto;
+  filter: drop-shadow(0 2px 0 rgba(59, 36, 18, 0.35));
+}
+
+/* bandit progression notes: a lilac XP card */
+.toast.xp {
+  background: linear-gradient(180deg, #f6f0ff, #dccfff);
+  color: #2a1660;
+  box-shadow: inset 0 2px 0 #fff, inset 0 -3px 0 rgba(110, 80, 200, 0.3), 0 4px 0 var(--ink), var(--sh-soft);
+}
+
 .toast.out {
   opacity: 0;
   transform: translate(-50%, 8px);
@@ -3026,28 +3416,65 @@ html.reduce-fx .badge {
   }
 }
 
+/* tutorial pointer: a glossy gold arrow (step 0 sweeps from the shop card to the map, step 1 taps the play button) */
 .hand {
   position: absolute;
-  font-size: clamp(34px, 9vh, 48px);
+  width: clamp(30px, 8vh, 44px);
+  height: clamp(35px, 9.3vh, 51px);
   pointer-events: none;
-  animation: hud-hand 1.6s ease-in-out infinite;
-  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.4));
-  z-index: 40;
+  filter: drop-shadow(0 3px 0 rgba(9, 4, 28, 0.55)) drop-shadow(0 0 10px rgba(255, 210, 60, 0.55));
+  z-index: 4;
 }
 
-@keyframes hud-hand {
+.hand svg {
+  display: block;
+}
+
+.hand.drag {
+  margin: calc(clamp(35px, 9.3vh, 51px) * -0.5) 0 0 calc(clamp(30px, 8vh, 44px) * -1);
+  animation: hud-hand-drag 1.6s ease-in-out infinite;
+}
+
+.hand.drag svg {
+  transform: rotate(90deg);
+}
+
+.hand.tap {
+  margin: calc(clamp(35px, 9.3vh, 51px) * -1) 0 0 calc(clamp(30px, 8vh, 44px) * -0.5);
+  animation: hud-hand-tap 0.9s ease-in-out infinite;
+}
+
+@keyframes hud-hand-drag {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(var(--dx, -80px), var(--dy, 0px));
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx, -80px), var(--dy, 0px));
+    opacity: 0;
+  }
+}
+
+@keyframes hud-hand-tap {
   0%,
   100% {
     transform: translate(0, 0);
   }
   50% {
-    transform: translate(var(--dx, -80px), var(--dy, 30px));
+    transform: translate(var(--dx, 0px), var(--dy, -12px));
   }
 }
 
 .fps {
   position: absolute;
-  left: calc(6px + var(--safe-l));
+  right: calc(var(--map-r) + 8px);
   bottom: calc(4px + var(--safe-b));
   font: 700 12px monospace;
   color: #fff;
@@ -3055,34 +3482,56 @@ html.reduce-fx .badge {
   pointer-events: none;
 }
 
+/* sandbox spawn panel: top-left under the top bar (the bottom-left corner belongs to the ability dock) */
 .sandbox-panel {
   position: absolute;
-  left: calc(10px + var(--safe-l));
-  bottom: calc(10px + var(--safe-b));
+  left: calc(8px + var(--safe-l));
+  top: calc(var(--hud-top) + var(--hud-h) + 8px);
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  max-width: min(520px, 55vw);
-  padding: 6px;
-  border-radius: 14px;
-  border: 3px solid var(--ink);
-  background: rgba(23, 16, 54, 0.92);
+  max-width: min(46vw, calc(100% - var(--map-r) - 24px - var(--safe-l)));
+  padding: 5px;
+  border-radius: var(--r-sm);
+  border: var(--bw) solid var(--c-ink);
+  background: rgba(23, 16, 54, 0.88);
+  box-shadow: var(--hl), var(--sh-drop);
+  z-index: 3;
+}
+
+.hud.up-left > .sandbox-panel {
+  left: calc(var(--up-w) + 16px + var(--safe-l));
+  max-width: calc(100% - var(--map-r) - var(--up-w) - 24px - var(--safe-l));
 }
 
 .sandbox-panel button {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: clamp(28px, 7.4vh, 36px);
+  height: clamp(28px, 7.4vh, 36px);
+  border-radius: 9px;
   border: 2px solid var(--ink);
   background: rgba(255, 255, 255, 0.12);
   display: grid;
   place-items: center;
+  transition: transform 0.12s var(--ease-spring);
+}
+
+.sandbox-panel button:active {
+  transform: scale(0.9);
 }
 
 .sandbox-panel button img {
-  width: 30px;
-  height: 30px;
+  width: 88%;
+  height: 88%;
   object-fit: contain;
+}
+
+.sandbox-panel .sb-tool {
+  background: linear-gradient(180deg, #6a5bb5, #43368e 55%, #2f246c);
+}
+
+.sandbox-panel .sb-tool .ico {
+  width: 72%;
+  height: 72%;
 }
 
 /* phones in landscape */
@@ -3101,16 +3550,22 @@ html.reduce-fx .badge {
     --up-w: min(340px, 47vw);
   }
   .upanel {
-    top: calc(var(--hud-h) + 9px + var(--safe-t));
-    max-height: calc(100% - var(--hud-h) - 16px - var(--safe-t) - var(--safe-b));
+    top: calc(var(--hud-top) + var(--hud-h) + 6px);
+    max-height: calc(100% - var(--hud-top) - var(--hud-h) - 12px - var(--safe-b));
     border-radius: var(--r-md);
+  }
+  .u-portrait {
+    width: clamp(44px, 12.5vh, 84px);
   }
   .path {
     gap: 6px;
     border-radius: var(--r-sm);
   }
+  .path .uname {
+    font-size: clamp(13px, 3.4vh, 15px);
+  }
   .path .udesc {
-    -webkit-line-clamp: 1;
+    line-height: 1.12;
   }
 }
 
@@ -3135,6 +3590,10 @@ html.reduce-fx .badge {
   .frenzy.active .bolt,
   .pill.lives.low > .ico,
   .sell.armed,
+  .ab-dock.ready:not(.open) .dock-tab,
+  .ab-dock.open > .abilities,
+  .u-xp.can,
+  .path.unlocked-now,
   .hand {
     animation: none !important;
   }
@@ -3147,6 +3606,13 @@ html.reduce-motion .frenzy.ready,
 html.reduce-motion .frenzy.ready .fill,
 html.reduce-motion .frenzy.active .bolt,
 html.reduce-motion .pill.lives.low > .ico,
+html.reduce-motion .ab-dock.ready:not(.open) .dock-tab,
+html.reduce-motion .ab-dock.open > .abilities,
+html.reduce-motion .u-xp.can,
+html.reduce-motion .path.unlocked-now,
+html.reduce-motion .hand,
+html.reduce-fx .ab-dock.ready:not(.open) .dock-tab,
+html.reduce-fx .u-xp.can,
 html.reduce-fx .play.waiting,
 html.reduce-fx .ability.ready,
 html.reduce-fx .ability.ready::before,

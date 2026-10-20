@@ -109,6 +109,9 @@ export class Renderer {
   /** visible area reserved by the UI (css px) */
   insetRight = 0;
   insetTop = 0;
+  /** horizontal camera nudge (css px) the HUD asks for so a selected tower stays visible beside its panel */
+  panTarget = 0;
+  private pan = 0;
   private dt = 0;
   private crates: (Crate & { landed: boolean })[] = [];
   private fxQueue: Scheduled[] = [];
@@ -145,8 +148,26 @@ export class Renderer {
     const availW = Math.max(100, this.viewW - this.insetRight);
     const availH = Math.max(100, this.viewH - this.insetTop);
     this.scale = Math.min(availW / WORLD_W, availH / WORLD_H);
-    this.ox = (availW - WORLD_W * this.scale) / 2;
+    this.ox = (availW - WORLD_W * this.scale) / 2 + this.pan;
     this.oy = this.insetTop + (availH - WORLD_H * this.scale) / 2;
+  }
+
+  /** current camera nudge (css px) */
+  get panX() {
+    return this.pan;
+  }
+
+  /** furthest the camera may be nudged: the painted map bleed beyond the world edge (css px) */
+  get maxPan() {
+    return BLEED * this.scale * 0.85;
+  }
+
+  private updatePan(dt: number) {
+    if (this.pan === this.panTarget) return;
+    const d = this.panTarget - this.pan;
+    const reduce = typeof document !== 'undefined' && document.documentElement.classList.contains('reduce-motion');
+    this.pan = reduce || Math.abs(d) < 0.5 ? this.panTarget : this.pan + d * Math.min(1, dt * 11);
+    this.layout();
   }
 
   setGame(g: Game | null) {
@@ -157,6 +178,8 @@ export class Renderer {
     this.fxQueue = [];
     this.selected = null;
     this.ghost = null;
+    this.pan = this.panTarget = 0;
+    this.layout();
     if (g && g.map.id !== this.mapId) this.mapCanvas = null;
   }
 
@@ -253,6 +276,7 @@ export class Renderer {
     const g = this.game;
     this.time += dt;
     this.dt = dt;
+    this.updatePan(dt);
     this.particles.update(dt);
     let nb = 0;
     for (const b of this.beams) {
@@ -402,8 +426,9 @@ export class Renderer {
       if (crowded && !e.def.boss) pathStarShadow(ctx, e);
       else drawStarShadow(ctx, e, this.time);
     }
-    if (crowded) ctx.fill();
+    // drawStarShadow (bosses) leaves its alpha behind: the batched crowd fill must run at full alpha
     ctx.globalAlpha = 1;
+    if (crowded) ctx.fill();
   }
 
   private drawSorted(ctx: CanvasRenderingContext2D, g: Game, res: number, tx: number, ty: number) {

@@ -238,6 +238,7 @@ export function drawStarShadow(ctx: CanvasRenderingContext2D, e: Enemy, time: nu
   const ry = r * STAR_TUNING.shadowRy * k * (boss ? 1.1 : 1);
   ctx.globalAlpha = STAR_TUNING.shadowAlpha * (e.camo ? 0.6 : 1);
   ctx.drawImage(shadowSprite(), e.x - rx, e.y + r * STAR_TUNING.shadowY - ry, rx * 2, ry * 2);
+  ctx.globalAlpha = 1;
   void time;
 }
 
@@ -349,6 +350,8 @@ export function drawStar(ctx: CanvasRenderingContext2D, e: Enemy, spr: LoadedSpr
     ctx.arc(x, y, bodyR * 1.04, 0, Math.PI * 2);
     ctx.stroke();
     if (!crowded) ctx.setLineDash(NO_DASH);
+    // crowds skip the glint below, which used to be the only reset: never leak the faint alpha
+    ctx.globalAlpha = 1;
   }
   if (camo && !crowded) {
     const a = time * 1.6 + e.phase;

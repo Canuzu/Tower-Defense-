@@ -27,6 +27,8 @@ interface Slot {
   g: number;
 }
 const slots = new WeakMap<LoadedSprite, Slot>();
+/** slots of the current generation, so a reset can drop their canvases right away */
+const live: Slot[] = [];
 let pixels = 0;
 const PIXEL_BUDGET = 60_000_000;
 let generation = 0;
@@ -130,14 +132,14 @@ export function scaledSprite(s: LoadedSprite, pxW: number, v: SV = SV.Normal): H
     slot = { v: [], g: generation };
     for (let i = 0; i < VARIANTS; i++) slot.v.push([]);
     slots.set(s, slot);
+    live.push(slot);
   }
   const arr = slot.v[v];
   let c = arr[b];
   if (c) return c;
   if (pixels > PIXEL_BUDGET) {
     // a resize storm left lots of unused buckets around: start over
-    generation++;
-    pixels = 0;
+    resetCache();
     return scaledSprite(s, pxW, v);
   }
   if (v === SV.Normal) {
@@ -152,6 +154,13 @@ export function scaledSprite(s: LoadedSprite, pxW: number, v: SV = SV.Normal): H
 
 /** Drops every cached copy (e.g. after the device pixel ratio changed). */
 export function clearSpriteCache() {
+  resetCache();
+}
+
+/** Forgets every bucket (the canvases are freed with them, not only the pixel count). */
+function resetCache() {
+  for (const slot of live) for (const arr of slot.v) arr.length = 0;
+  live.length = 0;
   generation++;
   pixels = 0;
 }
