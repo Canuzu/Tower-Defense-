@@ -136,6 +136,7 @@ export function makePresentation(r: Renderer): FxSink {
       // one headline per cascade: the outermost boss names itself, the bosses inside it stay quiet
       if (lastMerged > 0) return;
       r.floatText(e.x, e.y - e.radius, t('{name} SHATTERED!', { name: t(e.def.name).toUpperCase() }), '#ffffff', 22);
+      r.headlineUntil = performance.now() + 1100;
       haptic('heavy');
     },
     shake(p) {

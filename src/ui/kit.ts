@@ -106,6 +106,11 @@ export function fmt(n: number): string {
   return Math.floor(n).toLocaleString(getLang() === 'de' ? 'de-DE' : 'en-US');
 }
 
+/** Number with the language's decimal separator ("1,1" in German); `max` allows more digits when needed. */
+export function dec(n: number, digits: number, max = digits): string {
+  return n.toLocaleString(getLang() === 'de' ? 'de-DE' : 'en-US', { minimumFractionDigits: digits, maximumFractionDigits: max });
+}
+
 export function reducedMotion(): boolean {
   return document.documentElement.classList.contains('reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
@@ -226,12 +231,16 @@ export function modal(o: ModalOpts, body: Child[], foot: Child[] = []): HTMLElem
   return h('div', { class: ['modal', o.size, o.cls].filter(Boolean).join(' '), role: 'dialog', 'aria-label': o.title }, head, bodyEl, footEl);
 }
 
-/** Fades the top/bottom edge of a scroll area while more content hides there. */
+/**
+ * Fades the top/bottom edge of a scroll area while more content hides there. Only the area's own
+ * padding being scrolled away (a few px of overflow) is not "more content", so it gets no fade.
+ */
 export function watchScroll(el: HTMLElement) {
   const update = () => {
-    const more = el.scrollHeight - el.clientHeight > 2;
-    el.classList.toggle('more-top', more && el.scrollTop > 2);
-    el.classList.toggle('more-bottom', more && el.scrollTop < el.scrollHeight - el.clientHeight - 2);
+    const cs = getComputedStyle(el);
+    const rest = el.scrollHeight - el.clientHeight - el.scrollTop;
+    el.classList.toggle('more-top', el.scrollTop > Math.max(2, parseFloat(cs.paddingTop) || 0));
+    el.classList.toggle('more-bottom', rest > Math.max(2, parseFloat(cs.paddingBottom) || 0));
   };
   el.addEventListener('scroll', update, { passive: true });
   if (typeof ResizeObserver !== 'undefined') {
@@ -240,6 +249,39 @@ export function watchScroll(el: HTMLElement) {
     for (const c of el.children) ro.observe(c);
   }
   requestAnimationFrame(update);
+}
+
+/**
+ * Keeps a one-line title (a single long word, a long name) inside its box: the font shrinks down to
+ * `min` of its size. When even that is too wide the title wraps at full size (at its soft hyphens),
+ * or keeps its CSS ellipsis at `min` when `wrap` is off. Refits when the box resizes.
+ */
+export function fitText(el: HTMLElement, min = 0.78, wrap = true) {
+  const fit = () => {
+    el.style.fontSize = '';
+    el.style.whiteSpace = 'nowrap';
+    const w = el.clientWidth;
+    if (w && el.scrollWidth > w + 0.5) {
+      const size = parseFloat(getComputedStyle(el).fontSize);
+      el.style.fontSize = `${(size * Math.max(min, (w / el.scrollWidth) * 0.97)).toFixed(2)}px`;
+    }
+    if (wrap && w && el.scrollWidth > el.clientWidth + 0.5) {
+      el.style.fontSize = '';
+      el.style.whiteSpace = 'normal';
+    }
+  };
+  // the parent's width sets the title's box; refit a frame later (not inside the observer callback)
+  const box = el.parentElement ?? el;
+  let width = -1;
+  if (typeof ResizeObserver !== 'undefined')
+    new ResizeObserver(() => {
+      if (box.clientWidth === width) return;
+      width = box.clientWidth;
+      requestAnimationFrame(fit);
+    }).observe(box);
+  else requestAnimationFrame(fit);
+  document.fonts?.ready.then(() => requestAnimationFrame(fit));
+  return el;
 }
 
 /** Glossy progress bar; frac 0..1. */

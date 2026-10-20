@@ -765,7 +765,7 @@
 
 .diff-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: clamp(calc(6px * var(--k, 1)), 1vw, calc(10px * var(--k, 1)));
 }
 
@@ -1179,7 +1179,7 @@
   box-shadow: inset 0 0 0 2px rgba(200, 170, 255, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.15);
 }
 
-.reward .ico {
+.reward > .ico {
   width: clamp(calc(30px * var(--k, 1)), 7vh, calc(44px * var(--k, 1)));
   height: clamp(calc(30px * var(--k, 1)), 7vh, calc(44px * var(--k, 1)));
   object-fit: contain;
@@ -1360,13 +1360,6 @@
   font-size: inherit;
   color: var(--c-cream);
   font-weight: 800;
-}
-
-.atlas-note {
-  margin: 0 0 8px;
-  color: var(--c-muted);
-  font-weight: 700;
-  font-size: clamp(calc(12px * var(--k, 1)), 2.2vh, calc(15px * var(--k, 1)));
 }
 
 /* ================================================================================== wisdom */
@@ -1784,7 +1777,7 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: clamp(150px, 20vw, calc(250px * var(--k, 1))) minmax(0, 1fr);
+  grid-template-columns: clamp(150px, 21vw, calc(250px * var(--k, 1))) minmax(0, 1fr);
   gap: 10px;
   text-align: left;
 }
@@ -1876,7 +1869,7 @@
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08);
 }
 
-.bd-ros-art img {
+.bd-ros-art > img:first-child {
   position: absolute;
   left: -8%;
   top: -12%;
@@ -1886,7 +1879,7 @@
   filter: drop-shadow(0 2px 2px rgba(5, 2, 20, 0.5));
 }
 
-.bd-ros.locked .bd-ros-art img {
+.bd-ros.locked .bd-ros-art > img:first-child {
   filter: brightness(0.16) drop-shadow(0 0 1px rgba(255, 255, 255, 0.6));
 }
 
@@ -1943,7 +1936,7 @@
   padding: 0 2px;
   color: var(--c-cream);
   font-weight: 800;
-  font-size: clamp(calc(13px * var(--k, 1)), 2.5vh, calc(16px * var(--k, 1)));
+  font-size: clamp(calc(13px * var(--k, 1)), 2.3vh, calc(16px * var(--k, 1)));
   line-height: 1.15;
   -webkit-text-stroke: 3.5px var(--c-ink);
   paint-order: stroke fill;
@@ -2079,9 +2072,11 @@
 }
 
 .bd-big {
+  --bs: clamp(calc(70px * var(--k, 1)), 19vh, calc(128px * var(--k, 1)));
   position: relative;
-  width: clamp(calc(70px * var(--k, 1)), 19vh, calc(128px * var(--k, 1)));
-  aspect-ratio: 1;
+  /* explicit height: with aspect-ratio the oversized painting would stretch the box */
+  width: var(--bs);
+  height: var(--bs);
   display: grid;
   place-items: center;
   border-radius: var(--r-lg);
@@ -2094,7 +2089,9 @@
 }
 
 .bd-big-img {
-  position: relative;
+  position: absolute;
+  left: -8%;
+  top: -10%;
   width: 116%;
   height: 116%;
   object-fit: contain;
@@ -2309,9 +2306,26 @@
 }
 
 /* ---------------------------------------------------------------- paths & tier cards (phones: tabs) */
+.bd-prow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.bd-prow:empty {
+  display: none;
+}
+
 .bd-ptabs {
-  align-self: flex-start;
   flex: none;
+}
+
+.bd-prow .bd-lock-note {
+  flex: 1 1 calc(160px * var(--k, 1));
+  min-width: 0;
+  padding-block: 4px;
+  line-height: 1.15;
 }
 
 .bd-ptab {
@@ -2519,6 +2533,7 @@
   font-size: clamp(calc(12px * var(--k, 1)), 2.3vh, calc(15px * var(--k, 1)));
   line-height: 1.08;
   overflow-wrap: break-word;
+  -webkit-hyphens: auto;
   hyphens: auto;
   max-width: 100%;
 }
@@ -2551,6 +2566,7 @@
   font-size: clamp(calc(11px * var(--k, 1)), 1.9vh, calc(13px * var(--k, 1)));
   line-height: 1.2;
   overflow-wrap: break-word;
+  -webkit-hyphens: auto;
   hyphens: auto;
 }
 
@@ -2734,6 +2750,8 @@
 
 /* ---------------------------------------------------------------- heroes */
 .bd-big.hero .bd-big-img {
+  left: -4%;
+  top: -6%;
   width: 108%;
   height: 108%;
 }
@@ -2887,6 +2905,11 @@
   display: none;
 }
 
+/* no tabs: the row box goes away (no empty gap), a lock note becomes a full-width line */
+.bd.cols .bd-prow {
+  display: contents;
+}
+
 .bd.cols .bd-rules {
   order: 1;
 }
@@ -2967,22 +2990,33 @@
 
 .bd.cols .bd-unlock {
   width: auto;
+  max-width: 100%;
   padding: 2px 14px 5px;
   --bh: calc(36px * var(--k, 1));
 }
 
+/* label and XP side by side; in a narrow column the XP part wraps under the label */
 .bd.cols .bd-unlock .stack {
   flex-direction: row;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: 0;
+  gap: 0 8px;
 }
 
 .bd.cols .bd-burst {
   left: calc(8px + var(--ta) / 2);
   top: calc(7px + var(--ta) / 2);
 }
-}
 
 .bd-path-head b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* room for the outline inside the clip box */
+  margin: -2px;
+  padding: 2px;
   color: var(--c-cream);
   font-weight: 800;
   font-size: clamp(calc(14px * var(--k, 1)), 2.4vh, calc(17px * var(--k, 1)));
@@ -2992,6 +3026,7 @@
 }
 
 .bd-pips {
+  flex: none;
   display: flex;
   gap: 4px;
   margin-left: auto;
@@ -3065,48 +3100,205 @@
   grid-auto-flow: row;
 }
 
-/* low phones: a tighter header so the tier cards stay in view */
-@media (max-height: 430px) {
-  .bd-detail {
-    gap: 7px;
-  }
-  .bd-ptab {
-    min-height: calc(31px * var(--k, 1));
-  }
-  .bd-tname {
-    margin-top: 6px;
-  }
-  .bd-desc {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .bd-big {
-    width: calc(72px * var(--k, 1));
-  }
-  .bd-tiers {
-    --ta: calc(44px * var(--k, 1));
-    gap: 8px;
-    padding-top: 5px;
-  }
-  .bd-tier {
-    padding: 7px 5px 6px;
-    gap: 3px;
-  }
-  .bd-unlock {
-    --bh: calc(34px * var(--k, 1));
-  }
+/* ---------------------------------------------------------------- low (set by bandits.ts): landscape phones */
+/* One-line header (the description moves below the paths), compact tier cards: a whole path fits. */
+.bd-xp-pill .short,
+.bd-about {
+  display: none;
+}
+
+/* (heroes keep theirs: the looks box makes that header taller anyway) */
+.bd.low .bd-head:not(.hero) .bd-desc,
+.bd.low .bd-xp-pill .long {
+  display: none;
+}
+
+.bd.low .bd-xp-pill .short {
+  display: inline;
+  margin-left: 1px;
+  color: #e2d6ff;
+  font-size: calc(12px * var(--k, 1));
+}
+
+.bd.low .bd-xp-pill {
+  height: calc(26px * var(--k, 1));
+  padding-right: 9px;
+}
+
+.bd.low .bd-about {
+  display: block;
+  margin: 0;
+  padding: 0 2px;
+  color: #e2d6ff;
+  font-weight: 700;
+  font-size: calc(12px * var(--k, 1));
+  line-height: 1.25;
+}
+
+.bd.low .bd-detail {
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.bd.low .bd-head {
+  gap: 10px;
+}
+
+.bd.low .bd-big {
+  --bs: calc(52px * var(--k, 1));
+}
+
+.bd.low .bd-big .bd-lv {
+  min-width: calc(24px * var(--k, 1));
+  height: calc(24px * var(--k, 1));
+  font-size: calc(13px * var(--k, 1));
+}
+
+.bd.low .bd-info {
+  gap: 4px;
+}
+
+.bd.low .bd-name > b {
+  font-size: calc(21px * var(--k, 1));
+}
+
+.bd.low .bd-stats {
+  margin-top: 0;
+}
+
+.bd.low .bd-ptabs {
+  padding: 3px;
+  gap: 3px;
+}
+
+.bd.low .bd-ptab {
+  min-height: calc(28px * var(--k, 1));
+}
+
+.bd.low .bd-tiers {
+  --ta: calc(38px * var(--k, 1));
+  gap: 7px;
+  padding-top: 4px;
+}
+
+/* a short fade only: the unlock buttons sit right above the bottom edge */
+.bd.low .bd-detail.more-bottom {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 10px), transparent);
+}
+
+.bd.low .bd-detail.more-top.more-bottom {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 10px), transparent);
+}
+
+.bd.low .bd-tier {
+  gap: 3px;
+  padding: 7px 5px 6px;
+}
+
+.bd.low .bd-tier:not(:last-child)::after {
+  width: 7px;
+  top: calc(7px + var(--ta) / 2 - 3px);
+}
+
+.bd.low .bd-price {
+  bottom: -8px;
+  font-size: calc(10.5px * var(--k, 1));
+}
+
+.bd.low .bd-tname {
+  margin-top: 6px;
+  font-size: calc(12px * var(--k, 1));
+}
+
+.bd.low .bd-tdesc {
+  font-size: calc(10.5px * var(--k, 1));
+  line-height: 1.13;
+}
+
+/* the ability icon sits in the card's top corner (right of the lock badge), so the tier name keeps
+   the whole width */
+.bd.low .bd-tname .bd-ab {
+  position: absolute;
+  top: 4px;
+  left: min(calc(50% + var(--ta) / 2 + 10px), calc(100% - 22px * var(--k, 1)));
+  width: calc(18px * var(--k, 1));
+  height: calc(18px * var(--k, 1));
+  margin: 0;
+}
+
+.bd.low .bd-ok .ico {
+  display: none;
+}
+
+.bd.low .bd-ok,
+.bd.low .bd-cost {
+  min-height: calc(24px * var(--k, 1));
+  font-size: calc(11.5px * var(--k, 1));
+}
+
+.bd.low .bd-unlock {
+  --bh: calc(32px * var(--k, 1));
+  padding: 1px 4px 4px;
+  font-size: calc(13px * var(--k, 1));
+}
+
+.bd.low .bd-unlock .stack {
+  gap: 0;
+}
+
+/* .snug (set by bandits.ts) when the shown path would still run past the bottom edge */
+.bd.low.snug .bd-tier {
+  padding: 6px 4px 5px;
+}
+
+.bd.low.snug .bd-tname {
+  margin-top: 5px;
+  font-size: calc(11.5px * var(--k, 1));
+}
+
+.bd.low.snug .bd-tdesc {
+  font-size: calc(10px * var(--k, 1));
+  line-height: 1.1;
+}
+
+/* tight phones (narrow + low): every pixel of width goes to the tier cards */
+.bd.narrow.low {
+  grid-template-columns: calc(62px * var(--k, 1)) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.bd.narrow.low .bd-roster {
+  padding: 6px 5px 12px;
+}
+
+.bd.narrow.low .bd-detail {
+  padding-right: 2px;
+}
+
+.bd.narrow.low .bd-tiers {
+  gap: 6px;
+  padding-inline: 1px;
+}
+
+.bd.narrow.low .bd-tier:not(:last-child)::after {
+  width: 6px;
 }
 
 /* ================================================================================== result: bandit XP */
+/* One compact row under the XP reward: label | raccoon portraits with +XP chips | unlock hint + button */
+.result-side {
+  min-width: 0;
+}
+
 .bx {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 10px;
-  padding: 6px 10px;
+  gap: 4px 10px;
+  margin-top: 8px;
+  padding: 5px 10px 5px 8px;
   text-align: left;
 }
 
@@ -3114,17 +3306,20 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  max-width: calc(84px * var(--k, 1));
   color: var(--c-muted);
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: clamp(calc(11px * var(--k, 1)), 2vh, calc(13px * var(--k, 1)));
+  letter-spacing: 0.05em;
+  font-size: calc(10.5px * var(--k, 1));
+  line-height: 1.1;
 }
 
 .bx-label .ico {
-  width: calc(24px * var(--k, 1));
-  height: calc(24px * var(--k, 1));
+  flex: none;
+  width: calc(22px * var(--k, 1));
+  height: calc(22px * var(--k, 1));
   object-fit: contain;
 }
 
@@ -3133,7 +3328,7 @@
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 6px;
+  gap: 2px 4px;
 }
 
 .bx-item {
@@ -3141,13 +3336,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: calc(50px * var(--k, 1));
+  min-width: calc(46px * var(--k, 1));
 }
 
 .bx-art {
   position: relative;
-  width: clamp(calc(36px * var(--k, 1)), 9vh, calc(48px * var(--k, 1)));
-  height: clamp(calc(36px * var(--k, 1)), 9vh, calc(48px * var(--k, 1)));
+  width: clamp(calc(34px * var(--k, 1)), 9vh, calc(46px * var(--k, 1)));
+  height: clamp(calc(34px * var(--k, 1)), 9vh, calc(46px * var(--k, 1)));
   border-radius: 12px;
   background: radial-gradient(circle at 50% 62%, rgba(255, 214, 120, 0.5), rgba(36, 26, 82, 0.5) 72%);
 }
@@ -3165,16 +3360,34 @@
 .bx-chip {
   position: relative;
   margin-top: -7px;
-  padding: 0 6px;
+  padding: 0 5px;
   border-radius: var(--r-pill);
   border: 2px solid var(--c-ink);
   background: linear-gradient(180deg, #a99bff, #6f4ee0);
   color: #fff;
   font-weight: 800;
-  font-size: calc(11px * var(--k, 1));
+  font-size: calc(10.5px * var(--k, 1));
   line-height: 1.45;
   white-space: nowrap;
   -webkit-text-stroke: 3px var(--c-ink);
+  paint-order: stroke fill;
+}
+
+.bx-item[hidden] {
+  display: none;
+}
+
+.bx-more .bx-art {
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.bx-more .bx-art b {
+  color: var(--c-cream);
+  font-weight: 800;
+  font-size: calc(15px * var(--k, 1));
+  -webkit-text-stroke: 3.5px var(--c-ink);
   paint-order: stroke fill;
 }
 
@@ -3186,20 +3399,43 @@
 }
 
 .bx-cta {
+  flex: none;
   margin-left: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 3px;
 }
 
 .bx-new {
+  white-space: nowrap;
+  text-align: center;
   color: var(--c-gold);
   font-weight: 800;
-  font-size: clamp(calc(13px * var(--k, 1)), 2.4vh, calc(16px * var(--k, 1)));
-  line-height: 1.1;
-  -webkit-text-stroke: 4px var(--c-ink);
+  font-size: calc(12px * var(--k, 1));
+  line-height: 1.05;
+  -webkit-text-stroke: 3.5px var(--c-ink);
   paint-order: stroke fill;
   animation: bx-new 1.8s ease-in-out infinite;
+}
+
+.bx-cta .btn {
+  --bh: calc(32px * var(--k, 1));
+  padding-inline: 10px 14px;
+}
+
+@media (min-width: 900px) {
+  .bx-label {
+    max-width: none;
+    white-space: nowrap;
+  }
+}
+
+/* phones: the label keeps only its icon so the row stays on one line */
+@media (max-width: 760px) {
+  .bx-label span {
+    display: none;
+  }
 }
 
 @keyframes bx-new {
@@ -3235,13 +3471,26 @@
   margin-left: 4px;
 }
 
+.reward .lvl-up .ico {
+  width: 1.45em;
+  height: 1.45em;
+  object-fit: contain;
+}
+
 /* ================================================================================== star atlas extras */
 .modal.atlas {
   height: min(100%, calc(720px * var(--k, 1)));
 }
 
+/* heroes: two cards share the row (auto-fit would keep empty tracks: the CTA spans all of them) */
 .atlas-grid.two {
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 560px) {
+  .atlas-grid.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 button.atlas-card {
@@ -3389,6 +3638,40 @@ button.atlas-card {
   .result-art {
     width: calc(92px * var(--k, 1));
     height: calc(92px * var(--k, 1));
+  }
+  .stat-grid {
+    gap: 6px;
+  }
+  .stat {
+    gap: 7px;
+    padding: 3px 8px 3px 5px;
+  }
+  .stat .ico,
+  .stat .emoji {
+    width: calc(26px * var(--k, 1));
+    height: calc(26px * var(--k, 1));
+  }
+  .stat-text small {
+    font-size: calc(10.5px * var(--k, 1));
+  }
+  .stat-text b {
+    font-size: calc(16px * var(--k, 1));
+  }
+  .reward {
+    margin-top: 6px;
+    padding: 3px 12px;
+    gap: 8px;
+  }
+  .reward > .ico {
+    width: calc(28px * var(--k, 1));
+    height: calc(28px * var(--k, 1));
+  }
+  .reward b {
+    font-size: calc(20px * var(--k, 1));
+  }
+  .bx {
+    margin-top: 6px;
+    padding-block: 4px;
   }
   .atlas-card {
     min-height: calc(76px * var(--k, 1));

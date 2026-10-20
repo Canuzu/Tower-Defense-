@@ -22,6 +22,7 @@ import { newlyUnlocked, bondCount, type AchievementDef } from '../game/achieveme
 import { dailyFor, todayKey } from '../game/daily';
 import { SYNERGIES } from '../game/synergy';
 import { t, setLang, type LangSetting } from '../i18n';
+import { softHyphens } from '../i18n/hyphen';
 import {
   uiIcon,
   img,
@@ -45,6 +46,8 @@ import {
   starPortraitUrl,
   MEDAL,
   MEDAL_EMOJI,
+  fitText,
+  dec,
 } from './kit';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
@@ -54,6 +57,17 @@ const MAP_LEVEL: Record<string, number> = { meadow: 1, caverns: 2, fjord: 3, for
 const TIER_COLOR: Record<string, string> = { Beginner: '#43c45a', Intermediate: '#f5b81f', Advanced: '#f27a2c', Expert: '#e8344e' };
 const ROLE_CHIP: Record<string, string> = { Primary: 'green', Military: 'red', Magic: 'blue', Support: 'gold' };
 const MEDAL_DIFFS: Difficulty[] = ['easy', 'medium', 'hard', 'champion'];
+
+/**
+ * Entrance animations (rise / pop) briefly push content past a scroller's edge; re-check its
+ * "more below" fade once they end so a screen that fits is not left half faded.
+ */
+function settleMasks(el: HTMLElement) {
+  el.addEventListener('animationend', (e) => {
+    const sc = (e.target as HTMLElement).closest?.('.modal-body');
+    if (sc) sc.dispatchEvent(new Event('scroll'));
+  });
+}
 
 export class App {
   private renderer: Renderer;
@@ -418,7 +432,7 @@ export class App {
           'button',
           { class: 'tile diff-tile ' + d + (this.setupDiff === d ? ' sel' : '') + (got ? ' got' : ''), type: 'button', style: `--dc:${def.color}`, 'aria-pressed': String(this.setupDiff === d) },
           this.medalIcon(d, 'medal'),
-          h('span', { class: 'dname t-outline' }, t(def.name)),
+          fitText(h('span', { class: 'dname t-outline' }, t(def.name)), 0.8, false),
           got && d !== 'sandbox' ? uiIcon('check', '✔', 'got-mark') : null,
         );
         tile.addEventListener('click', () => {
@@ -626,7 +640,8 @@ export class App {
     st.tier5 = [...t5];
   }
 
-  resume(s: SaveState) {
+  /** `carry` (retrying a round of the game that just ended) keeps this game's XP tallies for the result screen. */
+  resume(s: SaveState, carry = false) {
     let g: Game;
     try {
       g = Game.restore(s, limitsFor(this.profile, this.devUnlock || s.difficulty === 'sandbox' || !!s.challenge));
@@ -635,17 +650,21 @@ export class App {
       this.showMenu();
       return;
     }
-    this.enterGame(g);
+    this.enterGame(g, carry);
   }
 
-  private enterGame(g: Game) {
+  private enterGame(g: Game, carry = false) {
     audio.unlock();
     this.endGame();
     this.game = g;
-    this.xpGainedThisGame = 0;
-    this.towerXpThisGame = {};
-    this.achThisGame = [];
-    this.levelAtStart = this.level;
+    // restored towers carry their lifetime `pops`: only stars shattered from here on earn bandit XP
+    for (const tw of g.towers) this.popsAtRound.set(tw, tw.pops);
+    if (!carry) {
+      this.xpGainedThisGame = 0;
+      this.towerXpThisGame = {};
+      this.achThisGame = [];
+      this.levelAtStart = this.level;
+    }
     this.recorded = { pops: g.stats.pops, bosses: g.stats.bossesPopped, golden: g.stats.goldenPopped };
     this.statTimer = 0;
     g.events.on('frenzyStart', () => {
@@ -681,7 +700,7 @@ export class App {
         onQuit: () => this.showMenu(),
         onRestart: () => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge),
         onRetryRound: () => {
-          if (g.roundSnapshot) this.resume(g.roundSnapshot);
+          if (g.roundSnapshot) this.resume(g.roundSnapshot, true);
         },
         onSettings: (fromPause) => this.openSettings(fromPause ? () => this.hud?.openPause() : undefined),
         onRoundEnd: (round) => this.onRoundEnd(g, round),
@@ -798,7 +817,7 @@ export class App {
     const strip = this.banditStrip(() => hud.openModal(m, true, { locked: true }));
     m = modal(
       { title: t('VICTORY!'), color: 'gold', size: 'wide', cls: 'win' },
-      [h('div', { class: 'result' }, hero, h('div', null, this.resultStats(g, true), this.xpReward())), strip],
+      [h('div', { class: 'result' }, hero, h('div', { class: 'result-side' }, this.resultStats(g, true), this.xpReward(), strip))],
       [
         btn(
           t('Freeplay'),
@@ -822,6 +841,7 @@ export class App {
         btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
       ],
     );
+    settleMasks(m);
     const wrap = hud.openModal(m, true, { locked: true });
     confetti(wrap, 90);
     this.renderer.confetti(800, 300, 120);
@@ -844,13 +864,14 @@ export class App {
       const strip = this.banditStrip(() => hud.openModal(m, true, { locked: true }));
       m = modal(
         { title: t('GAME OVER'), color: 'red', size: 'wide', cls: 'lose' },
-        [h('div', { class: 'result lose' }, hero, h('div', null, this.resultStats(g, false), this.xpReward())), strip],
+        [h('div', { class: 'result lose' }, hero, h('div', { class: 'result-side' }, this.resultStats(g, false), this.xpReward(), strip))],
         [
-          snap ? btn(t('Retry round {n}', { n: snap.round }), 'gold', this.tap(() => this.resume(snap)), { icon: restartIcon() }) : null,
+          snap ? btn(t('Retry round {n}', { n: snap.round }), 'gold', this.tap(() => this.resume(snap, true)), { icon: restartIcon() }) : null,
           btn(t('Restart'), 'green', this.tap(() => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge)), { icon: uiIcon('play', '▶') }),
           btn(t('Home'), 'dark', this.tap(() => this.showMenu()), { icon: uiIcon('home', '🏠') }),
         ],
       );
+      settleMasks(m);
       hud.openModal(m, true, { locked: true });
     }, 900);
   }
@@ -899,9 +920,26 @@ export class App {
     return h('div', { class: 'result-ach' }, h('span', { class: 't-up' }, t('Achievements')), h('div', { class: 'result-ach-row' }, ...chips));
   }
 
-  /** Bandit XP earned per raccoon + a way into the Bandit menu when a tier can be unlocked. */
+  /**
+   * Bandit XP earned per raccoon + a way into the Bandit menu when a tier can be unlocked. Coming
+   * back from the menu rebuilds the row (after unlocking, the hint may be gone) and reopens the screen.
+   */
   private banditStrip(reopen: () => void): HTMLElement | null {
-    return banditXpStrip(this.profile, this.towerXpThisGame, () => this.openBandits({ back: reopen }));
+    let el: HTMLElement | null = null;
+    const build = (): HTMLElement | null =>
+      banditXpStrip(this.profile, this.towerXpThisGame, () =>
+        this.openBandits({
+          back: () => {
+            const next = build();
+            if (el && next) el.replaceWith(next);
+            else el?.remove();
+            el = next;
+            reopen();
+          },
+        }),
+      );
+    el = build();
+    return el;
   }
 
   // -------------------------------------------------------------------------------------------
@@ -1103,14 +1141,14 @@ export class App {
       } else if (id === 'stars') {
         for (const gid of GLOOP_ORDER) {
           const d = GLOOPS[gid];
-          const chips = h('div', { class: 'atlas-chips' }, chip(uiIcon('fast', '💨'), `×${d.speed}`, 'dark'));
+          const chips = h('div', { class: 'atlas-chips' }, chip(uiIcon('fast', '💨'), `×${dec(d.speed, 0, 2)}`, 'dark'));
           if (d.hp > 1) chips.append(chip(uiIcon('heart', '❤️'), fmt(d.hp), 'dark'));
           if (d.boss) chips.append(chip(uiIcon('crown', '👑'), t('Boss'), 'red'));
           if (d.camo) chips.append(chip(uiIcon('camo', '👁'), t('Camo'), 'blue'));
           cards.push(h('div', { class: 'tile atlas-card' }, h('div', { class: 'portrait' }, img(starPortraitUrl(gid), '', t(d.name))), h('div', { class: 'atlas-text' }, h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), chips), h('p', null, t(d.desc)))));
         }
       } else {
-        grid.append(h('p', { class: 'atlas-note' }, uiIcon('bond', '⚡'), h('span', null, t('Bonds: place these pairs close together and both get stronger'))));
+        grid.append(h('div', { class: 'atlas-cta well' }, uiIcon('bond', '⚡', 'cta-ico'), h('p', null, t('Bonds: place these pairs close together and both get stronger'))));
         for (const syn of SYNERGIES) {
           cards.push(
             h(
@@ -1120,9 +1158,9 @@ export class App {
               h(
                 'div',
                 { class: 'atlas-text' },
-                h('b', { class: 't-outline', style: `color:${syn.color}` }, t(syn.name)),
-                h('div', { class: 'bond-line' }, h('b', null, t(TOWERS[syn.a].name) + ': '), t(syn.descA)),
-                h('div', { class: 'bond-line' }, h('b', null, t(TOWERS[syn.b].name) + ': '), t(syn.descB)),
+                fitText(h('b', { class: 't-outline', style: `color:${syn.color}` }, softHyphens(t(syn.name)))),
+                h('div', { class: 'bond-line' }, h('b', null, t(TOWERS[syn.a].name) + ': '), softHyphens(t(syn.descA))),
+                h('div', { class: 'bond-line' }, h('b', null, t(TOWERS[syn.b].name) + ': '), softHyphens(t(syn.descB))),
               ),
             ),
           );

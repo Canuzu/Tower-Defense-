@@ -1524,6 +1524,8 @@ html.reduce-fx .badge {
  *   --hud-h   top bar height        --map-r  width taken by the sidebar on the right
  *   --ab-s    ability button size   --up-w   upgrade panel width (the map area is 0 .. 100% - --map-r)
  *   --dock-h  height of the ability dock (set by hud.ts; toasts sit above it)
+ *   --free-l / --free-r  edges of the map area no panel covers (inside the notch insets): toasts and
+ *             banners centre in it
  * The map is fitted to the full height: the top bar floats over it, so nothing is reserved for it.
  */
 .hud {
@@ -1534,29 +1536,27 @@ html.reduce-fx .badge {
   --ab-s: clamp(40px, 11vh, 52px);
   --up-w: min(380px, 46vw);
   --dock-h: 0px;
+  --free-l: var(--safe-l);
+  --free-r: calc(100% - var(--map-r));
 }
 
 /* while the upgrade panel is open, toasts and banners centre in the free part of the map */
-.hud.up-left .toast,
-.hud.up-left > .banner {
-  left: calc(var(--up-w) + 16px + var(--safe-l) + (100% - var(--map-r) - var(--up-w) - 16px - var(--safe-l)) / 2);
+.hud.up-left {
+  --free-l: calc(var(--safe-l) + var(--up-w) + 16px);
 }
 
-.hud.up-right .toast,
-.hud.up-right > .banner {
-  left: calc((100% - var(--map-r) - var(--up-w) - 16px) / 2);
+.hud.up-right {
+  --free-r: calc(100% - var(--map-r) - var(--up-w) - 16px);
 }
 
 .hud.up-left .toast,
 .hud.up-right .toast {
-  max-width: calc(100% - var(--map-r) - var(--up-w) - 40px);
   padding: 6px 12px 7px;
   font-size: clamp(12px, 2.4vh, 18px);
 }
 
 .hud.up-left > .banner,
 .hud.up-right > .banner {
-  max-width: calc(100% - var(--map-r) - var(--up-w) - 32px);
   font-size: clamp(22px, 6vh, 52px);
 }
 
@@ -1767,6 +1767,36 @@ html.reduce-fx .badge {
 
 .frenzy.active .bolt {
   animation: hud-zap 0.4s steps(2) infinite;
+}
+
+/* narrow map (hud.ts fitBar): the meter keeps only its bolt over the fill, then the pills tighten */
+.hud-bar.tight {
+  --hud-gap: 4px;
+}
+
+.hud-bar.tight .frenzy {
+  flex: none;
+  min-width: 0;
+  width: calc(var(--hud-h) * 1.3);
+  margin-left: 0;
+  padding: 0;
+}
+
+.hud-bar.tight .frenzy .lbl {
+  display: none;
+}
+
+.hud-bar.tighter .pill {
+  margin-left: calc(var(--hud-h) * 0.24);
+  padding-right: calc(var(--pill-h) * 0.26);
+}
+
+.hud-bar.tighter .pill .val {
+  min-width: 0;
+}
+
+.hud-bar.tighter .pill.round .sub {
+  display: none;
 }
 
 @keyframes hud-frenzy {
@@ -2630,6 +2660,25 @@ html.reduce-fx .badge {
   -webkit-line-clamp: unset;
 }
 
+/* "tap for the rest" cue, only on rows whose description is clamped (hud.ts measures it) */
+.p-head .more-chev {
+  display: none;
+  flex: none;
+  width: clamp(12px, 2.6vh, 15px);
+  height: clamp(12px, 2.6vh, 15px);
+  margin: -2px 0 -2px -3px;
+  transform: rotate(180deg);
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.path.more .p-head .more-chev {
+  display: block;
+}
+
+.path.open .p-head .more-chev {
+  transform: none;
+}
+
 /* ---- tier locked by bandit progression: unlock it with this raccoon type's XP */
 .u-ico .u-lock {
   position: absolute;
@@ -2931,11 +2980,16 @@ html.reduce-fx .badge {
   padding: 3px 8px 3px 5px;
   border-radius: var(--r-xs);
   color: var(--c-cream);
-  /* plain fallbacks first: color-mix needs Safari 16.2 */
+  /* a declaration with var() cannot fall back to an earlier one, so color-mix (Safari 16.2+) sits behind @supports */
   background: rgba(7, 3, 24, 0.5);
-  background: color-mix(in srgb, var(--bc) 22%, rgba(7, 3, 24, 0.5));
   border: 2px solid var(--bc);
-  border: 2px solid color-mix(in srgb, var(--bc) 70%, transparent);
+}
+
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .bond {
+    background: color-mix(in srgb, var(--bc) 22%, rgba(7, 3, 24, 0.5));
+    border-color: color-mix(in srgb, var(--bc) 70%, transparent);
+  }
 }
 
 .bond .bond-ico {
@@ -3092,6 +3146,13 @@ html.reduce-fx .badge {
   background: linear-gradient(180deg, #7565c8 0%, #46389a 55%, #2d2270 100%);
   box-shadow: inset 0 -4px 0 #1b1347, inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 3px 0 var(--c-ink);
   transition: transform 0.16s var(--ease-spring), filter 0.15s;
+}
+
+/* the tab is slim: a bigger invisible hit area for thumbs */
+.dock-tab::after {
+  content: '';
+  position: absolute;
+  inset: -6px -3px -6px -6px;
 }
 
 .dock-tab:active {
@@ -3299,10 +3360,10 @@ html.reduce-fx .badge {
 /* ---------------------------------------------------------------- banners & toasts */
 .banner {
   position: absolute;
-  left: calc((100% - var(--map-r)) / 2);
+  left: calc((var(--free-l) + var(--free-r)) / 2);
   top: 34%;
   transform: translate(-50%, -50%);
-  max-width: calc(100% - var(--map-r) - 24px);
+  max-width: calc(var(--free-r) - var(--free-l) - 24px);
   text-align: center;
   pointer-events: none;
   font-weight: 800;
@@ -3361,11 +3422,11 @@ html.reduce-fx .badge {
 
 .toast {
   position: absolute;
-  left: calc((100% - var(--map-r)) / 2);
+  left: calc((var(--free-l) + var(--free-r)) / 2);
   bottom: calc(var(--dock-h) + 18px + var(--safe-b));
   transform: translateX(-50%);
   width: max-content;
-  max-width: min(560px, calc(100% - var(--map-r) - 28px));
+  max-width: min(560px, calc(var(--free-r) - var(--free-l) - 24px));
   padding: 8px 18px 9px;
   border-radius: var(--r-md);
   border: var(--bw) solid var(--c-ink);
@@ -3376,6 +3437,7 @@ html.reduce-fx .badge {
   line-height: 1.25;
   box-shadow: inset 0 2px 0 #fff, inset 0 -3px 0 rgba(180, 120, 40, 0.35), 0 4px 0 var(--ink), var(--sh-soft);
   text-align: center;
+  text-wrap: balance;
   animation: hud-toast 0.3s var(--ease-spring);
   pointer-events: none;
   z-index: 30;
@@ -3436,7 +3498,7 @@ html.reduce-fx .badge {
 }
 
 .hand.drag svg {
-  transform: rotate(90deg);
+  transform: rotate(var(--rot, 90deg));
 }
 
 .hand.tap {
@@ -3502,6 +3564,15 @@ html.reduce-fx .badge {
 .hud.up-left > .sandbox-panel {
   left: calc(var(--up-w) + 16px + var(--safe-l));
   max-width: calc(100% - var(--map-r) - var(--up-w) - 24px - var(--safe-l));
+}
+
+.hud.up-right > .sandbox-panel {
+  max-width: calc(100% - var(--map-r) - var(--up-w) - 24px - var(--safe-l));
+}
+
+/* (.up-tight: the map strip beside the upgrade panel only fits toasts and the ability dock) */
+.hud.up-tight > .sandbox-panel {
+  display: none;
 }
 
 .sandbox-panel button {

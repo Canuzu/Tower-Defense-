@@ -119,6 +119,10 @@ export class Hud {
   private frenzyEl!: HTMLElement;
   private frenzyFill!: HTMLElement;
   private frenzyLbl!: HTMLElement;
+  private barEl!: HTMLElement;
+  private topEl!: HTMLElement;
+  /** text lengths of the counters the top bar was last fitted for */
+  private barKey = -1;
   private comboEl!: HTMLElement;
   private playBtn!: HTMLButtonElement;
   private autoToggle!: HTMLElement;
@@ -262,8 +266,24 @@ export class Hud {
     this.speedBtn.append(this.speedLbl);
     const pause = this.hudBtn(uiIcon('pause', '⏸'), tr('Pause (Esc)'), () => this.openPause(), 'pause');
     const gear = this.hudBtn(uiIcon('gear', '⚙️'), tr('Settings'), () => this.host.onSettings(false), 'gear');
-    const top = h('div', { class: 'hud-top' }, this.livesPill, this.cashPill, roundPill, this.frenzyEl);
-    this.root.append(h('div', { class: 'hud-bar' }, top, h('div', { class: 'top-right' }, this.speedBtn, pause, gear)));
+    this.topEl = h('div', { class: 'hud-top' }, this.livesPill, this.cashPill, roundPill, this.frenzyEl);
+    this.barEl = h('div', { class: 'hud-bar' }, this.topEl, h('div', { class: 'top-right' }, this.speedBtn, pause, gear));
+    this.root.append(this.barEl);
+    document.fonts?.ready.then(() => !this.destroyed && this.fitBar()).catch(() => {});
+  }
+
+  /**
+   * Narrow maps (small phones, notches): when the counters would run under the speed / pause
+   * buttons the frenzy meter drops its label (.tight), then the pills tighten up (.tighter).
+   */
+  private fitBar() {
+    const bar = this.barEl;
+    const top = this.topEl;
+    if (!bar.isConnected) return;
+    bar.classList.remove('tight', 'tighter');
+    if (top.scrollWidth <= top.clientWidth + 1) return;
+    bar.classList.add('tight');
+    if (top.scrollWidth > top.clientWidth + 1) bar.classList.add('tighter');
   }
 
   private buildSidebar() {
@@ -491,6 +511,7 @@ export class Hud {
   /** Re-lay the upgrade panel (side + camera nudge) and the tutorial pointer for the new size. */
   private onResize = () => {
     this.panelKey = '';
+    this.barKey = -1;
     if (this.tutorialStep === 0 || this.tutorialStep === 1) requestAnimationFrame(() => this.placePointer());
   };
 
@@ -729,7 +750,7 @@ export class Hud {
         this.panel = null;
         this.panelFor = null;
       }
-      this.root.classList.remove('up-left', 'up-right');
+      this.root.classList.remove('up-left', 'up-right', 'up-tight');
     }
     if (t) audio.play('click');
   }
@@ -898,13 +919,20 @@ export class Hud {
     this.panel = panel;
     this.panelFor = t;
     this.placePanel(t, panel, sameTower);
+    for (const d of panel.querySelectorAll<HTMLElement>('.path .udesc')) {
+      const row = d.closest('.path')!;
+      // Baloo's tall glyphs overflow a line box by ~2px: only a hidden line (> half a line) counts
+      if (row.classList.contains('open') || d.scrollHeight - d.clientHeight > 5) row.classList.add('more');
+    }
     watchScroll(body);
     this.buildStats(t, statsLine);
   }
 
   /** Name + description of a path row; tapping it shows the full description (phones clamp it). */
   private pathInfo(row: HTMLElement, p: number, head: HTMLElement, name: string, desc: string, extra: HTMLElement | null = null): HTMLElement {
-    const info = h('div', { class: 'info' }, head, h('div', { class: 'uname' }, name), h('div', { class: 'udesc' }, desc), extra);
+    // a small chevron beside the path name says "tap for more" when the description is clamped
+    head.insertBefore(glyph(CHEVRONS[0], 6.5, '#c6baee', 'more-chev'), head.lastChild);
+    const info = h('div', { class: 'info', title: desc }, head, h('div', { class: 'uname' }, name), h('div', { class: 'udesc' }, desc), extra);
     if (this.openDesc.has(p)) row.classList.add('open');
     info.addEventListener('click', () => {
       const open = !row.classList.contains('open');
@@ -983,6 +1011,8 @@ export class Hud {
     }
     toggle(this.root, 'up-left', side === 'left');
     toggle(this.root, 'up-right', side === 'right');
+    // tiny phones: the strip of map beside the panel is too narrow for the sandbox spawn panel as well
+    toggle(this.root, 'up-tight', mapW - w - 24 < 160);
   }
 
   /** Next-upgrade picture: the painted look for tier 3+, a path-coloured chevron emblem below. */
@@ -1208,6 +1238,12 @@ export class Hud {
     // after the last round the counter is already one past it; don't show 41/40 behind the victory screen
     setText(this.roundEl, String(g.freeplay || g.sandbox ? g.round : Math.min(g.round, g.lastRound)));
     setText(this.roundSub, g.sandbox ? '' : g.freeplay ? '∞' : `/${g.lastRound}`);
+    // longer numbers (or a resize) may no longer fit beside the buttons
+    const barKey = (this.cashEl.textContent!.length * 64 + this.livesEl.textContent!.length) * 64 + this.roundEl.textContent!.length + this.roundSub.textContent!.length;
+    if (barKey !== this.barKey) {
+      this.barKey = barKey;
+      this.fitBar();
+    }
     // frenzy
     const ready = g.frenzyReady;
     toggle(this.frenzyEl, 'ready', ready);
@@ -1395,6 +1431,12 @@ export class Hud {
    * replaced by the next banner and skipped while a big one plays; big ones queue up.
    */
   banner(text: string, sub: string | null, boss: boolean, small = false) {
+    // a boss just shattered: its headline is still rising from the boss, so the banner waits for it
+    const wait = this.renderer.headlineUntil - performance.now();
+    if (wait > 0) {
+      setTimeout(() => !this.destroyed && this.banner(text, sub, boss, small), wait);
+      return;
+    }
     const show = () => {
       if (this.destroyed) return;
       const el = h('div', { class: 'banner' + (boss ? ' boss' : '') + (small ? ' small' : '') }, h('span', { class: 'b-main' }, text), sub ? h('small', null, sub) : null);
@@ -1466,8 +1508,17 @@ export class Hud {
     if (!el) return;
     if (this.tutorialStep === 0) {
       const r = this.cards.get('tower:spike')!.getBoundingClientRect();
-      // sweeps from the card towards the map
-      el.style.cssText = `left:${r.left - 8}px;top:${r.top + r.height * 0.5}px;--dx:-${Math.round(Math.min(window.innerWidth * 0.3, 260))}px;--dy:0px`;
+      // sweeps from the card towards the grass in the middle of the map, pointing where it goes
+      const x0 = r.left - 8;
+      const y0 = r.top + r.height * 0.5;
+      let dx = (window.innerWidth - this.sidebarWidth) * 0.55 - x0;
+      let dy = window.innerHeight * 0.52 - y0;
+      const len = Math.hypot(dx, dy) || 1;
+      const k = Math.min(1, Math.min(260, window.innerWidth * 0.32) / len);
+      dx *= k;
+      dy *= k;
+      const rot = (Math.atan2(dy, dx) * 180) / Math.PI - 90;
+      el.style.cssText = `left:${x0}px;top:${y0}px;--dx:${Math.round(dx)}px;--dy:${Math.round(dy)}px;--rot:${Math.round(rot)}deg`;
     } else {
       const r = this.playBtn.getBoundingClientRect();
       el.style.cssText = `left:${r.left + r.width * 0.5}px;top:${r.top - 6}px;--dx:0px;--dy:-12px`;

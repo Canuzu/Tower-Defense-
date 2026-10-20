@@ -112,6 +112,8 @@ export class Renderer {
   /** horizontal camera nudge (css px) the HUD asks for so a selected tower stays visible beside its panel */
   panTarget = 0;
   private pan = 0;
+  /** performance.now() until which a canvas headline (boss shattered) is rising; HUD banners wait for it */
+  headlineUntil = 0;
   private dt = 0;
   private crates: (Crate & { landed: boolean })[] = [];
   private fxQueue: Scheduled[] = [];

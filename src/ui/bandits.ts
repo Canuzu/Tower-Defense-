@@ -13,7 +13,8 @@ import { audio } from '../audio/audio';
 import { haptic } from './haptics';
 import { h, clear } from './dom';
 import { t } from '../i18n';
-import { uiIcon, img, btn, modal, bar, chip, stagger, countUp, bump, fmt, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti } from './kit';
+import { softHyphens } from '../i18n/hyphen';
+import { uiIcon, img, btn, modal, bar, chip, stagger, countUp, bump, fmt, dec, fitText, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti } from './kit';
 
 export type BanditSel = { kind: 'tower'; id: TowerId } | { kind: 'hero'; id: HeroId };
 
@@ -177,7 +178,7 @@ function statChips(s: TowerStats, cost: number): HTMLElement[] {
     } else rate = 0;
     if (dmg > 0) add(glyph(G_DMG, 5.5, '#ffd0d0'), String(dmg), t('Damage'));
     if (pierce > 0) add(glyph(G_PIERCE, 5.5, '#cfe8ff'), String(pierce), t('Pierce'));
-    if (rate > 0) add(glyph(G_RATE, 4.5, '#e0ffd0'), `${(1 / rate).toFixed(rate < 1 ? 1 : 2)}/s`, t('Attacks per second'));
+    if (rate > 0) add(glyph(G_RATE, 4.5, '#e0ffd0'), `${dec(1 / rate, rate < 1 ? 1 : 2)}/s`, t('Attacks per second'));
   }
   if (s.income) add(uiIcon('sack', '💰'), t('${n}/round', { n: fmt(s.income.perDrop * s.income.drops + s.income.bonusPerRound) }), t('Income'));
   if (s.buffAura && !a) add(uiIcon('bond', '⚡'), t('Aura'), t('Buffs nearby towers'));
@@ -211,18 +212,43 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
   const detail = h('div', { class: 'bd-detail' });
   const root = h('div', { class: 'bd' }, roster, detail);
   // layout follows the space the modal really has (notches and safe areas eat into phone widths):
-  // narrow = portrait-only roster, cols = the three paths side by side instead of path tabs
+  // narrow = portrait-only roster, cols = the three paths side by side instead of path tabs,
+  // low = landscape phones: a one-line header and compact tier cards so a whole path fits on screen
   const fit = () => {
     const w = root.clientWidth;
+    const ht = root.clientHeight;
     if (!w) return;
+    const cols = w >= 900 && ht >= 470;
     root.classList.toggle('narrow', w < 720);
-    root.classList.toggle('cols', w >= 900 && root.clientHeight >= 470);
+    root.classList.toggle('cols', cols);
+    root.classList.toggle('low', !cols && ht < 420);
+    requestAnimationFrame(snugFit);
+  };
+  // low layout: when the shown path's cards would still reach past the visible area (long texts,
+  // small phones), the cards get a little tighter so the unlock buttons stay in view
+  const offTop = (el: HTMLElement) => {
+    let y = 0;
+    for (let e: HTMLElement | null = el; e; e = e.offsetParent as HTMLElement | null) y += e.offsetTop;
+    return y;
+  };
+  const snugFit = () => {
+    root.classList.remove('snug');
+    const tiers = detail.querySelector<HTMLElement>('.bd-path.on .bd-tiers');
+    if (!root.classList.contains('low') || !tiers || !detail.clientHeight) return;
+    const over = () => offTop(tiers) + tiers.offsetHeight > offTop(detail) + detail.clientHeight + detail.clientTop;
+    if (over()) root.classList.add('snug');
   };
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(root);
   else requestAnimationFrame(fit);
   watchScroll(roster);
   watchScroll(detail);
   const rescroll = (el: HTMLElement) => el.dispatchEvent(new Event('scroll'));
+  // the cards' entrance animations briefly overflow: re-check the scroll fades once they end
+  root.addEventListener('animationend', (e) => {
+    const el = e.target as Node;
+    if (detail.contains(el)) rescroll(detail);
+    else if (roster.contains(el)) rescroll(roster);
+  });
 
   // ---------------------------------------------------------------- roster
   const rosterItems = new Map<string, HTMLElement>();
@@ -325,12 +351,12 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
     );
     // unspent XP: a pill in the name row on phones, the box with the level bar when there is room
     const xpPillNum = h('b', null, fmt(fresh ? fresh.xpFrom : xp));
-    const xpPill = h('span', { class: 'bd-xp-pill', title: t('XP to spend') }, uiIcon('xp', '⭐'), xpPillNum, h('small', null, t('XP to spend')));
+    const xpPill = h('span', { class: 'bd-xp-pill', title: t('XP to spend') }, uiIcon('xp', '⭐'), xpPillNum, h('small', { class: 'long' }, t('XP to spend')), h('small', { class: 'short' }, 'XP'));
     const info = h(
       'div',
       { class: 'bd-info' },
       h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), chip(null, t(def.role), ROLE_CHIP[def.role] ?? 'dark'), h('small', { class: 'bd-species' }, t(def.species)), xpPill),
-      h('p', { class: 'bd-desc' }, t(def.desc)),
+      h('p', { class: 'bd-desc' }, softHyphens(t(def.desc))),
       h('div', { class: 'bd-stats' }, ...statChips(def.base(), def.cost)),
     );
     const xpNum = h('b', { class: 't-num' }, fmt(fresh ? fresh.xpFrom : xp));
@@ -348,6 +374,8 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
     const head = h('div', { class: 'bd-head' }, portrait, info, xpBox);
     const lockNote = locked ? h('div', { class: 'bd-lock-note' }, uiIcon('lock', '🔒'), h('span', null, t('Unlocks at player level {n}', { n: def.unlock }))) : null;
 
+    // landscape phones show the description down here (the header keeps to one line)
+    const about = h('p', { class: 'bd-about' }, softHyphens(t(def.desc)));
     const rules = h(
       'div',
       { class: 'bd-rules' },
@@ -381,6 +409,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
           el.setAttribute('aria-selected', String(i === pi));
         });
         pathEls.forEach((el, i) => el.classList.toggle('on', i === pi));
+        snugFit();
         stagger([...pathEls[pi].querySelectorAll<HTMLElement>('.bd-tier')], 'anim-rise');
       });
       tabEls.push(tab);
@@ -433,8 +462,8 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
           'div',
           { class: `tile bd-tier ${state}` + (can ? ' can' : '') },
           art,
-          h('b', { class: 'bd-tname' }, inf.ability ? h('span', { class: 'bd-ab', title: `${t('Ability')}: ${t(inf.ability.name)}` }, abilityIcon(inf.ability)) : null, t(inf.name)),
-          h('p', { class: 'bd-tdesc' }, t(inf.desc)),
+          h('b', { class: 'bd-tname' }, inf.ability ? h('span', { class: 'bd-ab', title: `${t('Ability')}: ${t(inf.ability.name)}` }, abilityIcon(inf.ability)) : null, softHyphens(t(inf.name))),
+          h('p', { class: 'bd-tdesc' }, softHyphens(t(inf.desc))),
           h('div', { class: 'bd-tfoot' }, foot),
         );
         if (fresh && fresh.path === pi && fresh.tier === tier) {
@@ -447,20 +476,23 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
       const path = h(
         'div',
         { class: 'bd-path' + (pi === cur ? ' on' : ''), style },
-        h('div', { class: 'bd-path-head' }, h('i', { class: 'bd-dot' }), h('b', null, t(def.pathNames[pi])), pips),
+        h('div', { class: 'bd-path-head' }, h('i', { class: 'bd-dot' }), fitText(h('b', null, t(def.pathNames[pi])), 0.8, false), pips),
         tiersEl,
       );
       pathEls.push(path);
     }
     const ptabs = h('div', { class: 'tabs bd-ptabs', role: 'tablist' }, ...tabEls);
+    // the player-level lock shares the row with the path tabs (keeps the cards in view on phones)
+    const prow = h('div', { class: 'bd-prow' }, ptabs, lockNote);
     const paths = h('div', { class: 'bd-paths' }, ...pathEls);
 
     clear(detail);
-    detail.append(...([head, lockNote, ptabs, paths, rules].filter(Boolean) as HTMLElement[]));
+    detail.append(head, prow, paths, about, rules);
     if (enter) {
-      stagger([head, ptabs], 'anim-fade');
+      stagger([head, prow], 'anim-fade');
       stagger(cards, 'anim-rise', 2);
     }
+    snugFit();
     rescroll(detail);
   };
 
@@ -495,7 +527,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
       'div',
       { class: 'bd-info' },
       h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), chip(uiIcon('crown', '👑'), t('Hero'), 'gold'), h('small', { class: 'bd-species' }, t(def.title))),
-      h('p', { class: 'bd-desc' }, t(def.desc)),
+      h('p', { class: 'bd-desc' }, softHyphens(t(def.desc))),
       h('div', { class: 'bd-stats' }, ...statChips(stats, def.cost)),
     );
     const lookEls = [1, 7, 14].map((lv) => {
@@ -522,7 +554,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
       return b;
     });
     const looks = h('div', { class: 'bd-looks well' }, h('span', { class: 't-up' }, t('Looks')), h('div', { class: 'bd-look-row' }, ...lookEls));
-    const head = h('div', { class: 'bd-head' }, portrait, info, looks);
+    const head = h('div', { class: 'bd-head hero' }, portrait, info, looks);
     const lockNote = locked ? h('div', { class: 'bd-lock-note' }, uiIcon('lock', '🔒'), h('span', null, t('Unlocks at player level {n}', { n: def.unlock }))) : null;
     const note = h('div', { class: 'bd-rules' }, h('span', null, uiIcon('info', 'ℹ️'), t('Heroes level up during a game. Their skills unlock by themselves, no XP needed.')));
     const rows = def.levels.map((lvDef, i) => {
@@ -534,7 +566,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
         { class: 'bd-skill' + (ab ? ' ab' : '') + (look ? ' look' : '') },
         h('b', { class: 'bd-skill-lv' }, String(lv)),
         ab ? abilityIcon(ab, 'bd-skill-ab') : look ? img(heroPortraitUrl(id, lv), 'bd-skill-look', '') : null,
-        h('span', { class: 'bd-skill-text' }, ab ? h('b', null, t(ab.name) + ': ') : null, t(lvDef.desc), look ? h('em', null, ' ' + t('New look!')) : null),
+        h('span', { class: 'bd-skill-text' }, ab ? h('b', null, softHyphens(t(ab.name)) + ': ') : null, softHyphens(t(lvDef.desc)), look ? h('em', null, ' ' + t('New look!')) : null),
       );
     });
     const skills = h('div', { class: 'bd-skills' }, h('div', { class: 'bd-skill base' }, h('b', { class: 'bd-skill-lv' }, '1'), h('span', { class: 'bd-skill-text' }, t('Starts at level 1 when placed.'))), ...rows);
@@ -574,14 +606,19 @@ export function banditXpStrip(p: Profile, gained: Partial<Record<TowerId, number
   const list = (Object.entries(gained) as [TowerId, number][]).filter(([, v]) => v >= 0.5).sort((a, b) => b[1] - a[1]);
   const unlockable = unlockableTypes(p);
   if (!list.length && !unlockable.length) return null;
+  // most XP first; fit() folds the last portraits into a "+N" bubble until the row stays on one line
+  const xpText = (v: number) => `+${fmt(Math.round(v))} XP`;
   const items = list.map(([id, v], i) =>
     h(
       'div',
-      { class: 'bx-item anim-pop', style: `--i:${i};--d:1100ms`, title: t(TOWERS[id].name) },
+      { class: 'bx-item anim-pop', style: `--i:${i};--d:1100ms`, title: `${t(TOWERS[id].name)}: ${xpText(v)}` },
       h('div', { class: 'bx-art' }, img(towerPortraitUrl(id), '', t(TOWERS[id].name)), unlockable.includes(id) ? upBadge('bd-up small') : null),
-      h('span', { class: 'bx-chip' }, `+${fmt(Math.round(v))}`),
+      h('span', { class: 'bx-chip' }, xpText(v)),
     ),
   );
+  const moreN = h('b', null, '');
+  const moreXp = h('span', { class: 'bx-chip' }, '');
+  const more = h('div', { class: 'bx-item bx-more anim-pop', style: `--i:${items.length};--d:1100ms`, hidden: '' }, h('div', { class: 'bx-art' }, moreN), moreXp);
   const cta = unlockable.length
     ? h(
         'div',
@@ -593,11 +630,37 @@ export function banditXpStrip(p: Profile, gained: Partial<Record<TowerId, number
         }, { size: 'small', icon: uiIcon('mask', '🦝'), cls: 'glint' }),
       )
     : null;
-  return h(
-    'div',
-    { class: 'bx well anim-rise', style: '--d:1000ms' },
-    h('div', { class: 'bx-label' }, uiIcon('xp', '⭐'), h('span', null, t('Bandit XP'))),
-    items.length ? h('div', { class: 'bx-list' }, ...items) : h('div', { class: 'bx-none' }, t('No bandit XP this game')),
-    cta,
-  );
+  const listEl = items.length ? h('div', { class: 'bx-list' }, ...items, more) : h('div', { class: 'bx-none' }, t('No bandit XP this game'));
+  const el = h('div', { class: 'bx well anim-rise', style: '--d:1000ms' }, h('div', { class: 'bx-label' }, uiIcon('xp', '⭐'), h('span', null, t('Bandit XP'))), listEl, cta);
+  if (items.length && typeof ResizeObserver !== 'undefined') {
+    // offsetTop ignores the entrance transforms; everything shares the row's offset parent
+    const wrapped = () => {
+      const vis = [...items.filter((it) => !it.hidden), ...(more.hidden ? [] : [more])];
+      const top = listEl.offsetTop;
+      return vis.some((it) => it.offsetTop > top + 4) || (!!cta && cta.offsetTop >= top + listEl.offsetHeight - 4);
+    };
+    const fold = (n: number) => {
+      const rest = list.slice(items.length - n);
+      items.forEach((it, i) => (it.hidden = i >= items.length - n));
+      more.hidden = n === 0;
+      moreN.textContent = `+${n}`;
+      moreXp.textContent = xpText(rest.reduce((a, [, v]) => a + v, 0));
+      more.title = rest.map(([id, v]) => `${t(TOWERS[id].name)}: ${xpText(v)}`).join('\n');
+    };
+    const fit = () => {
+      if (!el.isConnected || !el.clientWidth) return;
+      fold(0);
+      // a "+1" bubble is as wide as the portrait it replaces, so folding starts at two
+      for (let n = 2; n <= items.length && wrapped(); n++) fold(n);
+    };
+    // runs a frame later (changing the row inside the observer callback would re-trigger it)
+    let width = -1;
+    new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      requestAnimationFrame(fit);
+    }).observe(el);
+    document.fonts?.ready.then(() => requestAnimationFrame(fit));
+  }
+  return el;
 }

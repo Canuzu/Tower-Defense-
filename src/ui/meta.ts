@@ -11,6 +11,7 @@ import { saveProfile, wisdomPoints, type Profile } from '../save/storage';
 import { audio } from '../audio/audio';
 import { h, clear } from './dom';
 import { t, getLang } from '../i18n';
+import { softHyphens } from '../i18n/hyphen';
 import { uiIcon, img, btn, modal, bar, chip, socket, stagger, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
 
 // Painted art for perk and achievement icons (their data still carries an emoji, used only as the
@@ -125,7 +126,7 @@ export function perksModal(p: Profile, close: () => void, onChange: () => void):
           'button',
           { class: 'tile perk' + state, type: 'button' },
           socket(perkIcon(perk), 42),
-          h('span', { class: 'perk-text' }, h('b', null, t(perk.name)), h('small', null, t(perk.desc)), !reqOk ? h('small', { class: 'req' }, t('Needs {name}', { name: t(PERK_BY_ID[perk.requires!].name) })) : null),
+          h('span', { class: 'perk-text' }, h('b', null, t(perk.name)), h('small', null, softHyphens(t(perk.desc))), !reqOk ? h('small', { class: 'req' }, t('Needs {name}', { name: t(PERK_BY_ID[perk.requires!].name) })) : null),
           owned ? uiIcon('check', '✔', 'state') : can ? h('span', { class: 'plus' }, '+') : !reqOk ? uiIcon('lock', '🔒', 'state') : null,
         );
         b.addEventListener('click', () => {
