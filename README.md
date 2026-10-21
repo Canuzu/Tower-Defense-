@@ -72,6 +72,7 @@ App-Icon und Splashscreen liegen in `resources/` und in den nativen Projekten. `
 | Qualitätsprüfung | `python3 -I scripts/art/check.py <ids>` (abgeschnitten? Dunst?) |
 | Spielfertige Sprites | `python3 scripts/process_art.py` → `public/sprites/*.webp` + `src/assets/sprites.json` (Ankerpunkt auf dem Podest, Größe) |
 | Karten | `scripts/art/guide.py` zeichnet einen Layout-Plan aus den echten Wegdaten, die KI malt ihn aus, `scripts/art/overlay.py` prüft, ob der gemalte Weg auf dem echten liegt |
+| Erweiterte Karten (Tablets) | `scripts/art/compose_mapext.py` setzt gemaltes Gelände über und unter die Karte → `art/raw/mx_<karte>.webp`; `process_art.py` macht daraus `public/sprites/mx_*.webp` (nur bei Bedarf geladen) |
 
 
 ## Projektstruktur

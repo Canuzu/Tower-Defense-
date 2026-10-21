@@ -10,6 +10,12 @@ import { scaledSprite, SV } from './spriteCache';
 import { glowSprite, flareSprite, softGlow } from './particles';
 import { shadowSprite } from './starView';
 
+/**
+ * V5 scale pass: shots, drones, orbiting wisps and ghost runners are drawn `scale` x the art lengths
+ * below (and beams that much wider, see Renderer.drawBeams). Purely visual: hit radii stay gameplay-true.
+ */
+export const PROJ_TUNING = { scale: 1.25 };
+
 interface ProjLook {
   /** sprite length (longest side) in world units at size 1 */
   len: number;
@@ -62,7 +68,7 @@ export function drawProjectileSprite(ctx: CanvasRenderingContext2D, p: Projectil
   const key = spr.file.endsWith('p_nuke.webp') ? 'nuke' : spr.file.endsWith('p_arcane.webp') ? 'arcane' : v;
   const look = PROJ_LOOK[key] ?? PROJ_LOOK.quill;
   const size = p.def.size ?? 1;
-  const len = look.len * (size > 1 ? 1 + (size - 1) * 0.7 : size);
+  const len = look.len * (size > 1 ? 1 + (size - 1) * 0.7 : size) * PROJ_TUNING.scale;
   const m = Math.max(spr.w, spr.h);
   const W = (len * spr.w) / m;
   const H = (len * spr.h) / m;
@@ -126,7 +132,7 @@ export function drawDroneSprite(ctx: CanvasRenderingContext2D, d: Drone, res: nu
   const turn = dt > 0 ? diff / dt : 0;
   v.angle += diff * Math.min(1, dt * 12);
   v.bank += (Math.max(-1, Math.min(1, turn * 0.25)) - v.bank) * Math.min(1, dt * 8);
-  const len = DRONE_LEN[visual] ?? 26;
+  const len = (DRONE_LEN[visual] ?? 26) * PROJ_TUNING.scale;
   const m = Math.max(spr.w, spr.h);
   const W = (len * spr.w) / m;
   const H = (len * spr.h) / m;
@@ -161,7 +167,7 @@ export function drawDroneSprite(ctx: CanvasRenderingContext2D, d: Drone, res: nu
 export function drawOrbiterSprite(ctx: CanvasRenderingContext2D, visual: string, x: number, y: number, ang: number, size: number, res: number, tx: number, ty: number): boolean {
   const spr = orbitArt(visual);
   if (!spr) return false;
-  const len = size * 3.2;
+  const len = size * 3.2 * PROJ_TUNING.scale;
   const m = Math.max(spr.w, spr.h);
   const W = (len * spr.w) / m;
   const H = (len * spr.h) / m;
@@ -186,7 +192,7 @@ export function drawOrbiterSprite(ctx: CanvasRenderingContext2D, visual: string,
 export function drawRunnerSprite(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, size: number, age: number, res: number, tx: number, ty: number): boolean {
   const spr = runnerArt();
   if (!spr) return false;
-  const len = size * 2.8;
+  const len = size * 2.8 * PROJ_TUNING.scale;
   const m = Math.max(spr.w, spr.h);
   const W = (len * spr.w) / m;
   const H = (len * spr.h) / m;

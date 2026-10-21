@@ -30,7 +30,23 @@ export const STAR_TUNING = {
   shadowRx: 0.92,
   shadowRy: 0.32,
   shadowAlpha: 0.34,
+  /**
+   * V5 scale pass: stars are drawn larger than their gameplay radius (hitboxes do not change).
+   * The Red Dwarf (gameplay radius growRefR) gets 1 + grow; growEven spreads the boost: 0 = every star
+   * x(1 + grow), 1 = every star gets the Red Dwarf's absolute boost, so big stars and bosses grow less
+   * (Emerald r19 x1.31, Comet r46 x1.13) and stay on the painted track. See starScale().
+   */
+  grow: 0.45,
+  growRefR: 13,
+  growEven: 1,
 };
+
+/** Drawn size / gameplay size of a star with gameplay radius `r` (see STAR_TUNING.grow). */
+export function starScale(r: number): number {
+  const T = STAR_TUNING;
+  if (T.grow === 0) return 1;
+  return 1 + T.grow * (1 - T.growEven + (T.growEven * T.growRefR) / Math.max(1, r));
+}
 
 /** Bosses whose sprite is a comet (head right, tail left): rotated along the path. */
 const COMET: Partial<Record<GloopId, boolean>> = { moab: true, ddt: true };
@@ -188,7 +204,7 @@ const sizeOut = { w: 0, h: 0, body: 0 };
 /** Shared result object (no per-star allocation): read it right away, do not keep it. */
 export function starSize(e: Enemy, spr: LoadedSprite): { readonly w: number; readonly h: number; readonly body: number } {
   const k = e.def.boss ? STAR_TUNING.bossK[e.type] ?? 2.2 : STAR_TUNING.bodyK;
-  const body = k * e.radius;
+  const body = k * e.radius * starScale(e.radius);
   const maxSide = body / (spr.body ?? 1);
   const m = Math.max(spr.w, spr.h);
   sizeOut.w = (maxSide * spr.w) / m;
@@ -220,7 +236,7 @@ function shadowGeom(e: Enemy): number {
 
 /** Crowd shadow: adds a flat ellipse to the current path (filled once for all stars). */
 export function pathStarShadow(ctx: CanvasRenderingContext2D, e: Enemy) {
-  const r = e.radius;
+  const r = e.radius * starScale(e.radius);
   const k = shadowGeom(e) * 0.8;
   const rx = r * STAR_TUNING.shadowRx * k;
   const cy = e.y + r * STAR_TUNING.shadowY;
@@ -228,15 +244,15 @@ export function pathStarShadow(ctx: CanvasRenderingContext2D, e: Enemy) {
   ctx.ellipse(e.x, cy, rx, r * STAR_TUNING.shadowRy * k, 0, 0, Math.PI * 2);
 }
 
-/** Ground shadow under a floating star. Context in world space. */
-export function drawStarShadow(ctx: CanvasRenderingContext2D, e: Enemy, time: number) {
-  const r = e.radius;
+/** Ground shadow under a floating star (`alpha` scales its opacity: depth pass). Context in world space. */
+export function drawStarShadow(ctx: CanvasRenderingContext2D, e: Enemy, time: number, alpha = 1) {
+  const r = e.radius * starScale(e.radius);
   const boss = !!e.def.boss;
   const bob = boss ? 0 : Math.sin(e.phase * 1.7 + e.age * (3 + e.def.speed)) * STAR_TUNING.bob;
   const k = 1 - bob * 0.6;
   const rx = r * STAR_TUNING.shadowRx * k * (boss ? 1.1 : 1);
   const ry = r * STAR_TUNING.shadowRy * k * (boss ? 1.1 : 1);
-  ctx.globalAlpha = STAR_TUNING.shadowAlpha * (e.camo ? 0.6 : 1);
+  ctx.globalAlpha = Math.min(1, STAR_TUNING.shadowAlpha * (e.camo ? 0.6 : 1) * alpha);
   ctx.drawImage(shadowSprite(), e.x - rx, e.y + r * STAR_TUNING.shadowY - ry, rx * 2, ry * 2);
   ctx.globalAlpha = 1;
   void time;
@@ -248,7 +264,8 @@ export function drawStarShadow(ctx: CanvasRenderingContext2D, e: Enemy, time: nu
  */
 export function drawStar(ctx: CanvasRenderingContext2D, e: Enemy, spr: LoadedSprite, res: number, tx: number, ty: number, time: number, dt: number, crowded = false) {
   const def = e.def;
-  const r = e.radius;
+  // visual radius: every drawn offset / overlay grows with the drawn star, the hitbox does not
+  const r = e.radius * starScale(e.radius);
   const T = STAR_TUNING;
   const frozen = e.freezeT > 0;
   const stunned = e.stunT > 0;
@@ -417,6 +434,6 @@ export function drawStar(ctx: CanvasRenderingContext2D, e: Enemy, spr: LoadedSpr
 
 /** Where the visual centre of the star is drawn (for effects that attach to it). */
 export function starCenterY(e: Enemy): number {
-  if (e.def.boss) return e.y - e.radius * 0.1;
-  return e.y - e.radius * STAR_TUNING.hover;
+  if (e.def.boss) return e.y - e.radius * starScale(e.radius) * 0.1;
+  return e.y - e.radius * starScale(e.radius) * STAR_TUNING.hover;
 }

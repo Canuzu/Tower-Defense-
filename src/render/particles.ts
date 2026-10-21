@@ -1,6 +1,12 @@
 import { makeCanvas } from './draw';
 import { parseHex, shade } from '../core/math';
 
+/**
+ * V5 scale pass: decorative particles (sparks, smoke, sparkles, shards, coins, ...) are drawn `scale` x
+ * their spawn size. Rings, flashes and rays keep their sizes: they show gameplay areas (blast radii).
+ */
+export const FX_TUNING = { scale: 1.2 };
+
 export const enum PK {
   Drop,
   Spark,
@@ -413,7 +419,7 @@ export class Particles {
       }
       ctx.globalAlpha = Math.min(1, t * 2) * 0.55;
       const img = dropSprite(p.color);
-      const s = p.size;
+      const s = p.size * FX_TUNING.scale;
       ctx.drawImage(img, p.x - s, p.y - s * 0.6, s * 2, s * 1.2);
     }
     if (any) {
@@ -423,7 +429,7 @@ export class Particles {
         const t = p.life / p.max;
         const tw = 0.5 + 0.5 * Math.sin(p.rot * 3 + (1 - t) * 18);
         ctx.globalAlpha = Math.min(1, t * 3) * tw;
-        const s = p.size;
+        const s = p.size * FX_TUNING.scale;
         ctx.drawImage(flareSprite(p.color), p.x - s, p.y - s, s * 2, s * 2);
       }
       ctx.globalCompositeOperation = 'source-over';
@@ -437,6 +443,8 @@ export class Particles {
    */
   draw(ctx: CanvasRenderingContext2D, worldToCss: number, res = 1, tx = 0, ty = 0) {
     const smoke = getSmoke();
+    // decorative particle sizes (area rings / flashes keep their gameplay radius)
+    const fx = FX_TUNING.scale;
     // normal blended first
     for (const p of this.list) {
       if (p.ground) continue;
@@ -444,13 +452,13 @@ export class Particles {
       switch (p.kind) {
         case PK.Drop: {
           ctx.globalAlpha = Math.min(1, t * 3);
-          const s = p.size * (0.5 + t * 0.5);
+          const s = p.size * fx * (0.5 + t * 0.5);
           ctx.drawImage(dropSprite(p.color), p.x - s, p.y - s, s * 2, s * 2);
           break;
         }
         case PK.Smoke: {
           ctx.globalAlpha = t * 0.55;
-          const s = p.size + (1 - t) * p.size2;
+          const s = (p.size + (1 - t) * p.size2) * fx;
           ctx.drawImage(smoke, p.x - s, p.y - s, s * 2, s * 2);
           break;
         }
@@ -467,7 +475,7 @@ export class Particles {
         case PK.Crystal: {
           ctx.globalAlpha = t < 0.3 ? t / 0.3 : 1;
           // the 40 px frame holds a ~32 px shard: size is the shard half-length in world units
-          const s = p.size * 1.25 * (t < 0.2 ? 0.6 + t * 2 : 1);
+          const s = p.size * fx * 1.25 * (t < 0.2 ? 0.6 + t * 2 : 1);
           let a = p.rot % TAU_P;
           if (a < 0) a += TAU_P;
           const f = ((a / TAU_P) * SHARD_FRAMES + 0.5) | 0;
@@ -476,8 +484,8 @@ export class Particles {
         }
         case PK.Shard: {
           ctx.globalAlpha = Math.min(1, t * 2);
-          const c = Math.cos(p.rot) * res;
-          const s = Math.sin(p.rot) * res;
+          const c = Math.cos(p.rot) * res * fx;
+          const s = Math.sin(p.rot) * res * fx;
           ctx.setTransform(c, s, -s, c, p.x * res + tx, p.y * res + ty);
           ctx.beginPath();
           ctx.moveTo(0, -p.size);
@@ -491,8 +499,8 @@ export class Particles {
         }
         case PK.Confetti: {
           ctx.globalAlpha = Math.min(1, t * 2);
-          const c = Math.cos(p.rot) * res;
-          const s = Math.sin(p.rot) * res;
+          const c = Math.cos(p.rot) * res * fx;
+          const s = Math.sin(p.rot) * res * fx;
           ctx.setTransform(c, s, -s, c, p.x * res + tx, p.y * res + ty);
           ctx.fillStyle = p.color;
           ctx.fillRect(-p.size, -p.size * 0.4, p.size * 2, p.size * 0.8 * Math.abs(Math.sin(p.rot * 2)) + 1);
@@ -500,22 +508,23 @@ export class Particles {
         }
         case PK.Coin: {
           ctx.globalAlpha = Math.min(1, t * 3);
-          const sx = Math.max(0.15, Math.abs(Math.cos(p.rot))) * p.size;
-          ctx.drawImage(getCoin(), p.x - sx, p.y - p.size, sx * 2, p.size * 2);
+          const cs = p.size * fx;
+          const sx = Math.max(0.15, Math.abs(Math.cos(p.rot))) * cs;
+          ctx.drawImage(getCoin(), p.x - sx, p.y - cs, sx * 2, cs * 2);
           break;
         }
         case PK.Snow: {
           ctx.globalAlpha = Math.min(1, t * 2);
           ctx.fillStyle = p.color;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, p.size * fx, 0, Math.PI * 2);
           ctx.fill();
           break;
         }
         case PK.Bubble: {
           ctx.globalAlpha = Math.min(1, t * 2) * 0.8;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * (1.2 - t * 0.4), 0, Math.PI * 2);
+          ctx.arc(p.x, p.y, p.size * fx * (1.2 - t * 0.4), 0, Math.PI * 2);
           ctx.strokeStyle = p.color;
           ctx.lineWidth = 1.5;
           ctx.stroke();
@@ -534,13 +543,13 @@ export class Particles {
       switch (p.kind) {
         case PK.Spark: {
           ctx.globalAlpha = t;
-          const s = p.size * (0.4 + t * 0.6);
+          const s = p.size * fx * (0.4 + t * 0.6);
           ctx.drawImage(glowSprite(p.color), p.x - s, p.y - s, s * 2, s * 2);
           break;
         }
         case PK.Flame: {
           ctx.globalAlpha = t * 0.9;
-          const s = p.size * (0.3 + t * 0.9);
+          const s = p.size * fx * (0.3 + t * 0.9);
           ctx.drawImage(glowSprite(p.color), p.x - s, p.y - s, s * 2, s * 2);
           break;
         }
@@ -554,7 +563,7 @@ export class Particles {
           // pop in, then twinkle, shrink and fade
           const age = 1 - t;
           ctx.globalAlpha = age < 0.15 ? age / 0.15 : t * 1.15 > 1 ? 1 : t * 1.15;
-          const s = p.size * 1.6 * (age < 0.15 ? 0.4 + (age / 0.15) * 0.6 : 0.45 + t * 0.55) * (0.85 + 0.15 * Math.sin(p.rot * 4));
+          const s = p.size * fx * 1.6 * (age < 0.15 ? 0.4 + (age / 0.15) * 0.6 : 0.45 + t * 0.55) * (0.85 + 0.15 * Math.sin(p.rot * 4));
           ctx.drawImage(flareSprite(p.color), p.x - s, p.y - s, s * 2, s * 2);
           break;
         }

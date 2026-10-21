@@ -494,6 +494,72 @@
   "ax": 0,
   "ay": 0
  },
+ "mx_candy": {
+  "file": "sprites/mx_candy.webp",
+  "w": 2400,
+  "h": 2138,
+  "ax": 0,
+  "ay": 0,
+  "wy": [
+   0.18254,
+   0.81746
+  ]
+ },
+ "mx_caverns": {
+  "file": "sprites/mx_caverns.webp",
+  "w": 2400,
+  "h": 2138,
+  "ax": 0,
+  "ay": 0,
+  "wy": [
+   0.18254,
+   0.81746
+  ]
+ },
+ "mx_fjord": {
+  "file": "sprites/mx_fjord.webp",
+  "w": 2400,
+  "h": 2138,
+  "ax": 0,
+  "ay": 0,
+  "wy": [
+   0.18254,
+   0.81746
+  ]
+ },
+ "mx_forge": {
+  "file": "sprites/mx_forge.webp",
+  "w": 2400,
+  "h": 2138,
+  "ax": 0,
+  "ay": 0,
+  "wy": [
+   0.18254,
+   0.81746
+  ]
+ },
+ "mx_meadow": {
+  "file": "sprites/mx_meadow.webp",
+  "w": 2400,
+  "h": 2138,
+  "ax": 0,
+  "ay": 0,
+  "wy": [
+   0.18254,
+   0.81746
+  ]
+ },
+ "mx_rivers": {
+  "file": "sprites/mx_rivers.webp",
+  "w": 2400,
+  "h": 2138,
+  "ax": 0,
+  "ay": 0,
+  "wy": [
+   0.18254,
+   0.81746
+  ]
+ },
  "p_arcane": {
   "file": "sprites/p_arcane.webp",
   "w": 128,

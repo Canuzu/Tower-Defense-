@@ -14,6 +14,7 @@ For every sprite:
   - records into src/assets/sprites.json: file, w, h, ax, ay (anchor 0..1) and
       foot  (towers/heroes: spool platform width / image width, used to scale the sprite)
       body  (enemies: body diameter / max(w, h), used to scale the sprite)
+      wy    (extended maps mx_<map>: [top, bottom] of the 1600x900 world as fractions of h)
 
 Usage: python3 scripts/process_art.py [--force] [id ...]
 Unchanged sprites (same raw file, same rule, same script) are skipped; --force reprocesses everything.
@@ -35,6 +36,9 @@ BOSS = {'e_moab': 512, 'e_bfb': 560, 'e_zomg': 640, 'e_ddt': 512, 'e_bad': 768}
 RULES = [
     ('sheet_', None),  # source sheets for cut.py, not sprites
     ('m_', {'size': 2400, 'trim': False, 'anchor': [0, 0], 'quality': 84, 'clean': False}),
+    # extended maps (scripts/art/compose_mapext.py): the m_ painting at the same width (2400 px, so the
+    # world part matches m_ pixel for pixel) with real terrain above and below; loaded on demand
+    ('mx_', {'size': 2400, 'trim': False, 'anchor': [0, 0], 'quality': 84, 'clean': False, 'world': 'm_'}),
     ('t_', {'size': 320, 'anchor': 'spool'}),
     ('h_', {'size': 360, 'anchor': 'spool'}),
     # bosses that are not star-shaped (comets, moon, ringed planet): anchor + body from the largest
@@ -176,6 +180,16 @@ def process(id_, rule):
         info.update(ax=round(cx / w, 4), ay=round(cy / h, 4), body=round(min(1.0, 2 * r / max(w, h) * rule.get('bodyScale', 1)), 4))
     else:
         info.update(ax=anchor[0], ay=anchor[1])
+    if rule.get('world'):
+        # the base painting spans the full width with equal bands above and below it
+        base = raw_path(rule['world'] + id_.split('_', 1)[1])
+        if base is None:
+            raise ValueError(f'{id_}: no {rule["world"]} painting to align with')
+        bw, bh = Image.open(base).size
+        sw, sh = Image.open(src).size
+        world_h = bh * sw / bw
+        band = (sh - world_h) / 2
+        info['wy'] = [round(band / sh, 6), round((band + world_h) / sh, 6)]
     if 'body' in rule:
         info['body'] = rule['body']
     if 'foot' in rule:

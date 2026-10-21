@@ -136,6 +136,21 @@ function popCount(id: GloopId): number {
 
 const PLACE_CELL = 8;
 
+/**
+ * Placement footprint = gameplay radius x FOOTPRINT_K (20 -> 25 for most towers, heroes 26 / 30, the
+ * Dojo 32.5). Raccoons are drawn 1.25x larger since the V5 scale pass (TOWER_TUNING.spoolK), so their
+ * bases need that much more room to the track, obstacles, the world edge and each other. The gameplay
+ * radius itself (buff aura reach, abilities) does not change.
+ */
+export const FOOTPRINT_K = 1.25;
+
+/**
+ * Sideways spread of the stars on the track, as a fraction of the room the track leaves beside them
+ * (half its width minus their radius). Stars are drawn up to 1.45x their gameplay size (V5), so they
+ * keep closer to the middle of the painted track than they used to (0.8).
+ */
+export const LANE_SPREAD = 0.45;
+
 export class Game {
   readonly events = new Emitter<GameEvents>();
   readonly map: MapDef;
@@ -318,9 +333,10 @@ export class Game {
   }
 
   canPlace(radius: number, x: number, y: number, ignore: Tower | null = null): boolean {
-    if (x - radius < 2 || y - radius < 2 || x + radius > WORLD_W - 2 || y + radius > WORLD_H - 2) return false;
+    const fr = radius * FOOTPRINT_K;
+    if (x - fr < 2 || y - fr < 2 || x + fr > WORLD_W - 2 || y + fr > WORLD_H - 2) return false;
     // sample the footprint
-    const r = radius - 3;
+    const r = fr - 3;
     for (let a = 0; a < 12; a++) {
       const ang = (a / 12) * TAU;
       if (this.maskAt(x + Math.cos(ang) * r, y + Math.sin(ang) * r) !== 0) return false;
@@ -330,7 +346,7 @@ export class Game {
     if (this.maskAt(x, y + r * 0.5) !== 0 || this.maskAt(x, y - r * 0.5) !== 0) return false;
     for (const t of this.towers) {
       if (t === ignore) continue;
-      const rr = t.radius + radius - 4;
+      const rr = (t.radius + radius) * FOOTPRINT_K - 4;
       if (dist2(t.x, t.y, x, y) < rr * rr) return false;
     }
     return true;
@@ -898,7 +914,7 @@ export class Game {
       regrowMax: opts.regrow ? type : null,
       fortified: opts.fortified,
       hpMul: bossHealthMul(this.round),
-      lane: def.boss ? 0 : rand(-laneMax, laneMax) * 0.8,
+      lane: def.boss ? 0 : rand(-laneMax, laneMax) * LANE_SPREAD,
     });
     e.speedMul = speedMul(this.round);
     if (type === 'golden') {
@@ -1059,13 +1075,13 @@ export class Game {
     const created: Enemy[] = [];
     for (let i = 0; i < n; i++) {
       const cdef = GLOOPS[kids[i]];
-      const laneMax = Math.max(0, this.map.pathWidth / 2 - cdef.radius - 4);
+      const laneMax = Math.max(0, this.map.pathWidth / 2 - cdef.radius - 4) * LANE_SPREAD;
       const c = new Enemy(this.nextId++, kids[i], e.pathIndex, Math.max(0, e.dist + (i - (n - 1) / 2) * spacing), {
         camo: e.camo,
         regrowMax: e.regrowMax,
         fortified: false,
         hpMul: bossHealthMul(this.round),
-        lane: cdef.boss ? 0 : clamp(e.lane + rand(-6, 6), -laneMax, laneMax),
+        lane: cdef.boss ? 0 : clamp(e.lane + rand(-4, 4), -laneMax, laneMax),
       });
       c.speedMul = e.speedMul;
       if (e.slowT > 0) {

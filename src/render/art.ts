@@ -6,7 +6,7 @@
  * Lookups the renderer makes every frame are memoized (no allocations on the hot path); the memo is
  * dropped whenever more sprites finish loading.
  */
-import { getSprite, pickSprite, spritesVersion, type LoadedSprite } from '../assets/sprites';
+import { getSprite, pickSprite, spritesVersion, requestSprite, releaseSprite, type LoadedSprite } from '../assets/sprites';
 import { GLOOPS, type GloopId } from '../game/gloops';
 import type { ProjDef } from '../game/towerTypes';
 import spriteIndex from '../assets/sprites.json';
@@ -188,6 +188,27 @@ export function crateArt(): LoadedSprite | null {
 
 export function mapArt(mapId: string): LoadedSprite | null {
   return getSprite('m_' + mapId);
+}
+
+/**
+ * Extended painting of a map (mx_<map>): the m_ painting with real terrain painted above and below the
+ * world (for screens taller than 16:9). Loaded on demand: null until it has arrived (the first call
+ * starts the download). Only one is kept: asking for a map releases every other map's extension.
+ */
+let extMap = '';
+export function mapExtArt(mapId: string): LoadedSprite | null {
+  if (extMap !== mapId) {
+    if (extMap) releaseSprite('mx_' + extMap);
+    extMap = mapId;
+  }
+  const s = requestSprite('mx_' + mapId);
+  return s && s.wy ? s : null;
+}
+
+/** Let go of the extended painting (the screen shows no terrain above / below the world). */
+export function releaseMapExt(): void {
+  if (extMap) releaseSprite('mx_' + extMap);
+  extMap = '';
 }
 
 export function abilityArt(abilityId: string): LoadedSprite | null {

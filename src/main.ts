@@ -4,6 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import { restoreFromNative } from './save/durable';
 import { loadSprites } from './assets/sprites';
 import { showLoader } from './ui/loading';
+import type { Viz } from './render/viz';
+import type { Renderer } from './render/Renderer';
 
 async function boot() {
   const root = document.getElementById('app')!;
@@ -16,9 +18,29 @@ async function boot() {
     /* ignore */
   }
   await Promise.all([restoreFromNative(), sprites]);
+  const dev = new URLSearchParams(location.search).has('dev') || location.hash === '#dev';
+  // scale lab knobs (dev only): ?dev=1&viz=towers:1.2,stars:1.4 / window.__viz({ stars: 1.6 }) / __viz() = shipped look
+  const viz = dev ? await import('./render/viz') : null;
+  viz?.initVizFromUrl();
   const app = new App(root);
   loader.done();
   (window as any).__app = app;
+  if (viz) {
+    const r = (app as unknown as { renderer: Renderer }).renderer;
+    const applyViz = (v: Viz) => {
+      r.depthOverride = v.depth;
+      r.refreshLook();
+      return v;
+    };
+    applyViz(viz.setViz({}));
+    (window as any).__viz = (p?: Partial<Viz> | string | null) => applyViz(viz.setViz(p ?? null));
+    // perf probes: ?dprcap=2 renders like the old fixed 2x cap
+    const cap = Number(new URLSearchParams(location.search).get('dprcap'));
+    if (cap > 0) {
+      r.dprCap = cap;
+      window.dispatchEvent(new Event('resize'));
+    }
+  }
   if (Capacitor.isNativePlatform()) {
     try {
       const { App: CapApp } = await import('@capacitor/app');
