@@ -37,7 +37,8 @@
  * PROGRESS     .bar > i (style="--p:40%") [+ span label]; colours .xp (default) .gold .green .red
  * CARDS        .tile (raised content card; button.tile is pressable) states .sel .locked .owned .done
  *              .tile.role-x tints a card in its role colour (.locked keeps a muted hue)
- * ROLES        .role-ico (round role badge, roleIcon()) .chip.role-chip (badge + name, roleChip())
+ * ROLES        .role-ico (round role badge, roleIcon(): dart, shield, sparkle, sprout, crown; never
+ *              chevrons or "+", which mean upgrade / buy) .chip.role-chip (badge + name, roleChip())
  *              .role-head (coloured section header of a role group: badge + name + count + line)
  *              .socket (round icon holder; .gold ring) ; .portrait (radial glow behind painted art)
  * RIBBONS      .ribbon [.gold .red .green .blue .purple] > .rb-tail.l, .rb-tail.r, .rb-body
@@ -48,7 +49,8 @@
  *                > .page-body (scrolls) ; .page-wrap.leaving plays the exit, .swap skips the fade
  * TABS         .tabs > button.tab(.on) [> .tab-n count] ; segmented control .seg > button(.on)
  * FORMS        .setting row (label + control)  .toggle(.on)  input[type=range] (set --v:%)
- * MOTION       .anim-pop .anim-rise .anim-drop .anim-fade (stagger: style="--i:3"; extra delay --d)
+ * MOTION       .anim-pop .anim-rise .anim-drop .anim-fade (stagger: style="--i:3"; extra delay --d;
+ *              pages use stagger(..., PAGE_STAGGER): capped at --i 6 and played once)
  *              .glint (light sweep)  .bump (number bump)  .float  .twinkles > i  .rays
  *              Disabled for prefers-reduced-motion and html.reduce-motion; html.reduce-fx (battery
  *              saver setting) stops the ambient loops (ken burns, twinkles, glows).

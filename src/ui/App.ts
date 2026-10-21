@@ -51,6 +51,7 @@ import {
   dec,
   leavePage,
   page,
+  PAGE_STAGGER,
 } from './kit';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
@@ -424,7 +425,9 @@ export class App {
       const def = TOWERS[id];
       const open = this.devUnlock || level >= def.unlock;
       if (open) unlockedCount++;
-      roster.append(h('div', { class: `roster-icon role-disc ${roleCls(def.role)}` + (open ? '' : ' locked'), title: open ? `${t(def.name)} · ${roleName(def.role)}` : t('Unlocks at level {n}', { n: def.unlock }) }, img(towerPortraitUrl(id), '', t(def.name)), open ? null : h('span', { class: 'lv' }, t('Lvl {n}', { n: def.unlock }))));
+      // locked: lock + level number (a "Lvl 5" label is wider than the icon on small phones)
+      const req = t('Unlocks at level {n}', { n: def.unlock });
+      roster.append(h('div', { class: `roster-icon role-disc ${roleCls(def.role)}` + (open ? '' : ' locked'), title: open ? `${t(def.name)} · ${roleName(def.role)}` : req, role: 'img', 'aria-label': open ? `${t(def.name)} · ${roleName(def.role)}` : req }, img(towerPortraitUrl(id), '', ''), open ? null : h('span', { class: 'lv', 'aria-hidden': 'true' }, uiIcon('lock', '🔒'), String(def.unlock))));
     }
     const left = h(
       'div',
@@ -1147,7 +1150,8 @@ export class App {
     host.open(m, done);
   }
 
-  openCodex(tab: AtlasTab = 'bandits') {
+  /** `scroll` restores the list position when coming back from the Bandit menu. */
+  openCodex(tab: AtlasTab = 'bandits', scroll = 0) {
     const level = this.level;
     const grid = h('div', { class: 'atlas-grid' });
     const tabs: [AtlasTab, string, number][] = [
@@ -1167,7 +1171,7 @@ export class App {
     });
     const lockedChip = (lvl: number) => chip(uiIcon('lock', '🔒'), t('Unlocks at level {n}', { n: lvl }), 'dark');
     let pageEl: HTMLElement | null = null;
-    const select = (id: AtlasTab) => {
+    const select = (id: AtlasTab, restore = 0) => {
       tabEls.forEach((b, i) => {
         b.classList.toggle('on', tabs[i][0] === id);
         b.setAttribute('aria-selected', String(tabs[i][0] === id));
@@ -1175,10 +1179,12 @@ export class App {
       clear(grid);
       grid.dataset.tab = id;
       const cards: HTMLElement[] = [];
-      // bandit and hero cards open the Bandit menu (skills, XP unlocks); its back button comes back here
+      // bandit and hero cards open the Bandit menu (skills, XP unlocks); its back button comes back
+      // here, to the same tab and scroll position
       const toBandits = (o: BanditsOpts) => () => {
         audio.play('click');
-        this.openBandits({ ...o, back: () => this.openCodex(id) });
+        const at = pageEl?.querySelector<HTMLElement>('.page-body')?.scrollTop ?? 0;
+        this.openBandits({ ...o, back: () => this.openCodex(id, at) });
       };
       const cta = (text: string, o: BanditsOpts) => {
         const b = btn(t('Bandits'), 'green', toBandits(o), { size: 'small', icon: uiIcon('mask', '🦝'), cls: 'glint' });
@@ -1186,9 +1192,10 @@ export class App {
       };
       if (id === 'bandits') {
         grid.append(cta(t('Every raccoon earns its own XP. Open the Bandit menu to see all upgrade tiers and unlock new ones.'), {}));
-        // grouped by role, each group under its coloured header
+        // grouped by role, each group under its coloured header (one column per role on wide screens)
         for (const grp of roleGroups()) {
-          grid.append(h('div', { class: `atlas-sec role-head ${roleCls(grp.role)}` }, roleIcon(grp.role), h('span', null, roleName(grp.role)), h('span', { class: 'n' }, String(grp.ids.length))));
+          const group = h('div', { class: `atlas-group ${roleCls(grp.role)}` }, h('div', { class: `atlas-sec role-head ${roleCls(grp.role)}` }, roleIcon(grp.role), h('span', null, roleName(grp.role)), h('span', { class: 'n' }, String(grp.ids.length))));
+          grid.append(group);
           for (const tid of grp.ids) {
             const d = TOWERS[tid];
             const locked = !this.devUnlock && level < d.unlock;
@@ -1202,11 +1209,11 @@ export class App {
                 h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), roleChip(d.role)),
                 h('small', null, t(d.species)),
                 h('p', null, softHyphens(t(d.desc))),
-                locked ? h('div', null, lockedChip(d.unlock)) : null,
+                locked ? h('div', { class: 'atlas-lock' }, lockedChip(d.unlock)) : null,
               ),
             );
             cards.push(card);
-            grid.append(card);
+            group.append(card);
           }
         }
       } else if (id === 'heroes') {
@@ -1260,12 +1267,13 @@ export class App {
         }
       }
       if (!cards[0]?.parentElement) grid.append(...cards);
-      stagger(cards.slice(0, 16), 'anim-rise');
+      // coming back to a list the player was already reading: no card entrance, same position
+      if (!restore) stagger(cards.slice(0, 16), 'anim-rise', 0, PAGE_STAGGER);
       const body = pageEl?.querySelector<HTMLElement>('.page-body');
-      if (body) body.scrollTop = 0;
+      if (body) body.scrollTop = restore;
     };
     pageEl = this.openPage((close) => page({ title: t('Star Atlas'), icon: uiIcon('book', '📖'), accent: '#3fb2ff', cls: 'atlas', onBack: close, tabs: h('div', { class: 'tabs atlas-tabs', role: 'tablist' }, ...tabEls) }, [grid]));
-    select(tab);
+    select(tab, scroll);
   }
 
 }

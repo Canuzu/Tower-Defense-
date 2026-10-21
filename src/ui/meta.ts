@@ -12,8 +12,8 @@ import { audio } from '../audio/audio';
 import { h, clear } from './dom';
 import { t, getLang } from '../i18n';
 import { softHyphens } from '../i18n/hyphen';
-import { uiIcon, img, btn, page, bar, chip, socket, stagger, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
-import { byRole, towerRoleCls, roleIcon } from './roles';
+import { uiIcon, img, btn, page, bar, chip, socket, stagger, PAGE_STAGGER, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
+import { byRole, towerRoleCls, roleCls, roleIcon } from './roles';
 import type { TowerId } from '../game/towerTypes';
 
 // Painted art for perk and achievement icons (their data still carries an emoji, used only as the
@@ -80,14 +80,23 @@ function artIcon(ref: ArtRef | undefined, fallback: string): HTMLElement {
   return h('span', { class: 'ico emoji', 'aria-hidden': 'true' }, fallback);
 }
 
+/** Socket classes for an icon that shows a raccoon or a hero: its disc takes the role colour. */
+function artSocketCls(ref: ArtRef | undefined): string {
+  if (ref && 'tower' in ref) return 'role-socket ' + towerRoleCls(ref.tower as TowerId);
+  if (ref && 'hero' in ref) return 'role-socket ' + roleCls('Hero');
+  return '';
+}
+
 export const perkIcon = (perk: PerkDef) => artIcon(PERK_ART[perk.id], perk.icon);
 export const achievementIcon = (a: AchievementDef) => artIcon(ACH_ART[a.id], a.icon);
 
-const BRANCHES: { id: PerkDef['branch']; name: string; color: string }[] = [
-  { id: 'economy', name: 'Economy', color: '#ffd23c' },
-  { id: 'critters', name: 'Bandits', color: '#6ee86a' },
-  { id: 'heroes', name: 'Heroes', color: '#d29bff' },
-  { id: 'power', name: 'Power', color: '#ff7b7b' },
+// Branch headers carry an icon rather than a colour: the hues are taken by the raccoon roles
+// (a gold, green or violet branch would read as Hero, Military or Magic).
+const BRANCHES: { id: PerkDef['branch']; name: string; icon: [string, string] }[] = [
+  { id: 'economy', name: 'Economy', icon: ['coin', '🪙'] },
+  { id: 'critters', name: 'Bandits', icon: ['mask', '🦝'] },
+  { id: 'heroes', name: 'Heroes', icon: ['crown', '👑'] },
+  { id: 'power', name: 'Power', icon: ['fast', '⚡'] },
 ];
 
 /** "Bandit Wisdom" perk tree (full-screen page: points + reset in the header, four branches). */
@@ -120,7 +129,7 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
     const cols = h('div', { class: 'perk-cols' });
     const colEls: HTMLElement[] = [];
     for (const br of BRANCHES) {
-      const col = h('div', { class: 'perk-col well', style: `--bc:${br.color}` }, h('div', { class: 'perk-branch' }, t(br.name)));
+      const col = h('div', { class: 'perk-col well' }, h('div', { class: 'perk-branch' }, uiIcon(br.icon[0], br.icon[1]), h('span', null, t(br.name))));
       for (const perk of PERKS.filter((x) => x.branch === br.id)) {
         const owned = p.perks.includes(perk.id);
         const reqOk = !perk.requires || p.perks.includes(perk.requires);
@@ -129,7 +138,7 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
         const b = h(
           'button',
           { class: 'tile perk' + state, type: 'button' },
-          socket(perkIcon(perk), 42),
+          socket(perkIcon(perk), 42, artSocketCls(PERK_ART[perk.id])),
           h('span', { class: 'perk-text' }, h('b', null, t(perk.name)), h('small', null, softHyphens(t(perk.desc))), !reqOk ? h('small', { class: 'req' }, t('Needs {name}', { name: t(PERK_BY_ID[perk.requires!].name) })) : null),
           owned ? uiIcon('check', '✔', 'state') : can ? h('span', { class: 'plus' }, '+') : !reqOk ? uiIcon('lock', '🔒', 'state') : null,
         );
@@ -149,7 +158,7 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
       colEls.push(col);
       cols.append(col);
     }
-    if (first) stagger(colEls, 'anim-rise', 1);
+    if (first) stagger(colEls, 'anim-rise', 1, PAGE_STAGGER);
     body.append(cols);
     reset.disabled = p.perks.length === 0;
   };
@@ -169,13 +178,13 @@ export function achievementsPage(p: Profile, g: Game | null, close: () => void):
       h(
         'div',
         { class: 'tile ach' + (got ? ' done' : '') },
-        socket(achievementIcon(a), 46, got ? 'gold' : ''),
+        socket(achievementIcon(a), 46, ((got ? 'gold ' : '') + artSocketCls(ACH_ART[a.id])).trim()),
         h('div', { class: 'ach-text' }, h('b', null, t(a.name)), h('small', null, t(a.desc)), got ? null : bar(prog, 'green', `${Math.floor(prog * 100)}%`, 16)),
         h('div', { class: 'ach-xp' }, got ? uiIcon('check', '✔') : uiIcon('xp', '⭐'), h('b', { class: 't-outline' }, `+${fmt(a.xp)}`)),
       ),
     );
   }
-  stagger(tiles.slice(0, 12), 'anim-rise', 1);
+  stagger(tiles.slice(0, 12), 'anim-rise', 1, PAGE_STAGGER);
   list.append(...tiles);
   const summary = h(
     'div',

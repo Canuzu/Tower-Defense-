@@ -143,14 +143,35 @@ export function bump(el: HTMLElement) {
   el.classList.add('bump');
 }
 
+export interface StaggerOpts {
+  /** highest index: a long list cascades faster instead of taking longer to arrive */
+  last?: number;
+  /** drop the class once its animation has played, so a later display change (a layout switch on
+   * resize, a hidden path shown again) does not replay the entrance */
+  once?: boolean;
+}
+
 /** Sets the stagger index (--i) on each element and adds the entrance class. */
-export function stagger<T extends HTMLElement>(els: T[], cls = 'anim-rise', start = 0): T[] {
+export function stagger<T extends HTMLElement>(els: T[], cls = 'anim-rise', start = 0, o: StaggerOpts = {}): T[] {
+  const last = o.last ?? Infinity;
+  const step = els.length > 1 && start + els.length - 1 > last ? Math.max(0, last - start) / (els.length - 1) : 1;
+  const name = cls.replace('anim-', 'ui-');
   els.forEach((el, i) => {
     el.classList.add(cls);
-    el.style.setProperty('--i', String(start + i));
+    el.style.setProperty('--i', String(Math.round((start + i * step) * 100) / 100));
+    if (!o.once) return;
+    const played = (e: AnimationEvent) => {
+      if (e.target !== el || e.animationName !== name) return;
+      el.removeEventListener('animationend', played);
+      el.classList.remove(cls);
+    };
+    el.addEventListener('animationend', played);
   });
   return els;
 }
+
+/** Cascade of the long lists on full-screen pages: the last item starts after ~0.3 s, plays once. */
+export const PAGE_STAGGER: StaggerOpts = { last: 6, once: true };
 
 // ------------------------------------------------------------------------------------------- components
 

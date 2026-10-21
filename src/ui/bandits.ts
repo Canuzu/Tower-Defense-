@@ -15,7 +15,7 @@ import { h, clear } from './dom';
 import { t } from '../i18n';
 import { softHyphens } from '../i18n/hyphen';
 import { roleGroups, roleCls, roleChip, roleIcon, roleName, towerRoleCls, TOWERS_BY_ROLE, type RoleKey } from './roles';
-import { uiIcon, img, btn, page, bar, stagger, countUp, bump, fmt, dec, fitText, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti } from './kit';
+import { uiIcon, img, btn, page, bar, stagger, PAGE_STAGGER, countUp, bump, fmt, dec, fitText, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti } from './kit';
 
 export type BanditSel = { kind: 'tower'; id: TowerId } | { kind: 'hero'; id: HeroId };
 
@@ -306,7 +306,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
       items.push(b);
       roster.append(b);
     }
-    if (first) stagger(items, 'anim-rise', 1);
+    if (first) stagger(items, 'anim-rise', 1, PAGE_STAGGER);
     roster.scrollTop = keep;
     rescroll(roster);
   };
@@ -394,8 +394,10 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
     const cur = pathSel.get(id)!;
     const pathEls: HTMLElement[] = [];
     const tabEls: HTMLElement[] = [];
-    const cards: HTMLElement[] = [];
+    /** tier cards of each path */
+    const cards: HTMLElement[][] = [];
     for (let pi = 0; pi < 3; pi++) {
+      cards.push([]);
       const tone = PATH_TONE[pi];
       const style = `--pc:${tone.c};--pc-l:${tone.l};--pc-d:${tone.d}`;
       const pathCan = canUnlock(p, id, pi);
@@ -417,7 +419,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
         });
         pathEls.forEach((el, i) => el.classList.toggle('on', i === pi));
         snugFit();
-        stagger([...pathEls[pi].querySelectorAll<HTMLElement>('.bd-tier')], 'anim-rise');
+        stagger([...pathEls[pi].querySelectorAll<HTMLElement>('.bd-tier')], 'anim-rise', 0, PAGE_STAGGER);
       });
       tabEls.push(tab);
 
@@ -477,7 +479,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
           card.classList.add('bd-fresh');
           card.append(h('div', { class: 'bd-burst', 'aria-hidden': 'true' }, ...Array.from({ length: 10 }, (_, i) => h('i', { style: `--a:${i * 36}deg;--dd:${(i % 3) * 40}ms` }))));
         } else if (fresh && fresh.path === pi && fresh.tier + 1 === tier) card.classList.add('bd-arrive');
-        cards.push(card);
+        cards[pi].push(card);
         tiersEl.append(card);
       }
       const path = h(
@@ -496,8 +498,9 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
     clear(detail);
     detail.append(head, prow, paths, about, rules);
     if (enter) {
-      stagger([head, prow], 'anim-fade');
-      stagger(cards, 'anim-rise', 2);
+      stagger([head, prow], 'anim-fade', 0, PAGE_STAGGER);
+      // tier by tier: the paths' cards of one tier rise together (side by side on wide screens)
+      for (const pc of cards) stagger(pc, 'anim-rise', 2, PAGE_STAGGER);
     }
     snugFit();
     rescroll(detail);
@@ -581,8 +584,8 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
     clear(detail);
     detail.append(...([head, lockNote, skillBox, note].filter(Boolean) as HTMLElement[]));
     if (enter) {
-      stagger([head], 'anim-fade');
-      stagger([...skills.children].slice(0, 12) as HTMLElement[], 'anim-rise', 2);
+      stagger([head], 'anim-fade', 0, PAGE_STAGGER);
+      stagger([...skills.children].slice(0, 12) as HTMLElement[], 'anim-rise', 2, PAGE_STAGGER);
     }
     rescroll(detail);
   };
