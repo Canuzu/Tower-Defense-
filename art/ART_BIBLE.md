@@ -84,9 +84,10 @@ Modifiers: camo shows as a translucent shimmer with a dark tint (procedural), re
 - Enemies: `e_<gloopId>`, fortified `e_<gloopId>_f`, boss damage `e_<gloopId>_d1|d2` (ceramic too)
 - Projectiles and drops: `p_<name>`
 - Maps: `m_<mapId>` (full painted background 1600×900 world, any resolution of 16:9)
+- Extended maps: `mx_<mapId>` = the `m_` painting at full width with 260 world units of real painted terrain added above and below (`scripts/art/compose_mapext.py`). Shown above / below the playfield on screens taller than 16:9 (tablets), loaded on demand; `wy` in sprites.json marks the world rows.
 - UI: `ui_<name>`, ability icons `ab_<abilityId>`
 
-Tower sprites are anchored at the centre of the spool top (`ax`, `ay`). `foot` is the spool width as a fraction of the image width; the renderer scales the sprite so the spool width equals about 2.6× the tower radius. Enemy sprites are anchored at their centre.
+Tower sprites are anchored at the centre of the spool top (`ax`, `ay`). `foot` is the spool width as a fraction of the image width; the renderer scales the sprite so the spool width equals `TOWER_TUNING.spoolK` (4.375) × the tower radius. Enemy sprites are anchored at their centre.
 
 ## Higgsfield reference jobs
 - Tower style anchor (Slinger base): job `51dde4b4-df06-45db-8284-f5ba59695020`

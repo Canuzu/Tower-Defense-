@@ -8,17 +8,17 @@ import type { TowerId, OrbitAttack } from '../game/towerTypes';
 import type { GloopId } from '../game/gloops';
 import { SYNERGIES } from '../game/synergy';
 import { TAU, rand, shade } from '../core/math';
-import { renderMap, renderPaintedMap, BLEED, THEMES } from './mapArt';
+import { renderMap, renderPaintedMap, depthPassProcedural, mapDepth, BLEED, BLEED_Y, THEMES } from './mapArt';
 import { gloopSprite, iceSprite, clearGloopCache } from './gloopArt';
 import { towerSprite, beeShape, acornShape, ART_RADIUS, type ArtId } from './towerArt';
 import { Particles, PK, glowSprite, SHARD_VARIANTS } from './particles';
 import { star } from './draw';
 import { t } from '../i18n';
-import { mapArt } from './art';
+import { mapArt, mapExtArt, releaseMapExt } from './art';
 import { clearSpriteCache, SV } from './spriteCache';
-import { drawStar, drawStarShadow, pathStarShadow, starSprite, starSize, starCenterY } from './starView';
-import { towerVis, towerSpriteOf, towerPose, drawTowerSprite, drawTowerShadow, drawTowerRing, towerTop, ghostSprite, restPose, TOWER_TUNING } from './towerView';
-import { drawProjectileSprite, drawDroneSprite, drawOrbiterSprite, drawRunnerSprite, drawTrapSprite, drawDropSprite, drawCrateSprite, type Crate } from './projView';
+import { drawStar, drawStarShadow, pathStarShadow, starSprite, starSize, starCenterY, starScale } from './starView';
+import { towerVis, towerSpriteOf, towerPose, drawTowerSprite, drawTowerShadow, drawTowerRing, towerTop, ghostSprite, restPose, spoolW } from './towerView';
+import { drawProjectileSprite, drawDroneSprite, drawOrbiterSprite, drawRunnerSprite, drawTrapSprite, drawDropSprite, drawCrateSprite, PROJ_TUNING, type Crate } from './projView';
 import { Ambient } from './ambient';
 
 export interface Ghost {
@@ -74,6 +74,21 @@ const towerZ = (tw: Tower) => tw.y + tw.radius * 0.35;
 const byEnemyZ = (a: Enemy, b: Enemy) => enemyZ(a) - enemyZ(b);
 const byTowerZ = (a: Tower, b: Tower) => towerZ(a) - towerZ(b);
 
+/** Canvas pixel budget (device px) above which the pixel ratio is not raised past 2 (see canvasDpr). */
+export const PIXEL_BUDGET = 3_800_000;
+
+/**
+ * Pixel ratio the game canvas renders at: the device's, at most `max` (3), and above 2 only while the
+ * canvas stays within PIXEL_BUDGET (3x phones up to 956x440 = 3.8 MP get their native sharpness;
+ * tablets, which are 2x anyway, and big desktop windows stay as they were). A 3x phone that cannot
+ * keep up drops back to 2 first (Renderer.maxDpr, see App's adaptive quality).
+ */
+export function canvasDpr(w: number, h: number, dpr: number, max = 3): number {
+  const lo = Math.min(dpr, 2, max);
+  const hi = Math.min(dpr, max);
+  return Math.max(lo, Math.min(hi, Math.sqrt(PIXEL_BUDGET / Math.max(1, w * h))));
+}
+
 /** Above this many stars the renderer switches to cheaper (unrotated, batched-shadow) drawing. */
 const CROWD = 140;
 
@@ -92,6 +107,17 @@ export class Renderer {
   private mapCanvas: HTMLCanvasElement | null = null;
   private mapRes = 0;
   private mapId = '';
+  /** world units the map canvas covers above / below the world */
+  private mapBleedY = BLEED;
+  /** the map canvas was built with the extended painting (real terrain above / below the world) */
+  private mapExt = false;
+  /** depth pass strength and visible world rect the map canvas was built with */
+  private mapDepth = 0;
+  private mapView = { x0: 0, y0: 0, x1: WORLD_W, y1: WORLD_H };
+  /** dev (scale lab): depth pass strength instead of the map's own (null = per map) */
+  depthOverride: number | null = null;
+  /** contact shadow strength (stronger with the depth pass) */
+  private shadowK = 1;
   /** the current map uses its painted background */
   private painted = false;
   game: Game | null = null;
@@ -133,8 +159,13 @@ export class Renderer {
     return this.scale * this.dpr;
   }
 
+  /** dev: device pixel ratio cap instead of canvasDpr()'s (perf probes, ?dprcap=) */
+  dprCap: number | null = null;
+  /** highest pixel ratio canvasDpr() may pick; adaptive quality lowers it to 2 on a struggling 3x phone */
+  maxDpr = 3;
+
   resize(w: number, h: number, dpr: number) {
-    const d = Math.min(dpr, 2);
+    const d = this.dprCap !== null ? Math.min(dpr, this.dprCap) : canvasDpr(w, h, dpr, this.maxDpr);
     if (d !== this.dpr) clearSpriteCache();
     this.dpr = d;
     this.viewW = w;
@@ -152,6 +183,30 @@ export class Renderer {
     this.scale = Math.min(availW / WORLD_W, availH / WORLD_H);
     this.ox = (availW - WORLD_W * this.scale) / 2 + this.pan;
     this.oy = this.insetTop + (availH - WORLD_H * this.scale) / 2;
+  }
+
+  /** Visible world rect without the camera nudge (css px -> world). Shared object (no per-frame allocation): read it right away. */
+  private readonly viewTmp = { x0: 0, y0: 0, x1: 0, y1: 0 };
+  private viewRect() {
+    const ox = this.ox - this.pan;
+    const v = this.viewTmp;
+    v.x0 = -ox / this.scale;
+    v.y0 = (this.insetTop - this.oy) / this.scale;
+    v.x1 = (this.viewW - this.insetRight - ox) / this.scale;
+    v.y1 = (this.viewH - this.oy) / this.scale;
+    return v;
+  }
+
+  /** The screen shows enough terrain above / below the world for the extended painting to matter (tablets). */
+  private static wantsExt(v: { y0: number; y1: number }) {
+    return v.y0 < -20 || v.y1 > WORLD_H + 20;
+  }
+
+  /** Presentation tuning changed (dev knobs): re-layout and rebuild the map. */
+  refreshLook() {
+    this.dropMap();
+    this.layout();
+    if (this.game) this.render(0);
   }
 
   /** current camera nudge (css px) */
@@ -182,7 +237,15 @@ export class Renderer {
     this.ghost = null;
     this.pan = this.panTarget = 0;
     this.layout();
-    if (g && g.map.id !== this.mapId) this.mapCanvas = null;
+    if (g && g.map.id !== this.mapId) this.dropMap();
+    // start fetching the extended painting right away (it arrives while the HUD builds)
+    if (g && Renderer.wantsExt(this.viewRect())) mapExtArt(g.map.id);
+  }
+
+  /** Free the prerendered map now (iOS keeps a canvas' backing store until it is shrunk or collected). */
+  private dropMap() {
+    if (this.mapCanvas) this.mapCanvas.width = this.mapCanvas.height = 0;
+    this.mapCanvas = null;
   }
 
   screenToWorld(x: number, y: number) {
@@ -196,16 +259,37 @@ export class Renderer {
   private ensureMap() {
     const g = this.game!;
     // keep the prerender under ~9 megapixels
-    const maxRes = Math.sqrt(9_000_000 / ((WORLD_W + BLEED * 2) * (WORLD_H + BLEED * 2)));
-    const res = Math.min(this.res, maxRes);
-    const stale = !this.mapCanvas || this.mapId !== g.map.id || res > this.mapRes * 1.04 || res < this.mapRes * 0.8;
-    if (!stale) return;
     const art = mapArt(g.map.id);
+    const by = art ? BLEED_Y : BLEED;
+    const maxRes = Math.sqrt(9_000_000 / ((WORLD_W + BLEED * 2) * (WORLD_H + by * 2)));
+    const res = Math.min(this.res, maxRes);
+    const view = this.viewRect();
+    // phones (wider than 16:9) never see the painted bands: skip the extended painting there
+    const wantExt = !!art && Renderer.wantsExt(view);
+    if (!wantExt) releaseMapExt();
+    const ext = wantExt ? mapExtArt(g.map.id) : null;
+    const depth = this.depthOverride ?? mapDepth(g.map.id);
+    const mv = this.mapView;
+    const viewMoved = Math.abs(view.x0 + view.x1 - mv.x0 - mv.x1) > 80 || Math.abs(view.y0 + view.y1 - mv.y0 - mv.y1) > 80 || Math.abs(view.x1 - view.x0 - (mv.x1 - mv.x0)) > 120 || Math.abs(view.y1 - view.y0 - (mv.y1 - mv.y0)) > 120;
+    const stale =
+      !this.mapCanvas || this.mapId !== g.map.id || res > this.mapRes * 1.04 || res < this.mapRes * 0.8 || this.mapExt !== !!ext || this.mapDepth !== depth || (depth > 0 && viewMoved);
+    if (!stale) return;
     const changed = this.mapId !== g.map.id || this.painted !== !!art;
     this.painted = !!art;
-    this.mapCanvas = art ? renderPaintedMap(art.img, art.img.naturalWidth || art.w, art.img.naturalHeight || art.h, res) : renderMap(g.map, g.paths, res);
+    // never two full-size map canvases at once
+    this.dropMap();
+    if (art) this.mapCanvas = renderPaintedMap(art.img, art.img.naturalWidth || art.w, art.img.naturalHeight || art.h, res, { ext, depth, view });
+    else {
+      this.mapCanvas = renderMap(g.map, g.paths, res);
+      depthPassProcedural(this.mapCanvas, depth, res, view);
+    }
+    this.mapBleedY = by;
     this.mapRes = res;
     this.mapId = g.map.id;
+    this.mapExt = !!ext;
+    this.mapDepth = depth;
+    this.mapView = { ...view };
+    this.shadowK = 1 + depth * 0.45;
     if (changed) this.ambient.setMap(art ? g.map : null);
   }
 
@@ -244,7 +328,7 @@ export class Renderer {
       const spr = towerSpriteOf(tw);
       if (!spr) return null;
       const v = towerVis(tw);
-      const S = TOWER_TUNING.spoolK * tw.radius;
+      const S = spoolW(tw.radius);
       return { x: tw.x + (v.face || 1) * S * 0.22, y: tw.y - towerTop(spr, tw.radius) * 0.5 };
     }
     return null;
@@ -321,7 +405,7 @@ export class Renderer {
     ctx.imageSmoothingQuality = 'low';
 
     // map
-    ctx.drawImage(this.mapCanvas!, -BLEED, -BLEED, WORLD_W + BLEED * 2, WORLD_H + BLEED * 2);
+    ctx.drawImage(this.mapCanvas!, -BLEED, -this.mapBleedY, WORLD_W + BLEED * 2, WORLD_H + this.mapBleedY * 2);
     if (this.painted) {
       this.ambient.update(dt, this.time, this.particles, this.reducedEffects);
       this.ambient.drawGround(ctx, this.time);
@@ -414,7 +498,7 @@ export class Renderer {
   /** Soft contact shadows of towers and floating stars, under everything else. */
   private drawShadows(ctx: CanvasRenderingContext2D, g: Game) {
     for (const tw of g.towers) {
-      if (towerSpriteOf(tw)) drawTowerShadow(ctx, tw.x, tw.y, tw.radius);
+      if (towerSpriteOf(tw)) drawTowerShadow(ctx, tw.x, tw.y, tw.radius, this.shadowK);
     }
     // soft shadows for normal crowds, one batched flat path for huge ones
     const crowded = g.enemies.length > CROWD;
@@ -426,7 +510,7 @@ export class Renderer {
       if (!e.alive) continue;
       if (e.x < -e.radius * 2 || e.x > WORLD_W + e.radius * 2) continue;
       if (crowded && !e.def.boss) pathStarShadow(ctx, e);
-      else drawStarShadow(ctx, e, this.time);
+      else drawStarShadow(ctx, e, this.time, this.shadowK);
     }
     // drawStarShadow (bosses) leaves its alpha behind: the batched crowd fill must run at full alpha
     ctx.globalAlpha = 1;
@@ -439,7 +523,7 @@ export class Renderer {
     this.crowded = g.enemies.length > CROWD;
     for (const e of g.enemies) {
       if (!e.alive) continue;
-      const m = e.def.boss ? e.radius * 3 : e.radius * 2;
+      const m = (e.def.boss ? e.radius * 3 : e.radius * 2) * starScale(e.radius);
       if (e.x < -m || e.x > WORLD_W + m || e.y < -m || e.y > WORLD_H + m) continue;
       es.push(e);
     }
@@ -684,7 +768,8 @@ export class Renderer {
     const facing = Math.cos(e.angle) >= -0.05 ? 1 : -1;
     const px = e.x * res + tx;
     const py = (e.y - hop) * res + ty;
-    ctx.setTransform(res * sx * facing, 0, 0, res * sy, px, py);
+    const vk = starScale(e.radius);
+    ctx.setTransform(res * sx * facing * vk, 0, 0, res * sy * vk, px, py);
     if (e.camo) ctx.globalAlpha = 0.72;
     ctx.drawImage(spr.canvas, -spr.w / 2, -spr.h / 2, spr.w, spr.h);
     if (e.hitFlash > 0) {
@@ -731,10 +816,15 @@ export class Renderer {
 
   private drawBossBar(ctx: CanvasRenderingContext2D, e: Enemy) {
     const spr = starSprite(e);
-    const top = spr ? starSize(e, spr).body * 0.5 + e.radius * 0.1 : e.radius;
+    const k = starScale(e.radius);
+    const top = spr ? starSize(e, spr).body * 0.5 + e.radius * k * 0.1 : e.radius * k;
+    // the bar grows with the drawn star (local frame scaled by k around the bar's centre)
     const w = Math.max(64, e.radius * 1.7);
-    const x = e.x - w / 2;
-    const y = e.y - top - 20;
+    const x = -w / 2;
+    const y = 0;
+    ctx.save();
+    ctx.translate(e.x, e.y - top - 20 * k);
+    ctx.scale(k, k);
     const f = Math.max(0, e.hp / e.maxHp);
     ctx.fillStyle = 'rgba(22,12,34,0.82)';
     roundRectPath(ctx, x - 3, y - 3, w + 6, 13, 6.5);
@@ -751,6 +841,7 @@ export class Renderer {
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.fillRect(x + 2, y + 1, Math.max(0, w * f - 4), 2);
+    ctx.restore();
   }
 
   // --- towers --------------------------------------------------------------------------------
@@ -786,7 +877,7 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
     this.drawOrbiters(ctx, tw, res, tx, ty);
-    if (tw.isHero) this.drawHeroBadge(ctx, tw.x + TOWER_TUNING.spoolK * tw.radius * 0.42, tw.y - top * 0.8, tw.heroLevel);
+    if (tw.isHero) this.drawHeroBadge(ctx, tw.x + spoolW(tw.radius) * 0.42, tw.y - top * 0.8, tw.heroLevel);
     this.abilitySparkle(tw, top);
   }
 
@@ -808,7 +899,7 @@ export class Renderer {
     const top = towerTop(spr, tw.radius);
     const cx = tw.x;
     const cy = tw.y - top * 0.45;
-    const S = TOWER_TUNING.spoolK * tw.radius;
+    const S = spoolW(tw.radius);
     const P = this.particles;
     P.spawn(PK.Rays, cx, cy, { life: 0.85, size: top * 0.55, size2: top * 0.5, vr: 1.4 });
     P.spawn(PK.Flash, cx, cy, { life: 0.4, size: top * 0.4, size2: top * 0.6, color: '#ffe27a' });
@@ -1120,6 +1211,8 @@ export class Renderer {
     ctx.save();
     ctx.translate(p.x, p.y - lift);
     ctx.rotate(p.rot);
+    const ps = PROJ_TUNING.scale;
+    if (ps !== 1) ctx.scale(ps, ps);
     switch (v) {
       case 'quill':
         ctx.strokeStyle = '#4a2c18';
@@ -1300,6 +1393,7 @@ export class Renderer {
   }
 
   private drawBeams(ctx: CanvasRenderingContext2D) {
+    const bw = PROJ_TUNING.scale;
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -1375,14 +1469,14 @@ export class Renderer {
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = t * 0.55;
       ctx.strokeStyle = b.color;
-      ctx.lineWidth = b.width * 3;
+      ctx.lineWidth = b.width * 3 * bw;
       ctx.beginPath();
       ctx.moveTo(pts[0], pts[1]);
       for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
       ctx.stroke();
       ctx.globalAlpha = t;
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1, b.width * 0.6);
+      ctx.lineWidth = Math.max(1, b.width * 0.6 * bw);
       ctx.stroke();
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -1467,14 +1561,14 @@ export class Renderer {
     }
     const spr = ghostSprite(gh.kind, gh.id);
     if (spr) {
-      drawTowerShadow(ctx, gh.x, gh.y, def.radius, gh.valid ? 0.7 : 0.4);
+      drawTowerShadow(ctx, gh.x, gh.y, def.radius, (gh.valid ? 0.7 : 0.4) * this.shadowK);
       const p = restPose(1);
       p.alpha = gh.valid ? 0.78 : 0.62;
       p.variant = gh.valid ? SV.Normal : SV.Red;
       p.hop = -3 - Math.sin(this.time * 4) * 2;
       drawTowerSprite(ctx, spr, gh.x, gh.y, def.radius, p, res, tx, ty);
       if (!gh.valid) {
-        const S = TOWER_TUNING.spoolK * def.radius;
+        const S = spoolW(def.radius);
         ctx.beginPath();
         ctx.ellipse(gh.x, gh.y + S * 0.13, S * 0.6, S * 0.24, 0, 0, TAU);
         ctx.strokeStyle = '#ff4d4d';
@@ -1514,9 +1608,10 @@ export class Renderer {
     const spr = starSprite(e);
     const cy = spr ? starCenterY(e) : e.y;
     const pal = shardPalette(e.type, e.def.color, e.def.accent);
-    if (e.def.boss && merged === 0) this.bossShatter(e.x, cy, e.radius, pal);
-    else if (e.def.boss) this.shatterAt(e.x + rand(-0.5, 0.5) * e.radius, cy + rand(-0.4, 0.4) * e.radius, e.radius * 0.45, pal, 4);
-    else this.shatterAt(e.x, cy, e.radius, pal, merged === 0 ? 0 : merged > 2 ? 1 : 2);
+    const r = e.radius * starScale(e.radius);
+    if (e.def.boss && merged === 0) this.bossShatter(e.x, cy, r, pal);
+    else if (e.def.boss) this.shatterAt(e.x + rand(-0.5, 0.5) * r, cy + rand(-0.4, 0.4) * r, r * 0.45, pal, 4);
+    else this.shatterAt(e.x, cy, r, pal, merged === 0 ? 0 : merged > 2 ? 1 : 2);
   }
 
   /** Legacy name used by the menu demo: shatter at a point with a single colour. */
@@ -1691,7 +1786,7 @@ export class Renderer {
 
   /** Placement: dust ring at the spool and a few sparkles. */
   placeFx(tw: Tower) {
-    const S = TOWER_TUNING.spoolK * tw.radius;
+    const S = spoolW(tw.radius);
     const by = tw.y + S * 0.12;
     this.particles.spawn(PK.GroundRing, tw.x, by, { life: 0.45, size: S * 0.45, size2: S * 1.25, color: '#fff1d0' });
     for (let i = 0; i < 9; i++) {
@@ -1703,7 +1798,7 @@ export class Renderer {
 
   /** Upgrade: golden sparkle burst and a ring on the ground. */
   upgradeFx(tw: Tower) {
-    const S = TOWER_TUNING.spoolK * tw.radius;
+    const S = spoolW(tw.radius);
     const top = towerTop(towerSpriteOf(tw), tw.radius);
     this.particles.spawn(PK.GroundRing, tw.x, tw.y + S * 0.12, { life: 0.55, size: S * 0.35, size2: S * 1.4, color: '#ffd23c' });
     this.particles.spawn(PK.Flash, tw.x, tw.y - top * 0.45, { life: 0.3, size: top * 0.25, size2: top * 0.45, color: '#ffe27a' });
@@ -1723,7 +1818,7 @@ export class Renderer {
   clearCaches() {
     clearGloopCache();
     clearSpriteCache();
-    this.mapCanvas = null;
+    this.dropMap();
   }
 }
 

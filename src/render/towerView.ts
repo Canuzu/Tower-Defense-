@@ -13,8 +13,12 @@ import { scaledSprite, SV } from './spriteCache';
 import { shadowSprite } from './starView';
 
 export const TOWER_TUNING = {
-  /** spool platform width = spoolK * tower radius */
-  spoolK: 3.5,
+  /**
+   * Drawn spool platform width = spoolK * gameplay radius. The art was calibrated at 3.5; the V5 scale
+   * pass draws raccoons 1.25x larger (3.5 * 1.25). Purely visual: range, auras and hitboxes keep the
+   * gameplay radius; the placement footprint grows along with the art (Game FOOTPRINT_K).
+   */
+  spoolK: 4.375,
   /** facing turn duration (s) */
   turnTime: 0.16,
   /** fire: vertical squash amplitude, decay (1/s) and wobble frequency (rad/s) */
@@ -38,6 +42,11 @@ export const TOWER_TUNING = {
   shadowDy: 0.16,
   shadowAlpha: 0.42,
 };
+
+/** Drawn spool width (world units) of a tower with this gameplay radius. */
+export function spoolW(radius: number): number {
+  return TOWER_TUNING.spoolK * radius;
+}
 
 export interface TowerVis {
   spr: LoadedSprite | null;
@@ -80,7 +89,7 @@ export interface TowerGeom {
   H: number;
 }
 export function towerGeom(spr: LoadedSprite, radius: number, out: TowerGeom): TowerGeom {
-  const S = TOWER_TUNING.spoolK * radius;
+  const S = spoolW(radius);
   const k = S / (spr.w * (spr.foot ?? 0.75));
   out.S = S;
   out.W = spr.w * k;
@@ -89,20 +98,20 @@ export function towerGeom(spr: LoadedSprite, radius: number, out: TowerGeom): To
 }
 const geom: TowerGeom = { S: 0, W: 0, H: 0 };
 
-/** Contact shadow under the spool. Context in world space. */
+/** Contact shadow under the spool (`alpha` scales its opacity: ghosts, depth pass). Context in world space. */
 export function drawTowerShadow(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, alpha = 1) {
   const T = TOWER_TUNING;
-  const S = T.spoolK * radius;
+  const S = spoolW(radius);
   const rx = S * T.shadowRx;
   const ry = S * T.shadowRy;
-  ctx.globalAlpha = T.shadowAlpha * alpha;
+  ctx.globalAlpha = Math.min(1, T.shadowAlpha * alpha);
   ctx.drawImage(shadowSprite(), x + S * T.shadowDx - rx, y + S * T.shadowDy - ry, rx * 2, ry * 2);
   ctx.globalAlpha = 1;
 }
 
 /** Glowing selection / hover ring around the spool base. Context in world space. */
 export function drawTowerRing(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, time: number, selected: boolean, color = '#ffe27a') {
-  const S = TOWER_TUNING.spoolK * radius;
+  const S = spoolW(radius);
   const rx = S * 0.6;
   const ry = S * 0.24;
   const cy = y + S * 0.13;

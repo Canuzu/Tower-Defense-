@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Game } from '../src/game/Game';
+import { Game, FOOTPRINT_K, LANE_SPREAD } from '../src/game/Game';
 import { TOWERS, TOWER_ORDER } from '../src/game/towers';
 import { canTier, computeStats } from '../src/game/towerTypes';
 import { HEROES, HERO_ORDER, heroStats, MAX_HERO_LEVEL } from '../src/game/heroes';
@@ -95,6 +95,37 @@ describe('simulation', () => {
       let free = 0;
       for (let x = 30; x < 1600; x += 40) for (let y = 30; y < 900; y += 40) if (g.canPlace(20, x, y)) free++;
       expect(free).toBeGreaterThan(120);
+    }
+  });
+
+  it('placement footprint matches the drawn raccoons (1.25x the gameplay radius)', () => {
+    const g = new Game({ mapId: 'meadow', difficulty: 'sandbox', heroId: null });
+    const t = g.placeTower('spike', 560, 230)!;
+    expect(t).toBeTruthy();
+    expect(t.radius).toBe(TOWERS.spike.radius); // gameplay radius (auras, abilities) unchanged
+    const fp = TOWERS.spike.radius * FOOTPRINT_K;
+    // two radius-20 bases need 2 * 25 - 4 = 46 units between their centres (used to be 36)
+    expect(g.canPlace(20, 560 + 2 * fp - 5, 230)).toBe(false);
+    expect(g.canPlace(20, 560 + 2 * fp - 3, 230)).toBe(true);
+    // the world edge keeps the footprint off the border
+    expect(g.canPlace(20, fp + 1, 450)).toBe(false);
+    // every tower type and hero still finds room on every map
+    for (const m of MAPS) {
+      const gm = new Game({ mapId: m.id, difficulty: 'easy', heroId: null });
+      for (const r of [...TOWER_ORDER.map((id) => TOWERS[id].radius), ...HERO_ORDER.map((id) => HEROES[id].radius)]) {
+        let free = 0;
+        for (let x = 30; x < 1600; x += 40) for (let y = 30; y < 900; y += 40) if (gm.canPlace(r, x, y)) free++;
+        expect(free).toBeGreaterThan(90);
+      }
+    }
+  });
+
+  it('stars keep to the middle of the track (narrower lanes for the bigger drawn stars)', () => {
+    const g = new Game({ mapId: 'meadow', difficulty: 'sandbox', heroId: null });
+    for (let i = 0; i < 300; i++) {
+      const e = g.spawn(i % 2 ? 'red' : 'black', { dist: 100 });
+      const room = g.map.pathWidth / 2 - e.def.radius - 4;
+      expect(Math.abs(e.lane)).toBeLessThanOrEqual(room * LANE_SPREAD + 1e-9);
     }
   });
 

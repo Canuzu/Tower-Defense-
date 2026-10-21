@@ -10,7 +10,7 @@ import { TOWERS, TOWER_ORDER } from '../game/towers';
 import { GLOOP_ORDER, GLOOPS } from '../game/gloops';
 import { Renderer } from '../render/Renderer';
 import { makePresentation } from '../render/presentation';
-import { uiIconUrl } from '../render/art';
+import { uiIconUrl, mapExtArt } from '../render/art';
 import { audio } from '../audio/audio';
 import { Hud } from './hud';
 import { h, clear } from './dom';
@@ -193,13 +193,20 @@ export class App {
   private frame = (now: number) => {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
-    // adaptive quality: fall back to reduced effects if the device struggles for a few seconds
+    // adaptive quality if the device struggles for a few seconds: a 3x phone first renders at 2x
+    // (silently, 2.25x fewer pixels), then effects are reduced
     if (!this.renderer.reducedEffects && this.scene === 'game') {
       this.slowFrames = dt > 1 / 38 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 2);
       if (this.slowFrames > 180) {
-        this.renderer.reducedEffects = true;
-        this.renderer.particles.reduced = true;
-        this.hud?.toast(t('Effects reduced to keep the game smooth'), 2200);
+        this.slowFrames = 0;
+        if (this.renderer.dpr > 2 && this.renderer.dprCap === null) {
+          this.renderer.maxDpr = 2;
+          this.resize();
+        } else {
+          this.renderer.reducedEffects = true;
+          this.renderer.particles.reduced = true;
+          this.hud?.toast(t('Effects reduced to keep the game smooth'), 2200);
+        }
       }
     }
     if (this.scene === 'game' && this.game) {
@@ -396,6 +403,9 @@ export class App {
   showSetup(m: MapDef) {
     this.scene = 'setup';
     this.lastSetupMap = m;
+    // screens taller than 16:9 (tablets) show terrain above / below the world: fetch the map's
+    // extended painting now, so it is ready when the game starts
+    if (window.innerHeight > window.innerWidth * 0.6) mapExtArt(m.id);
     audio.play('click');
     this.setBackdrop('dim');
     const level = this.level;

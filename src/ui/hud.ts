@@ -5,6 +5,7 @@ import { TOWERS, TOWER_ORDER } from '../game/towers';
 import { HEROES, heroXpFor, MAX_HERO_LEVEL, type HeroId } from '../game/heroes';
 import { canTier, type TowerId, type AbilityDef } from '../game/towerTypes';
 import { TARGET_PRIORITIES, type TargetPriority } from '../game/types';
+import { spoolW } from '../render/towerView';
 import { SYNERGIES } from '../game/synergy';
 import { GLOOP_ORDER, GLOOPS, type GloopId } from '../game/gloops';
 import { towerIconUrl, abilityIconUrl, heroStage } from '../render/art';
@@ -650,9 +651,12 @@ export class Hud {
     let best: Tower | null = null;
     let bd = Infinity;
     for (const t of this.game.towers) {
-      const r = t.radius * 1.3;
+      // tap target follows the drawn raccoon (spool width S): about the spool, plus its body above
+      const S = spoolW(t.radius);
+      const r = S * 0.37;
       // art extends upward, so test a capsule from the base to the head
-      const dy = y > t.y ? y - t.y : y < t.y - t.radius * 1.8 ? t.y - t.radius * 1.8 - y : 0;
+      const top = S * 0.52;
+      const dy = y > t.y ? y - t.y : y < t.y - top ? t.y - top - y : 0;
       const dx = x - t.x;
       const d = dx * dx + dy * dy;
       if (d < r * r && d < bd) {
@@ -995,7 +999,7 @@ export class Hud {
     const leftEnd = panel.offsetLeft + w; // right edge of a left panel
     const rightStart = mapW - 8 - w; // left edge of a right panel
     const sx = r.worldToScreen(t.x, t.y).x - r.panX;
-    const m = t.radius * r.scale * 1.5 + 10;
+    const m = spoolW(t.radius) * 0.43 * r.scale + 10;
     const panL = Math.max(0, leftEnd + m - sx);
     const panR = Math.min(0, rightStart - m - sx);
     let side: 'left' | 'right';

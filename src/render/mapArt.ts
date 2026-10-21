@@ -4,9 +4,23 @@ import type { Path } from '../game/path';
 import { shade, rgba } from '../core/math';
 import { makeCanvas, ellipse, circle, fillStroke, ballGrad, gloss, seeded, star, type Ctx } from './draw';
 import { mapArt } from './art';
+import type { LoadedSprite } from '../assets/sprites';
 
 /** Extra terrain rendered around the playfield so letterboxing still shows the map. */
 export const BLEED = 260;
+
+/**
+ * Vertical bleed of the painted maps (world units above and below the world). Larger than BLEED: tall
+ * screens with the HUD sidebar (4:3 tablets) show ~275 units of terrain above and below the playfield.
+ */
+export const BLEED_Y = 300;
+
+/** Depth pass strength per map (0..1): the darker paintings get less. */
+export const MAP_DEPTH: Partial<Record<string, number>> = { caverns: 0.3, forge: 0.3 };
+export const DEPTH_DEFAULT = 0.6;
+export function mapDepth(mapId: string): number {
+  return MAP_DEPTH[mapId] ?? DEPTH_DEFAULT;
+}
 
 export interface ThemePalette {
   ground: string;
@@ -738,18 +752,49 @@ function decorations(ctx: Ctx, map: MapDef, paths: Path[], pal: ThemePalette, rn
   }
 }
 
+export interface PaintedMapOpts {
+  /** extended painting (mx_<map>, see SpriteInfo.wy): real terrain above and below the world */
+  ext?: LoadedSprite | null;
+  /** depth pass strength 0..1 (0 = off) */
+  depth?: number;
+  /** visible world rect: the depth vignette is centred on it */
+  view?: { x0: number; y0: number; x1: number; y1: number };
+}
+
 /**
- * Painted background (art/raw/m_<map>.webp) prerendered at `res` px per world unit. The playfield
- * shows the painting 1:1 over the 1600x900 world; the letterbox bleed around it is filled with a
- * mirrored, blurred and darkened copy so wide or tall screens never show a hard edge. A gentle
- * vignette keeps the eye on the track.
+ * Painted background (art/raw/m_<map>.webp) prerendered at `res` px per world unit, covering
+ * [-BLEED, W+BLEED] x [-BLEED_Y, H+BLEED_Y]. The playfield shows the painting 1:1 over the 1600x900
+ * world; the letterbox bleed around it is a mirrored, blurred and darkened copy so wide or tall screens
+ * never show a hard edge. With the extended painting (opts.ext) the terrain above and below the world is
+ * real painted ground instead, only lightly darkened, joining the world without a seam and fading softly
+ * into the blurred mirror beyond its outer rows; the mirror (left / right and corners) is then built
+ * from the extended painting so it continues the painted bands. A gentle
+ * vignette keeps the eye on the track; the depth pass (opts.depth) is baked in last.
  */
-export function renderPaintedMap(img: CanvasImageSource, iw: number, ih: number, res: number): HTMLCanvasElement {
+export function renderPaintedMap(img: CanvasImageSource, iw: number, ih: number, res: number, opts: PaintedMapOpts = {}): HTMLCanvasElement {
   const W = WORLD_W + BLEED * 2;
-  const H = WORLD_H + BLEED * 2;
+  const H = WORLD_H + BLEED_Y * 2;
   const [c, ctx] = makeCanvas(W * res, H * res);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
+  // world units from here on
+  ctx.setTransform(res, 0, 0, res, BLEED * res, BLEED_Y * res);
+
+  // source painting and the world rows it covers: the plain painting is exactly the world, the
+  // extended one adds bands above and below (cy0 < 0, cy1 > WORLD_H)
+  const ext = opts.ext && opts.ext.wy ? opts.ext : null;
+  const src: CanvasImageSource = ext ? ext.img : img;
+  const sw = ext ? ext.img.naturalWidth || ext.w : iw;
+  const sh = ext ? ext.img.naturalHeight || ext.h : ih;
+  let cy0 = 0;
+  let cy1 = WORLD_H;
+  if (ext) {
+    const [f0, f1] = ext.wy!;
+    const u = WORLD_H / ((f1 - f0) * sh); // world units per source row
+    cy0 = -f0 * sh * u;
+    cy1 = cy0 + sh * u;
+  }
+  const ch = cy1 - cy0;
 
   // --- bleed: 3x3 mirrored tiles at low resolution, upscaled = blurred ---
   const lo = 1 / 14;
@@ -758,59 +803,141 @@ export function renderPaintedMap(img: CanvasImageSource, iw: number, ih: number,
   bctx.imageSmoothingQuality = 'high';
   for (let ty = -1; ty <= 1; ty++) {
     for (let tx = -1; tx <= 1; tx++) {
-      bctx.save();
-      bctx.translate((BLEED + tx * WORLD_W) * lo, (BLEED + ty * WORLD_H) * lo);
       // mirror the neighbours so the painting continues seamlessly across the border
       const mx = tx !== 0 ? -1 : 1;
       const my = ty !== 0 ? -1 : 1;
-      bctx.translate(mx < 0 ? WORLD_W * lo : 0, my < 0 ? WORLD_H * lo : 0);
-      bctx.scale(mx, my);
-      bctx.drawImage(img, 0, 0, iw, ih, 0, 0, WORLD_W * lo, WORLD_H * lo);
-      bctx.restore();
+      const x = BLEED + tx * WORLD_W + (mx < 0 ? WORLD_W : 0);
+      const y = BLEED_Y + cy0 + ty * ch + (my < 0 ? ch : 0);
+      bctx.setTransform(mx * lo, 0, 0, my * lo, x * lo, y * lo);
+      bctx.drawImage(src, 0, 0, sw, sh, 0, 0, WORLD_W, ch);
     }
   }
   // second blur pass
   const [b2, b2ctx] = makeCanvas(b.width / 2, b.height / 2);
   b2ctx.imageSmoothingEnabled = true;
   b2ctx.drawImage(b, 0, 0, b2.width, b2.height);
-  ctx.drawImage(b2, 0, 0, W * res, H * res);
+  ctx.drawImage(b2, -BLEED, -BLEED_Y, W, H);
+  b.width = b.height = b2.width = b2.height = 0;
   // darken the bleed, more towards the outside
   ctx.fillStyle = 'rgba(12,8,24,0.42)';
-  ctx.fillRect(0, 0, W * res, H * res);
+  ctx.fillRect(-BLEED, -BLEED_Y, W, H);
   const edge = (x0: number, y0: number, x1: number, y1: number, rx: number, ry: number, rw: number, rh: number) => {
-    const g = ctx.createLinearGradient(x0 * res, y0 * res, x1 * res, y1 * res);
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
     g.addColorStop(0, 'rgba(8,5,18,0.55)');
     g.addColorStop(1, 'rgba(8,5,18,0)');
     ctx.fillStyle = g;
-    ctx.fillRect(rx * res, ry * res, rw * res, rh * res);
+    ctx.fillRect(rx, ry, rw, rh);
   };
-  edge(0, 0, BLEED, 0, 0, 0, BLEED, H);
-  edge(W, 0, W - BLEED, 0, W - BLEED, 0, BLEED, H);
-  edge(0, 0, 0, BLEED, 0, 0, W, BLEED);
-  edge(0, H, 0, H - BLEED, 0, H - BLEED, W, BLEED);
+  edge(-BLEED, 0, 0, 0, -BLEED, -BLEED_Y, BLEED, H);
+  edge(WORLD_W + BLEED, 0, WORLD_W, 0, WORLD_W, -BLEED_Y, BLEED, H);
+  edge(0, -BLEED_Y, 0, 0, -BLEED, -BLEED_Y, W, BLEED_Y);
+  edge(0, WORLD_H + BLEED_Y, 0, WORLD_H, -BLEED, WORLD_H, W, BLEED_Y);
 
   // --- the painting ---
-  const px = BLEED * res;
-  const py = BLEED * res;
-  // soft drop shadow so the playfield reads as a board on a dimmed table
+  // the extended painting's outer rows fade into the blurred mirror beyond them
+  const FADE = ext ? 28 : 0;
+  // soft drop shadow so the playfield (with its painted bands) reads as a board on a dimmed table
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.45)';
   ctx.shadowBlur = 24 * res;
   ctx.fillStyle = '#000';
-  ctx.fillRect(px, py, WORLD_W * res, WORLD_H * res);
+  ctx.fillRect(0, cy0 + FADE, WORLD_W, ch - FADE * 2);
   ctx.restore();
-  ctx.drawImage(img, 0, 0, iw, ih, px, py, WORLD_W * res, WORLD_H * res);
+  if (!ext) ctx.drawImage(img, 0, 0, iw, ih, 0, 0, WORLD_W, WORLD_H);
+  else {
+    // one draw for world + bands (no seam at the world edge): the world part of the extended painting
+    // is the m_ painting, same width and same pixels
+    const k = sh / ch; // source rows per world unit
+    ctx.drawImage(src, 0, FADE * k, sw, (ch - FADE * 2) * k, 0, cy0 + FADE, WORLD_W, ch - FADE * 2);
+    // outer rows with a fade, overlapping the sharp part a little (same pixels) so no seam can show
+    fadedRows(ctx, src, sw, k, cy0, cy0, FADE + 2, res, 'top');
+    fadedRows(ctx, src, sw, k, cy0, cy1 - FADE - 2, FADE + 2, res, 'bottom');
+    // darken the bands lightly, a little more towards their outer edges
+    const band = (y0: number, y1: number) => {
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, 'rgba(14,8,28,0)');
+      g.addColorStop(0.45, 'rgba(14,8,28,0.06)');
+      g.addColorStop(1, 'rgba(14,8,28,0.26)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, Math.min(y0, y1), WORLD_W, Math.abs(y1 - y0));
+    };
+    band(0, cy0);
+    band(WORLD_H, cy1);
+  }
 
-  // --- vignette over the playfield ---
-  const cx = px + (WORLD_W * res) / 2;
-  const cy = py + (WORLD_H * res) / 2;
-  const vr = Math.hypot(WORLD_W, WORLD_H) * 0.5 * res;
+  // --- vignette over the playfield (and over the painted bands, so it runs on across the world edge) ---
+  const cx = WORLD_W / 2;
+  const cy = WORLD_H / 2;
+  const vr = Math.hypot(WORLD_W, WORLD_H) * 0.5;
   const vg = ctx.createRadialGradient(cx, cy, vr * 0.55, cx, cy, vr * 1.02);
   vg.addColorStop(0, 'rgba(20,10,30,0)');
   vg.addColorStop(1, 'rgba(20,10,30,0.22)');
   ctx.fillStyle = vg;
-  ctx.fillRect(px, py, WORLD_W * res, WORLD_H * res);
+  ctx.fillRect(0, cy0, WORLD_W, ch);
+
+  if (opts.depth) depthPass(c, ctx, opts.depth, res, BLEED_Y, opts.view);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   return c;
+}
+
+/**
+ * Rows y .. y+h of the extended painting, fading out towards its outer edge (top / bottom), drawn
+ * through a small scratch canvas. `cy0`: world y of the source image's first row, `k`: source rows per
+ * world unit.
+ */
+function fadedRows(ctx: CanvasRenderingContext2D, src: CanvasImageSource, sw: number, k: number, cy0: number, y: number, h: number, res: number, side: 'top' | 'bottom') {
+  const [t, tctx] = makeCanvas(WORLD_W * res, h * res);
+  tctx.imageSmoothingEnabled = true;
+  tctx.imageSmoothingQuality = 'high';
+  tctx.drawImage(src, 0, (y - cy0) * k, sw, h * k, 0, 0, t.width, t.height);
+  tctx.globalCompositeOperation = 'destination-in';
+  const g = tctx.createLinearGradient(0, side === 'top' ? 0 : t.height, 0, side === 'top' ? t.height : 0);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1 - 2 / h, 'rgba(0,0,0,1)');
+  g.addColorStop(1, 'rgba(0,0,0,1)');
+  tctx.fillStyle = g;
+  tctx.fillRect(0, 0, t.width, t.height);
+  ctx.drawImage(t, 0, y, WORLD_W, h);
+  t.width = t.height = 0;
+}
+
+/**
+ * Depth pass, baked into a prerendered map (canvas covering [-BLEED, W+BLEED] x [-bleedY, H+bleedY]):
+ * the background a little less saturated and a touch darker / cooler, plus a vignette around the
+ * visible area, so the saturated raccoons and stars read in front of the painting. (Contact shadows
+ * get stronger as well, see Renderer.shadowK.)
+ */
+function depthPass(c: HTMLCanvasElement, ctx: CanvasRenderingContext2D, d: number, res: number, bleedY: number, view?: PaintedMapOpts['view']) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'saturation';
+  ctx.globalAlpha = 0.2 * d;
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = d;
+  ctx.fillStyle = '#e6e2ee';
+  ctx.fillRect(0, 0, c.width, c.height);
+  // vignette around the visible area (the world when unknown)
+  const v = view ?? { x0: 0, y0: 0, x1: WORLD_W, y1: WORLD_H };
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.setTransform(res, 0, 0, res, BLEED * res, bleedY * res);
+  const cx = (v.x0 + v.x1) / 2;
+  const cy = (v.y0 + v.y1) / 2;
+  const diag = Math.hypot(v.x1 - v.x0, v.y1 - v.y0) / 2;
+  const g = ctx.createRadialGradient(cx, cy, diag * 0.42, cx, cy, diag * 1.02);
+  g.addColorStop(0, 'rgba(14,8,28,0)');
+  g.addColorStop(1, `rgba(14,8,28,${0.5 * d})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(-BLEED, -bleedY, WORLD_W + BLEED * 2, WORLD_H + bleedY * 2);
+  ctx.restore();
+}
+
+/** Depth pass on a prerendered procedural map (renderMap output: BLEED on every side). */
+export function depthPassProcedural(c: HTMLCanvasElement, d: number, res: number, view?: PaintedMapOpts['view']) {
+  const ctx = c.getContext('2d');
+  if (ctx && d > 0) depthPass(c, ctx, d, res, BLEED, view);
 }
 
 /** Small preview used on the map select cards. */
