@@ -293,6 +293,7 @@ export interface TowerDef {
   base: () => TowerStats;
   pathNames: [string, string, string];
   paths: [UpgradeDef[], UpgradeDef[], UpgradeDef[]];
+  /** unused by the HUD: shop hotkeys (1-9 / Q-O) follow the role-grouped order on screen (src/ui/roles.ts) */
   hotkey: string;
 }
 

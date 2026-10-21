@@ -231,6 +231,70 @@ export function modal(o: ModalOpts, body: Child[], foot: Child[] = []): HTMLElem
   return h('div', { class: ['modal', o.size, o.cls].filter(Boolean).join(' '), role: 'dialog', 'aria-label': o.title }, head, bodyEl, footEl);
 }
 
+export interface PageOpts {
+  title: string;
+  icon?: HTMLElement | null;
+  /** accent colour (header glow, title light, background tint) */
+  accent?: string;
+  cls?: string;
+  /** round back button (top-left); Escape / Android back run the same through the host */
+  onBack: () => void;
+  /** centre of the header bar (tabs) */
+  tabs?: HTMLElement | null;
+  /** right side of the header bar (currency, XP, level, a page action) */
+  right?: Child[];
+}
+
+/**
+ * Full-screen menu page: painted background, a header bar (round back button, icon + title, tabs,
+ * currency on the right) and a body that fills the rest of the screen (scrolls on its own). Hosted in
+ * `.modal-wrap.page-wrap` (App / HUD modal hosts); see the PAGES block in styles.css.
+ */
+export function page(o: PageOpts, body: Child[]): HTMLElement {
+  const back = backBtn(o.onBack);
+  back.classList.add('page-back');
+  const title = h('div', { class: 'page-title' }, o.icon ?? null, h('h1', { class: 't-title' }, o.title));
+  const right = h('div', { class: 'page-right' }, ...(o.right ?? []));
+  const head = h('header', { class: 'page-head' }, back, title, o.tabs ? h('div', { class: 'page-tabs' }, o.tabs) : h('div', { class: 'page-gap' }), right);
+  const bodyEl = h('div', { class: 'page-body' }, ...body);
+  watchScroll(bodyEl);
+  const art = uiIconUrl('keyart');
+  const bg = h('div', { class: 'page-bg', 'aria-hidden': 'true' }, art ? img(art, 'page-bg-img') : null, h('div', { class: 'page-bg-tint' }));
+  const el = h('div', { class: ['page', o.cls].filter(Boolean).join(' '), role: 'dialog', 'aria-modal': 'true', 'aria-label': o.title, style: o.accent ? `--pa:${o.accent}` : undefined }, bg, head, bodyEl);
+  // narrow screens: the title keeps only its icon when the tabs / right side need the room
+  const fit = () => {
+    if (!head.clientWidth) return;
+    el.classList.remove('tight');
+    if (head.scrollWidth > head.clientWidth + 1) el.classList.add('tight');
+  };
+  let width = -1;
+  if (typeof ResizeObserver !== 'undefined')
+    new ResizeObserver(() => {
+      if (head.clientWidth === width) return;
+      width = head.clientWidth;
+      requestAnimationFrame(fit);
+    }).observe(head);
+  document.fonts?.ready.then(() => requestAnimationFrame(fit));
+  return el;
+}
+
+/** Plays a page's exit (fade + slight lift) and then runs `done` (right away with reduced motion). */
+export function leavePage(wrap: Element, done: () => void) {
+  if (reducedMotion() || !wrap.classList.contains('page-wrap')) {
+    done();
+    return;
+  }
+  let ran = false;
+  const finish = () => {
+    if (ran) return;
+    ran = true;
+    done();
+  };
+  wrap.classList.add('leaving');
+  wrap.addEventListener('animationend', (e) => e.target === wrap.firstElementChild && finish());
+  setTimeout(finish, 320);
+}
+
 /**
  * Fades the top/bottom edge of a scroll area while more content hides there. Only the area's own
  * padding being scrolled away (a few px of overflow) is not "more content", so it gets no fade.

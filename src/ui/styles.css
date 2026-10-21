@@ -4,13 +4,19 @@
 /* =====================================================================================================
  * STAR BANDITS UI KIT
  * Design tokens + reusable classes. DOM helpers that build these live in src/ui/kit.ts
- * (btn, roundBtn, closeBtn, ribbon, modal, bar, chip, socket, uiIcon, countUp, confetti, twinkles ...).
+ * (btn, roundBtn, closeBtn, ribbon, modal, page, bar, chip, socket, uiIcon, countUp, confetti, twinkles ...)
+ * and src/ui/roles.ts (roleIcon, roleChip, role display order).
  * Non-gameplay screens (loader, menu, maps, setup, modal contents) are styled in ./screens.css
  * (imported after this file by App.ts so it can refine kit classes), the in-game HUD further down here.
  *
  * TOKENS (:root)
  *   colour   --c-ink (outline) --c-night-1/2/3 (panels) --c-well (inset) --c-gold/--c-gold-2 --c-cream (text)
  *            --c-muted --c-dim --c-purple --c-green --c-red --c-blue
+ *   roles    --role-primary (sky blue) --role-military (army green) --role-magic (violet-magenta)
+ *            --role-support (amber-orange) --role-hero (gold), each with -l (light) and -d (deep).
+ *            Kept apart from the semantic colours (gold = currency/unlock, green = play/confirm,
+ *            red = danger). Use them through .role-primary|military|magic|support|hero, which set
+ *            --rc / --rc-l / --rc-d for the element and its children (src/ui/roles.ts adds them).
  *   gradient --g-panel --g-gold --g-xp --g-green
  *   shape    --r-xs/sm/md/lg/xl --r-pill --bw (outline width)
  *   shadow   --sh-drop (hard drop) --sh-soft (ambient) --sh-panel --hl (inner top highlight)
@@ -30,10 +36,16 @@
  * COUNTERS     .pill (> .ico + value)  .chip (small tag; .gold .green .red .blue .dark)  .badge (red dot/count)
  * PROGRESS     .bar > i (style="--p:40%") [+ span label]; colours .xp (default) .gold .green .red
  * CARDS        .tile (raised content card; button.tile is pressable) states .sel .locked .owned .done
+ *              .tile.role-x tints a card in its role colour (.locked keeps a muted hue)
+ * ROLES        .role-ico (round role badge, roleIcon()) .chip.role-chip (badge + name, roleChip())
+ *              .role-head (coloured section header of a role group: badge + name + count + line)
  *              .socket (round icon holder; .gold ring) ; .portrait (radial glow behind painted art)
  * RIBBONS      .ribbon [.gold .red .green .blue .purple] > .rb-tail.l, .rb-tail.r, .rb-body
  * MODALS       .modal-wrap > .modal [.narrow .wide .xwide]
  *                > .modal-head (ribbon + .xbtn) > .modal-body (scrolls) > .modal-foot (buttons)
+ * PAGES        full-screen menu pages (page() in kit.ts): .modal-wrap.page-wrap > .page (--pa accent)
+ *                > .page-bg > .page-head (round back, icon + title, .page-tabs, .page-right)
+ *                > .page-body (scrolls) ; .page-wrap.leaving plays the exit, .swap skips the fade
  * TABS         .tabs > button.tab(.on) [> .tab-n count] ; segmented control .seg > button(.on)
  * FORMS        .setting row (label + control)  .toggle(.on)  input[type=range] (set --v:%)
  * MOTION       .anim-pop .anim-rise .anim-drop .anim-fade (stagger: style="--i:3"; extra delay --d)
@@ -61,6 +73,22 @@
   --c-green: #5bdc5a;
   --c-red: #ff4d5e;
   --c-blue: #3fb2ff;
+  /* raccoon roles */
+  --role-primary: #36b4ff;
+  --role-primary-l: #b4e8ff;
+  --role-primary-d: #1257b0;
+  --role-military: #8db13c;
+  --role-military-l: #d9f08f;
+  --role-military-d: #3f5a14;
+  --role-magic: #d05cff;
+  --role-magic-l: #f3c0ff;
+  --role-magic-d: #7a1fb8;
+  --role-support: #ff8f2e;
+  --role-support-l: #ffd29c;
+  --role-support-d: #b4470a;
+  --role-hero: #ffcf3f;
+  --role-hero-l: #fff2a8;
+  --role-hero-d: #b8760c;
   /* gradients */
   --g-panel: linear-gradient(180deg, #2c2163 0%, var(--c-night-1) 28%, var(--c-night-2) 100%);
   --g-gold: linear-gradient(180deg, #fff2a8 0%, var(--c-gold) 42%, var(--c-gold-2) 100%);
@@ -689,6 +717,133 @@ img {
   background: rgba(7, 3, 24, 0.6);
 }
 
+/* ================================================================================== roles */
+.role-primary {
+  --rc: var(--role-primary);
+  --rc-l: var(--role-primary-l);
+  --rc-d: var(--role-primary-d);
+}
+
+.role-military {
+  --rc: var(--role-military);
+  --rc-l: var(--role-military-l);
+  --rc-d: var(--role-military-d);
+}
+
+.role-magic {
+  --rc: var(--role-magic);
+  --rc-l: var(--role-magic-l);
+  --rc-d: var(--role-magic-d);
+}
+
+.role-support {
+  --rc: var(--role-support);
+  --rc-l: var(--role-support-l);
+  --rc-d: var(--role-support-d);
+}
+
+.role-hero {
+  --rc: var(--role-hero);
+  --rc-l: var(--role-hero-l);
+  --rc-d: var(--role-hero-d);
+}
+
+/* round role badge: role colour + white glyph */
+.role-ico {
+  --ri: calc(20px * var(--k, 1));
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--ri);
+  height: var(--ri);
+  padding: calc(var(--ri) * 0.12);
+  border-radius: 50%;
+  border: 2px solid var(--c-ink);
+  background: radial-gradient(circle at 50% 26%, var(--rc-l) 0%, var(--rc) 50%, var(--rc-d) 100%);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.55), 0 2px 0 rgba(9, 4, 28, 0.55);
+  -webkit-text-stroke: 0;
+  line-height: 0;
+}
+
+.role-ico svg {
+  display: block;
+}
+
+.chip.role-chip {
+  gap: 4px;
+  padding-left: 2px;
+  border-color: var(--c-ink);
+  background: linear-gradient(180deg, var(--rc) 0%, var(--rc-d) 100%);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.4);
+  color: #fff;
+  -webkit-text-stroke: 3px var(--c-ink);
+  paint-order: stroke fill;
+}
+
+.chip.role-chip .role-ico {
+  --ri: 1.5em;
+  margin: -3px 0 -3px -1px;
+  border-width: 1.5px;
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* a card tinted in its role colour (light from the top-left, a role stripe on the left edge) */
+.role-tint {
+  isolation: isolate;
+}
+
+.role-tint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(118deg, var(--rc) 0%, transparent 58%), linear-gradient(180deg, transparent 40%, var(--rc-d) 160%);
+  box-shadow: inset 5px 0 0 var(--rc);
+  opacity: 0.5;
+}
+
+.role-tint.locked::before {
+  opacity: 0.3;
+}
+
+/* section header of a role group (roster, atlas): badge + name + count + a fading role line */
+.role-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--rc-l);
+  font-weight: 800;
+  font-size: calc(12px * var(--k, 1));
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  -webkit-text-stroke: 3px var(--c-ink);
+  paint-order: stroke fill;
+  white-space: nowrap;
+}
+
+.role-head::after {
+  content: '';
+  flex: 1;
+  min-width: 12px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--rc), transparent);
+  opacity: 0.75;
+}
+
+.role-head .role-ico {
+  --ri: calc(22px * var(--k, 1));
+}
+
+.role-head .n {
+  color: var(--c-muted);
+  letter-spacing: 0;
+}
+
 .badge {
   position: absolute;
   top: -9px;
@@ -856,6 +1011,8 @@ button.tile:active {
   position: relative;
   flex: none;
   display: grid;
+  /* one cell the size of the box, so the painting is contained instead of sizing the row */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
   border-radius: var(--r-md);
   background: radial-gradient(circle at 50% 58%, rgba(255, 214, 120, 0.42) 0%, rgba(140, 100, 255, 0.18) 45%, transparent 70%);
@@ -864,6 +1021,8 @@ button.tile:active {
 .portrait img {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
   filter: drop-shadow(0 4px 4px rgba(5, 2, 20, 0.45));
 }
@@ -1989,8 +2148,9 @@ html.reduce-fx .badge {
   aspect-ratio: 1 / 1.06;
   border-radius: var(--r-sm);
   border: var(--bw) solid var(--c-ink);
-  background: radial-gradient(130% 95% at 50% 22%, #7a64e0 0%, #4a379f 46%, #2a1f6b 100%);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28), inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 3px 0 rgba(9, 4, 28, 0.75);
+  /* role colour (--rc*, from .role-x): light stage at the top, deep at the bottom */
+  background: radial-gradient(130% 95% at 50% 18%, var(--rc-l, #9a86f0) 0%, var(--rc, #6a54d0) 40%, var(--rc-d, #2a1f6b) 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 3px 0 rgba(9, 4, 28, 0.75);
   overflow: hidden;
   touch-action: none;
   cursor: pointer;
@@ -2009,7 +2169,7 @@ html.reduce-fx .badge {
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 220, 140, 0.6) 0%, rgba(255, 170, 90, 0.22) 42%, transparent 68%);
+  background: radial-gradient(circle, rgba(255, 246, 220, 0.55) 0%, rgba(255, 236, 200, 0.16) 42%, transparent 68%);
   transition: opacity 0.2s;
 }
 
@@ -2042,8 +2202,9 @@ html.reduce-fx .badge {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  background: linear-gradient(180deg, rgba(18, 10, 43, 0.7), rgba(18, 10, 43, 0.94));
-  border-top: 2px solid rgba(9, 4, 28, 0.55);
+  background: linear-gradient(180deg, rgba(18, 10, 43, 0.74), rgba(18, 10, 43, 0.95));
+  border-top: 2px solid var(--c-ink);
+  box-shadow: 0 -2px 0 var(--rc, transparent);
   font-weight: 800;
   font-size: clamp(11px, 2.4vh, 17px);
   line-height: 1;
@@ -2058,6 +2219,14 @@ html.reduce-fx .badge {
   width: auto;
   flex: none;
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
+}
+
+.card .card-role {
+  --ri: clamp(15px, 3.6vh, 21px);
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  border-width: 1.5px;
 }
 
 .card .key {
@@ -2106,8 +2275,18 @@ html.reduce-fx .badge {
   opacity: 0.25;
 }
 
+/* unaffordable / locked: the role hue stays, muted under a dark veil */
+.card.poor {
+  background: linear-gradient(180deg, rgba(24, 16, 56, 0.42), rgba(24, 16, 56, 0.55)), radial-gradient(130% 95% at 50% 18%, var(--rc-l, #9a86f0) 0%, var(--rc, #6a54d0) 40%, var(--rc-d, #2a1f6b) 100%);
+}
+
 .card.locked {
-  background: radial-gradient(130% 95% at 50% 22%, #5a5280 0%, #3a3260 50%, #241d48 100%);
+  background: linear-gradient(180deg, rgba(30, 24, 66, 0.66), rgba(18, 12, 44, 0.8)), radial-gradient(130% 95% at 50% 18%, var(--rc, #6a54d0) 0%, var(--rc-d, #2a1f6b) 100%);
+}
+
+.card.poor .card-role,
+.card.locked .card-role {
+  filter: saturate(0.55) brightness(0.8);
 }
 
 .card.locked::before {
@@ -2132,9 +2311,6 @@ html.reduce-fx .badge {
   display: none;
 }
 
-.card.hero {
-  background: radial-gradient(130% 95% at 50% 22%, #e08bff 0%, #9a4fe0 46%, #4f2296 100%);
-}
 
 .card.hero.placed .price {
   color: #fff;
@@ -2352,8 +2528,8 @@ html.reduce-fx .badge {
   overflow: hidden;
   isolation: isolate;
   border: var(--bw) solid var(--c-ink);
-  background: radial-gradient(130% 95% at 50% 22%, #7a64e0 0%, #4a379f 46%, #2a1f6b 100%);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25), 0 3px 0 rgba(9, 4, 28, 0.6);
+  background: radial-gradient(130% 95% at 50% 18%, var(--rc-l, #9a86f0) 0%, var(--rc, #6a54d0) 40%, var(--rc-d, #2a1f6b) 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 3px 0 rgba(9, 4, 28, 0.6);
 }
 
 .u-portrait::before,
@@ -2367,7 +2543,7 @@ html.reduce-fx .badge {
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 220, 140, 0.6) 0%, rgba(255, 170, 90, 0.2) 42%, transparent 68%);
+  background: radial-gradient(circle, rgba(255, 246, 220, 0.5) 0%, rgba(255, 236, 200, 0.14) 42%, transparent 68%);
 }
 
 .u-portrait img,
@@ -2388,8 +2564,27 @@ html.reduce-fx .badge {
   border-radius: var(--r-md);
 }
 
-.is-hero .u-portrait {
-  background: radial-gradient(130% 95% at 50% 22%, #e08bff 0%, #9a4fe0 46%, #4f2296 100%);
+/* role glow in the panel's top-left corner, behind the header */
+.upanel {
+  isolation: isolate;
+}
+
+.upanel::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: clamp(70px, 22vh, 130px);
+  pointer-events: none;
+  background: radial-gradient(90% 100% at 0% 0%, var(--rc, transparent) 0%, transparent 72%);
+  opacity: 0.38;
+}
+
+.uhead .u-role {
+  --ri: clamp(15px, 3.2vh, 19px);
+  border-width: 1.5px;
 }
 
 .u-title {

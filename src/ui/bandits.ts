@@ -14,7 +14,8 @@ import { haptic } from './haptics';
 import { h, clear } from './dom';
 import { t } from '../i18n';
 import { softHyphens } from '../i18n/hyphen';
-import { uiIcon, img, btn, modal, bar, chip, stagger, countUp, bump, fmt, dec, fitText, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti } from './kit';
+import { roleGroups, roleCls, roleChip, roleIcon, roleName, towerRoleCls, TOWERS_BY_ROLE, type RoleKey } from './roles';
+import { uiIcon, img, btn, page, bar, stagger, countUp, bump, fmt, dec, fitText, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti } from './kit';
 
 export type BanditSel = { kind: 'tower'; id: TowerId } | { kind: 'hero'; id: HeroId };
 
@@ -30,6 +31,8 @@ export interface BanditsCtx {
   /** called after a tier was unlocked and the profile saved (raises the live game's limits) */
   onUnlock?: (id: TowerId, path: number, tier: number) => void;
   close: () => void;
+  /** right side of the page header (player level) */
+  headRight?: HTMLElement[];
 }
 
 /** Path colours (same hues as the in-game upgrade panel), with light / dark shades for the emblems. */
@@ -38,7 +41,6 @@ const PATH_TONE = [
   { c: '#3fb2ff', l: '#a6dcff', d: '#155c9c' },
   { c: '#5bdc5a', l: '#b2f0a8', d: '#24792a' },
 ];
-const ROLE_CHIP: Record<string, string> = { Primary: 'green', Military: 'red', Magic: 'blue', Support: 'gold' };
 const CHEVRONS = ['M6 15.5 12 9.5l6 6', 'M6 11.5 12 5.5l6 6M6 18.5l6-6 6 6'];
 const MAX_BANDIT_LEVEL = 20;
 
@@ -198,11 +200,11 @@ function upBadge(cls = 'bd-up'): HTMLElement {
 
 // ------------------------------------------------------------------------------------------- modal
 
-export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElement {
+export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElement {
   const p = ctx.profile;
   const towerLocked = (id: TowerId) => isTowerLevelLocked(id, ctx.playerLevel, ctx.devUnlock);
   const heroLocked = (id: HeroId) => !ctx.devUnlock && ctx.playerLevel < HEROES[id].unlock;
-  let sel: BanditSel = opts.heroId ? { kind: 'hero', id: opts.heroId } : { kind: 'tower', id: opts.towerId ?? TOWER_ORDER.find((id) => canUnlockAny(p, id)) ?? TOWER_ORDER[0] };
+  let sel: BanditSel = opts.heroId ? { kind: 'hero', id: opts.heroId } : { kind: 'tower', id: opts.towerId ?? TOWERS_BY_ROLE.find((id) => canUnlockAny(p, id)) ?? TOWERS_BY_ROLE[0] };
   /** path shown on phones (tabs instead of three columns), per raccoon */
   const pathSel = new Map<TowerId, number>();
   /** hero look shown in the big portrait */
@@ -257,9 +259,14 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
     clear(roster);
     rosterItems.clear();
     const items: HTMLElement[] = [];
-    roster.append(h('div', { class: 'bd-sec' }, h('span', { class: 't-up' }, t('Raccoons'))));
-    for (const id of TOWER_ORDER) {
+    // grouped by role: a coloured header (badge, name, count) before each group
+    const sec = (role: RoleKey, n: number) =>
+      roster.append(h('div', { class: `bd-sec role-head ${roleCls(role)}`, role: 'presentation' }, roleIcon(role), h('span', { class: 'rh-name' }, role === 'Hero' ? t('Heroes') : roleName(role)), h('span', { class: 'n' }, String(n))));
+    const groups = roleGroups();
+    for (const id of TOWERS_BY_ROLE) {
       const def = TOWERS[id];
+      const grp = groups.find((g) => g.ids[0] === id);
+      if (grp) sec(grp.role, grp.ids.length);
       const locked = towerLocked(id);
       const prog = banditProgress(p.towerXpTotal[id] ?? 0);
       const xp = xpOf(p, id);
@@ -267,7 +274,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
       const on = sel.kind === 'tower' && sel.id === id;
       const b = h(
         'button',
-        { class: 'tile bd-ros' + (on ? ' sel' : '') + (locked ? ' locked' : '') + (can ? ' can' : ''), type: 'button', role: 'option', 'aria-selected': String(on), title: t(def.name), 'aria-label': `${t(def.name)} · ${t('Bandit level {n}', { n: prog.level })}` },
+        { class: `tile bd-ros role-tint ${roleCls(def.role)}` + (on ? ' sel' : '') + (locked ? ' locked' : '') + (can ? ' can' : ''), type: 'button', role: 'option', 'aria-selected': String(on), title: `${t(def.name)} · ${roleName(def.role)}`, 'aria-label': `${t(def.name)} · ${roleName(def.role)} · ${t('Bandit level {n}', { n: prog.level })}` },
         h('span', { class: 'bd-ros-art' }, img(towerPortraitUrl(id), '', ''), h('b', { class: 'bd-lv' }, String(prog.level)), locked ? uiIcon('lock', '🔒', 'bd-ros-lock') : null),
         h(
           'span',
@@ -283,14 +290,14 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
       items.push(b);
       roster.append(b);
     }
-    roster.append(h('div', { class: 'bd-sec' }, h('span', { class: 't-up' }, t('Heroes'))));
+    sec('Hero', HERO_ORDER.length);
     for (const id of HERO_ORDER) {
       const def = HEROES[id];
       const locked = heroLocked(id);
       const on = sel.kind === 'hero' && sel.id === id;
       const b = h(
         'button',
-        { class: 'tile bd-ros hero' + (on ? ' sel' : '') + (locked ? ' locked' : ''), type: 'button', role: 'option', 'aria-selected': String(on), title: t(def.name), 'aria-label': t(def.name) },
+        { class: 'tile bd-ros hero role-tint role-hero' + (on ? ' sel' : '') + (locked ? ' locked' : ''), type: 'button', role: 'option', 'aria-selected': String(on), title: t(def.name), 'aria-label': t(def.name) },
         h('span', { class: 'bd-ros-art' }, img(heroPortraitUrl(id, 1), '', ''), uiIcon('crown', '👑', 'bd-crown'), locked ? uiIcon('lock', '🔒', 'bd-ros-lock') : null),
         h('span', { class: 'bd-ros-text' }, h('b', { class: 'bd-ros-name' }, t(def.name)), h('small', { class: 'bd-ros-req' }, locked ? t('Unlocks at player level {n}', { n: def.unlock }) : t(def.title))),
       );
@@ -344,7 +351,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
     // header: portrait, name, stats, XP box
     const portrait = h(
       'div',
-      { class: 'bd-big' + (newLook ? ' bd-newlook' : '') },
+      { class: `bd-big ${roleCls(def.role)}` + (newLook ? ' bd-newlook' : '') },
       h('div', { class: 'rays' }),
       img(towerPortraitUrl(id, look), 'bd-big-img', t(def.name)),
       h('b', { class: 'bd-lv' }, String(prog.level)),
@@ -355,7 +362,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
     const info = h(
       'div',
       { class: 'bd-info' },
-      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), chip(null, t(def.role), ROLE_CHIP[def.role] ?? 'dark'), h('small', { class: 'bd-species' }, t(def.species)), xpPill),
+      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), roleChip(def.role), h('small', { class: 'bd-species' }, t(def.species)), xpPill),
       h('p', { class: 'bd-desc' }, softHyphens(t(def.desc))),
       h('div', { class: 'bd-stats' }, ...statChips(def.base(), def.cost)),
     );
@@ -521,12 +528,12 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
     const locked = heroLocked(id);
     const abs = heroAbilities(id);
     const bigImg = img(heroPortraitUrl(id, heroLook), 'bd-big-img', t(def.name));
-    const portrait = h('div', { class: 'bd-big hero' }, h('div', { class: 'rays' }), bigImg);
+    const portrait = h('div', { class: 'bd-big hero role-hero' }, h('div', { class: 'rays' }), bigImg);
     const stats = def.base();
     const info = h(
       'div',
       { class: 'bd-info' },
-      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), chip(uiIcon('crown', '👑'), t('Hero'), 'gold'), h('small', { class: 'bd-species' }, t(def.title))),
+      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), roleChip('Hero'), h('small', { class: 'bd-species' }, t(def.title))),
       h('p', { class: 'bd-desc' }, softHyphens(t(def.desc))),
       h('div', { class: 'bd-stats' }, ...statChips(stats, def.cost)),
     );
@@ -587,7 +594,7 @@ export function banditsModal(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLEleme
 
   renderRoster(true);
   renderDetail(null, true);
-  const m = modal({ title: t('Bandits'), color: 'green', icon: uiIcon('mask', '🦝'), size: 'xwide', cls: 'bandits', onClose: ctx.close }, [root]);
+  const m = page({ title: t('Bandits'), icon: uiIcon('mask', '🦝'), accent: '#5bdc5a', cls: 'bandits', onBack: ctx.close, right: ctx.headRight }, [root]);
   // keep the selected roster entry in view (only the roster scrolls, never the page)
   requestAnimationFrame(() => {
     const el = rosterItems.get(sel.kind === 'tower' ? 't:' + sel.id : 'h:' + sel.id);
@@ -611,7 +618,7 @@ export function banditXpStrip(p: Profile, gained: Partial<Record<TowerId, number
   const items = list.map(([id, v], i) =>
     h(
       'div',
-      { class: 'bx-item anim-pop', style: `--i:${i};--d:1100ms`, title: `${t(TOWERS[id].name)}: ${xpText(v)}` },
+      { class: `bx-item anim-pop ${towerRoleCls(id)}`, style: `--i:${i};--d:1100ms`, title: `${t(TOWERS[id].name)} · ${roleName(TOWERS[id].role)}: ${xpText(v)}` },
       h('div', { class: 'bx-art' }, img(towerPortraitUrl(id), '', t(TOWERS[id].name)), unlockable.includes(id) ? upBadge('bd-up small') : null),
       h('span', { class: 'bx-chip' }, xpText(v)),
     ),

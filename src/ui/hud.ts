@@ -1,7 +1,7 @@
 import type { Game } from '../game/Game';
 import type { Tower } from '../game/Tower';
 import type { Renderer } from '../render/Renderer';
-import { TOWERS, TOWER_ORDER } from '../game/towers';
+import { TOWERS } from '../game/towers';
 import { HEROES, heroXpFor, MAX_HERO_LEVEL, type HeroId } from '../game/heroes';
 import { canTier, type TowerId, type AbilityDef } from '../game/towerTypes';
 import { TARGET_PRIORITIES, type TargetPriority } from '../game/types';
@@ -13,11 +13,14 @@ import { audio } from '../audio/audio';
 import { h, clear, setText, toggle } from './dom';
 import { haptic } from './haptics';
 import { t as tr, getLang } from '../i18n';
+import { TOWERS_BY_ROLE, roleCls, roleIcon } from './roles';
 import { modal, btn, chip, uiIcon, img, bar, closeBtn, restartIcon, bump, reducedMotion, watchScroll, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
 
 /** Accent per upgrade path (generic tier icons, pips). */
 const PATH_COLOR = ['#ff8a3c', '#3fb2ff', '#5bdc5a'];
 const HERO_LOOK_LEVELS = [1, 7, 14];
+/** physical Q-O keys, one per shop slot (same order as 1-9) */
+const SLOT_CODES = ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU', 'KeyI', 'KeyO'];
 /** localStorage key: is the ability dock expanded */
 const DOCK_KEY = 'sb.abilityDock';
 
@@ -292,7 +295,9 @@ export class Hud {
       const hid = this.host.heroId;
       shop.append(this.makeCard('hero', hid, heroPortraitUrl(hid, 1), tr(HEROES[hid].name), 'H'));
     }
-    for (const id of TOWER_ORDER) shop.append(this.makeCard('tower', id, towerPortraitUrl(id), tr(TOWERS[id].name), TOWERS[id].hotkey.toUpperCase()));
+    // grouped by role (Basis -> Military -> Magic -> Support) and coloured by it; the hotkeys
+    // 1-9 (and Q-O on the same keys) follow the order on screen
+    TOWERS_BY_ROLE.forEach((id, i) => shop.append(this.makeCard('tower', id, towerPortraitUrl(id), tr(TOWERS[id].name), String(i + 1))));
     watchScroll(shop);
     this.playIco = h('span', { class: 'play-ico' }, uiIcon('play', '▶'));
     this.playLbl = h('span', { class: 'play-lbl' }, '');
@@ -305,11 +310,14 @@ export class Hud {
   }
 
   private makeCard(kind: 'tower' | 'hero', id: string, icon: string, name: string, key: string) {
+    const role = kind === 'hero' ? 'Hero' : TOWERS[id as TowerId].role;
+    const label = `${name} · ${tr(role)}`;
     const card = h(
       'div',
-      { class: 'card ' + kind, title: name, role: 'button', 'aria-label': name },
+      { class: `card ${kind} ${roleCls(role)}`, title: label, role: 'button', 'aria-label': label },
       h('div', { class: 'card-art' }, h('img', { src: icon, alt: '', draggable: 'false', decoding: 'async' })),
       h('div', { class: 'key' }, key),
+      roleIcon(role, 'card-role'),
       h('div', { class: 'lockmark' }, uiIcon('lock', '🔒')),
       h('div', { class: 'price' }, uiIcon('coin', '$', 'coin'), h('span', { class: 'pv' }, '')),
     );
@@ -637,12 +645,12 @@ export class Hud {
       else this.startPlacing('hero', this.host.heroId, null, false);
       return;
     }
-    for (const id of TOWER_ORDER) {
-      if (TOWERS[id].hotkey === k) {
-        if (!this.isUnlocked('tower', id) || !this.game.isAllowed(id)) return;
-        this.startPlacing('tower', id, null, false);
-        return;
-      }
+    // shop slots by position: 1-9 or the Q-O row (physical keys, so QWERTZ works the same)
+    const slot = /^(Digit|Numpad)[1-9]$/.test(e.code) ? +e.code.slice(-1) - 1 : SLOT_CODES.indexOf(e.code);
+    const id = slot >= 0 ? TOWERS_BY_ROLE[slot] : undefined;
+    if (id) {
+      if (!this.isUnlocked('tower', id) || !this.game.isAllowed(id)) return;
+      this.startPlacing('tower', id, null, false);
     }
   };
 
@@ -759,12 +767,13 @@ export class Hud {
     const g = this.game;
     const sameTower = this.panelFor === t;
     // laid out on the left first; placePanel measures it and picks the side
-    const panel = h('div', { class: 'upanel left' + (t.hero ? ' is-hero' : '') });
+    const role = t.hero ? 'Hero' : t.def!.role;
+    const panel = h('div', { class: `upanel left ${roleCls(role)}` + (t.hero ? ' is-hero' : '') });
     panel.addEventListener('pointerdown', (e) => e.stopPropagation());
     const look = t.hero ? heroPortraitUrl(t.hero.id, t.heroLevel) : towerPortraitUrl(t.def!.id, t.tiers);
     const sub = t.hero ? tr(t.hero.title) : `${tr(t.def!.species)} · ${tr(t.def!.role)}`;
     const statsLine = h('div', { class: 'stats-line' });
-    const meta = h('div', { class: 'meta' }, h('span', { class: 'meta-t' }, sub));
+    const meta = h('div', { class: 'meta' }, roleIcon(role, 'u-role'), h('span', { class: 'meta-t' }, sub));
     if (t.def && this.progression) {
       // this raccoon type's unspent bandit XP (spent below to unlock tiers)
       const can = [0, 1, 2].some((p) => this.canUnlockPath(t, p));
@@ -1534,7 +1543,8 @@ export class Hud {
   openModal(content: HTMLElement, pause = true, opts: { locked?: boolean; onDismiss?: () => void } = {}) {
     this.closeModal();
     this.modalDismiss = opts.locked ? 'locked' : opts.onDismiss ?? null;
-    const wrap = h('div', { class: 'modal-wrap' }, content);
+    // full-screen pages (Bandit menu from a result screen) cover the whole game, HUD included
+    const wrap = h('div', { class: 'modal-wrap' + (content.classList.contains('page') ? ' page-wrap' : '') }, content);
     wrap.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.root.append(wrap);
     this.modalOpen = true;

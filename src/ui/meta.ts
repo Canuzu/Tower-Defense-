@@ -12,7 +12,9 @@ import { audio } from '../audio/audio';
 import { h, clear } from './dom';
 import { t, getLang } from '../i18n';
 import { softHyphens } from '../i18n/hyphen';
-import { uiIcon, img, btn, modal, bar, chip, socket, stagger, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
+import { uiIcon, img, btn, page, bar, chip, socket, stagger, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
+import { byRole, towerRoleCls, roleIcon } from './roles';
+import type { TowerId } from '../game/towerTypes';
 
 // Painted art for perk and achievement icons (their data still carries an emoji, used only as the
 // fallback when a sprite is missing): ui icons, raccoon and hero portraits, star and ability art.
@@ -88,9 +90,11 @@ const BRANCHES: { id: PerkDef['branch']; name: string; color: string }[] = [
   { id: 'power', name: 'Power', color: '#ff7b7b' },
 ];
 
-/** "Bandit Wisdom" perk tree. */
-export function perksModal(p: Profile, close: () => void, onChange: () => void): HTMLElement {
-  const body = h('div');
+/** "Bandit Wisdom" perk tree (full-screen page: points + reset in the header, four branches). */
+export function perksPage(p: Profile, close: () => void, onChange: () => void): HTMLElement {
+  const body = h('div', { class: 'wisdom' });
+  const ptsEl = h('span', { class: 't-num' }, '0');
+  const pill = h('div', { class: 'pill wisdom-points', title: t('Wisdom') }, uiIcon('lantern', '🧠'), ptsEl);
   const reset = btn(
     t('Reset perks'),
     'red',
@@ -102,17 +106,17 @@ export function perksModal(p: Profile, close: () => void, onChange: () => void):
       onChange();
       render(false);
     },
-    { size: 'small' },
+    { size: 'small', cls: 'wisdom-reset', icon: uiIcon('restart', '↺') },
   );
   let lastPts = -1;
   const render = (first: boolean) => {
     clear(body);
     const pts = wisdomPoints(p);
-    const ptsEl = h('span', { class: 't-num' }, String(pts));
-    const pill = h('div', { class: 'pill wisdom-points', title: t('Wisdom') }, uiIcon('lantern', '🧠'), ptsEl);
+    ptsEl.textContent = String(pts);
+    pill.classList.toggle('has', pts > 0);
     if (lastPts >= 0 && lastPts !== pts) bump(ptsEl);
     lastPts = pts;
-    body.append(h('div', { class: 'wisdom-head' }, pill, h('p', { class: 'wisdom-note' }, t('Earn 1 Wisdom point per player level. Perks apply to every new game.'))));
+    body.append(h('p', { class: 'page-note' }, uiIcon('info', 'ℹ️'), h('span', null, t('Earn 1 Wisdom point per player level. Perks apply to every new game.'))));
     const cols = h('div', { class: 'perk-cols' });
     const colEls: HTMLElement[] = [];
     for (const br of BRANCHES) {
@@ -150,10 +154,10 @@ export function perksModal(p: Profile, close: () => void, onChange: () => void):
     reset.disabled = p.perks.length === 0;
   };
   render(true);
-  return modal({ title: t('Bandit Wisdom'), color: 'purple', icon: uiIcon('lantern', '🧠'), size: 'xwide', onClose: close }, [body], [reset, btn(t('Done'), 'green', close, { icon: uiIcon('check', '✔') })]);
+  return page({ title: t('Bandit Wisdom'), icon: uiIcon('lantern', '🧠'), accent: '#b07bff', cls: 'wisdom-page', onBack: close, right: [reset, pill] }, [body]);
 }
 
-export function achievementsModal(p: Profile, g: Game | null, close: () => void): HTMLElement {
+export function achievementsPage(p: Profile, g: Game | null, close: () => void): HTMLElement {
   const list = h('div', { class: 'ach-list' });
   let done = 0;
   const tiles: HTMLElement[] = [];
@@ -175,14 +179,14 @@ export function achievementsModal(p: Profile, g: Game | null, close: () => void)
   list.append(...tiles);
   const summary = h(
     'div',
-    { class: 'ach-summary well' },
+    { class: 'pill ach-summary', title: t('{a} of {b} unlocked', { a: done, b: ACHIEVEMENTS.length }) },
     uiIcon('trophy', '🏆'),
-    h('div', { class: 'grow' }, h('b', { class: 't-outline' }, t('{a} of {b} unlocked', { a: done, b: ACHIEVEMENTS.length })), bar(done / ACHIEVEMENTS.length, 'gold', undefined, 16)),
+    h('span', { class: 'pill-meter' }, h('small', null, `${done} / ${ACHIEVEMENTS.length}`), bar(done / ACHIEVEMENTS.length, 'gold')),
   );
-  return modal({ title: t('Achievements'), color: 'gold', icon: uiIcon('trophy', '🏅'), size: 'wide', onClose: close }, [summary, list]);
+  return page({ title: t('Achievements'), icon: uiIcon('trophy', '🏅'), accent: '#ffcf3f', cls: 'ach-page', onBack: close, right: [summary] }, [list]);
 }
 
-export function dailyModal(p: Profile, start: () => void, close: () => void): HTMLElement {
+export function dailyPage(p: Profile, start: () => void, close: () => void): HTMLElement {
   const key = todayKey();
   const d = dailyFor(key);
   const m = MAP_BY_ID[d.mapId];
@@ -190,17 +194,18 @@ export function dailyModal(p: Profile, start: () => void, close: () => void): HT
   const diff = DIFFICULTIES[d.difficulty];
   const rule = (icon: HTMLElement, label: string, value: string, cls = '') => h('div', { class: ('rule well ' + cls).trim() }, icon, h('div', { class: 'rule-text' }, h('small', null, label), h('b', { class: 't-outline' }, value)));
   const allowed = h('div', { class: 'allowed-row' });
-  const allowedIds = d.challenge.allowed ?? [];
-  for (const id of allowedIds) allowed.append(h('div', { class: 'portrait', title: t(TOWERS[id].name) }, img(towerPortraitUrl(id), '', t(TOWERS[id].name))));
+  const allowedIds = byRole((d.challenge.allowed ?? []) as TowerId[]);
+  for (const id of allowedIds)
+    allowed.append(h('div', { class: `portrait role-disc ${towerRoleCls(id)}`, title: `${t(TOWERS[id].name)} · ${t(TOWERS[id].role)}` }, img(towerPortraitUrl(id), '', t(TOWERS[id].name)), roleIcon(TOWERS[id].role, 'disc-role')));
   stagger([...allowed.children] as HTMLElement[], 'anim-pop', 4);
   const [y, mo, da] = key.split('-').map(Number);
   const dateLabel = new Date(y, mo - 1, da).toLocaleDateString(getLang() === 'de' ? 'de-DE' : 'en-US', { day: 'numeric', month: 'short' });
+  const play = btn(done ? t('Play again') : t('Start'), 'green', start, { size: 'big', icon: uiIcon('play', '▶'), cls: 'glint daily-play' });
   const left = h(
     'div',
-    null,
+    { class: 'daily-left' },
     h('div', { class: 'daily-map anim-rise' }, img(mapImageSrc(m), '', t(m.name)), h('div', { class: 'mc-shade' }), chip(uiIcon('calendar', '📅'), dateLabel, 'dark date'), h('div', { class: 'mc-name t-outline' }, t(m.name))),
-    h('div', { class: 'daily-name t-outline' }, t(d.challenge.name)),
-    h('p', { class: 'daily-note' }, t('Perks are off in daily challenges so everyone plays the same game.')),
+    h('div', { class: 'daily-cta anim-pop', style: '--d:250ms' }, play),
   );
   const rules = h(
     'div',
@@ -212,10 +217,14 @@ export function dailyModal(p: Profile, start: () => void, close: () => void): HT
     rule(done ? uiIcon('check', '✔') : uiIcon('xp', '⭐'), t('Reward'), done ? t('Completed') : '+500 XP', 'reward-rule'),
   );
   stagger([...rules.children] as HTMLElement[], 'anim-rise', 1);
-  const right = h('div', null, rules, h('div', { class: 'allowed' }, h('span', { class: 't-up' }, t('Allowed bandits') + ` · ${allowedIds.length}`), allowed));
-  return modal(
-    { title: t('Daily Challenge'), color: 'blue', icon: uiIcon('calendar', '📅'), size: 'wide', onClose: close },
-    [h('div', { class: 'daily' }, left, right)],
-    [btn(done ? t('Play again') : t('Start'), 'green', start, { icon: uiIcon('play', '▶'), cls: 'glint' })],
+  const right = h(
+    'div',
+    { class: 'daily-right' },
+    h('div', { class: 'daily-name t-outline anim-fade' }, t(d.challenge.name)),
+    rules,
+    h('div', { class: 'allowed' }, h('span', { class: 't-up' }, t('Allowed bandits') + ` · ${allowedIds.length}`), allowed),
+    h('p', { class: 'page-note' }, uiIcon('info', 'ℹ️'), h('span', null, t('Perks are off in daily challenges so everyone plays the same game.'))),
   );
+  const reward = h('div', { class: 'pill daily-reward' + (done ? ' done' : ''), title: t('Reward') }, done ? uiIcon('check', '✔') : uiIcon('xp', '⭐'), h('span', null, done ? t('Completed') : '+500 XP'));
+  return page({ title: t('Daily Challenge'), icon: uiIcon('calendar', '📅'), accent: '#3fb2ff', cls: 'daily-page', onBack: close, right: [reward] }, [h('div', { class: 'daily' }, left, right)]);
 }

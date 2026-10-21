@@ -878,8 +878,8 @@
 }
 
 .hero-tile.sel {
-  background: linear-gradient(180deg, #8c5cf0 0%, #6a3fd2 55%, #4a28a2 100%);
-  box-shadow: 0 0 0 3px #d9b8ff, 0 0 24px rgba(190, 140, 255, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 6px 0 rgba(9, 4, 28, 0.6);
+  background: linear-gradient(180deg, #7a56e0 0%, #5a3cbc 55%, #40288e 100%);
+  box-shadow: 0 0 0 3px var(--c-gold), 0 0 22px rgba(255, 207, 63, 0.55), inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 6px 0 rgba(9, 4, 28, 0.6);
 }
 
 .hero-tile .portrait {
@@ -1526,36 +1526,6 @@
 }
 
 /* ================================================================================== achievements */
-.ach-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 auto 10px;
-  max-width: 520px;
-  padding: 6px 12px;
-}
-
-.ach-summary .ico {
-  width: calc(40px * var(--k, 1));
-  height: calc(40px * var(--k, 1));
-  object-fit: contain;
-  flex: none;
-}
-
-.ach-summary .grow {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: left;
-}
-
-.ach-summary b {
-  --stroke: 4px;
-  font-size: clamp(calc(14px * var(--k, 1)), 2.6vh, calc(18px * var(--k, 1)));
-  line-height: 1;
-}
-
 .ach-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1762,22 +1732,19 @@
  * Phones: the 3 upgrade paths are tabs and one path shows its 5 tier cards side by side.
  * Tablets / desktop (>= 960 x 601): the 3 paths are columns of 5 row cards.
  * Path tones come in as --pc / --pc-l / --pc-d (no color-mix, Safari 15 safe). */
-.modal.bandits {
-  height: min(100%, calc(700px * var(--k, 1)));
-}
-
-.modal.bandits .modal-body {
+.page.bandits .page-body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 2px 12px 10px;
+  padding-top: calc(8px * var(--k, 1));
+  padding-bottom: calc(8px + var(--safe-b));
 }
 
 .bd {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: clamp(150px, 21vw, calc(250px * var(--k, 1))) minmax(0, 1fr);
+  grid-template-columns: clamp(156px, 22vw, calc(270px * var(--k, 1))) minmax(0, 1fr);
   gap: 10px;
   text-align: left;
 }
@@ -3478,17 +3445,13 @@
 }
 
 /* ================================================================================== star atlas extras */
-.modal.atlas {
-  height: min(100%, calc(720px * var(--k, 1)));
-}
-
 /* heroes: two cards share the row (auto-fit would keep empty tracks: the CTA spans all of them) */
-.atlas-grid.two {
+.atlas-grid[data-tab='heroes'] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (max-width: 560px) {
-  .atlas-grid.two {
+  .atlas-grid[data-tab='heroes'] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -3699,5 +3662,694 @@ button.atlas-card {
 @media (max-aspect-ratio: 4/3) {
   .menu-logo {
     width: min(42vw, 30vh * 1.82, 600px);
+  }
+}
+
+/* ================================================================================== full-screen pages
+ * Bandits, Daily, Wisdom, Achievements and the Star Atlas fill the screen (page() in kit.ts):
+ * painted background, header bar (back, title, tabs, currency), and a body that uses the full width.
+ * --pa is the page accent (header light, title glow, background glow). */
+.modal-wrap.page-wrap {
+  display: block;
+  padding: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  animation: none;
+  z-index: 60;
+}
+
+.page-wrap.leaving {
+  pointer-events: none;
+}
+
+.page {
+  --pa: var(--c-purple);
+  --head-h: clamp(calc(46px * var(--k, 1)), 12.5vh, calc(62px * var(--k, 1)));
+  --gut-l: calc(14px + var(--safe-l));
+  --gut-r: calc(14px + var(--safe-r));
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  background: #140d33;
+  color: var(--c-cream);
+  text-align: left;
+  touch-action: pan-y;
+  animation: page-in 0.28s var(--ease-out) both;
+}
+
+/* background: blurred key art under a deep night gradient, the accent glowing from the top, sparkles */
+.page-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(130% 100% at 50% 0%, #3b2b8c 0%, #1f1650 50%, #0e0926 100%);
+}
+
+.page-bg-img {
+  position: absolute;
+  left: -6%;
+  top: -6%;
+  width: 112%;
+  height: 112%;
+  object-fit: cover;
+  filter: blur(18px) saturate(1.4);
+  opacity: 0.5;
+}
+
+.page-bg-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(24, 15, 62, 0.55) 0%, rgba(16, 10, 42, 0.78) 55%, rgba(10, 6, 28, 0.9) 100%), radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(5, 2, 18, 0.55) 100%);
+}
+
+.page-bg::before,
+.page-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.page-bg::before {
+  background: radial-gradient(70% 62% at 50% -6%, var(--pa) 0%, transparent 72%);
+  opacity: 0.32;
+}
+
+.page-bg::after {
+  background-image: var(--sparkle-img);
+  background-size: 190px 150px, 190px 150px, 190px 150px, 190px 150px, 190px 150px, 190px 150px;
+  opacity: 0.85;
+}
+
+html.reduce-fx .page-bg-img {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- header bar */
+.page-head {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--k, 1));
+  min-height: calc(var(--head-h) + var(--safe-t));
+  padding: calc(5px + var(--safe-t)) var(--gut-r) 5px var(--gut-l);
+  background: linear-gradient(180deg, rgba(60, 45, 138, 0.97) 0%, rgba(34, 24, 84, 0.97) 100%);
+  border-bottom: var(--bw) solid var(--c-ink);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 4px 0 rgba(9, 4, 28, 0.4), 0 12px 26px rgba(5, 2, 20, 0.45);
+  animation: page-head-in 0.4s var(--ease-out) both;
+}
+
+/* accent light along the lower edge */
+.page-head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--pa) 25%, var(--pa) 75%, transparent 100%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.btn.page-back {
+  --bh: calc(var(--head-h) - 8px);
+  --b1: #a6e8ff;
+  --b2: #45b6ff;
+  --b3: #2280e2;
+  --be: #144f9a;
+  flex: none;
+  border-radius: 50%;
+}
+
+.btn.page-back::before {
+  left: 18%;
+  right: 18%;
+  top: 6%;
+  height: 40%;
+  border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+}
+
+.page-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--k, 1));
+}
+
+.page-title .ico {
+  flex: none;
+  width: calc(var(--head-h) * 0.8);
+  height: calc(var(--head-h) * 0.8);
+  object-fit: contain;
+  font-size: calc(var(--head-h) * 0.55);
+  filter: drop-shadow(0 3px 0 rgba(10, 5, 30, 0.6)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.18));
+}
+
+.page-title h1 {
+  --stroke: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 4px 6px;
+  font-size: clamp(calc(21px * var(--k, 1)), 6vh, calc(34px * var(--k, 1)));
+  color: var(--c-cream);
+  -webkit-text-stroke: var(--stroke) var(--c-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 var(--c-ink);
+}
+
+.page.tight .page-title h1 {
+  display: none;
+}
+
+.page-gap {
+  flex: 1;
+}
+
+.page-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.page-tabs .tabs {
+  margin: 0;
+}
+
+.page-tabs .tab {
+  min-height: calc(var(--head-h) - 14px);
+}
+
+.page-right {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--k, 1));
+}
+
+.page-right .pill {
+  --pill-h: clamp(calc(34px * var(--k, 1)), 9.5vh, calc(44px * var(--k, 1)));
+}
+
+.page-right .btn.small {
+  --bh: clamp(calc(34px * var(--k, 1)), 9.5vh, calc(44px * var(--k, 1)));
+  padding: 2px 12px 5px;
+  font-size: clamp(calc(13px * var(--k, 1)), 2.4vh, calc(17px * var(--k, 1)));
+}
+
+/* player level: star with the number, a slim XP bar */
+.lvl-pill {
+  gap: 4px;
+  padding-right: 12px;
+}
+
+.lvl-pill-star {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--pill-h) + 6px);
+  height: calc(var(--pill-h) + 6px);
+  margin: -6px -2px -6px -8px;
+}
+
+.lvl-pill-star .ico {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lvl-pill-star b {
+  position: relative;
+  margin-top: 8%;
+  font-size: calc(var(--pill-h) * 0.42);
+}
+
+/* small label over a slim bar inside a pill (level, achievements) */
+.pill-meter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: calc(76px * var(--k, 1));
+}
+
+.pill-meter small {
+  font-size: calc(var(--pill-h) * 0.3);
+  line-height: 1;
+  -webkit-text-stroke: 2.5px var(--c-ink);
+  text-shadow: none;
+}
+
+.pill-meter .bar {
+  --bar-h: calc(var(--pill-h) * 0.22);
+  width: 100%;
+  border-width: 2px;
+}
+
+/* ---------------------------------------------------------------- body */
+.page-body {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: calc(12px * var(--k, 1)) var(--gut-r) calc(16px + var(--safe-b)) var(--gut-l);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  animation: page-body-in 0.42s var(--ease-out) 0.05s both;
+}
+
+.page-body > * {
+  max-width: calc(1360px * var(--k, 1));
+  margin-inline: auto;
+}
+
+.page-body.more-bottom {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 36px), transparent);
+}
+
+.page-body.more-top {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22px);
+  mask-image: linear-gradient(180deg, transparent, #000 22px);
+}
+
+.page-body.more-top.more-bottom {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 22px, #000 calc(100% - 36px), transparent);
+}
+
+/* a short explanatory line at the top of a page */
+.page-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 calc(10px * var(--k, 1));
+  color: var(--c-muted);
+  font-weight: 700;
+  font-size: clamp(calc(12px * var(--k, 1)), 2.2vh, calc(15px * var(--k, 1)));
+  line-height: 1.25;
+}
+
+.page-note .ico {
+  flex: none;
+  width: calc(22px * var(--k, 1));
+  height: calc(22px * var(--k, 1));
+  object-fit: contain;
+}
+
+/* ---------------------------------------------------------------- transitions */
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes page-head-in {
+  from {
+    transform: translateY(-105%);
+  }
+}
+
+@keyframes page-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(18px * var(--k, 1)));
+  }
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+}
+
+.page-wrap.leaving > .page {
+  animation: page-out 0.2s var(--ease-in-out) both;
+}
+
+/* one page replacing another (Atlas -> Bandits and back): only the content moves */
+.page-wrap.swap > .page,
+.page-wrap.swap .page-head {
+  animation: none;
+}
+
+/* while a page covers the menu, the menu and its backdrop stop animating */
+.backdrop.covered,
+.screen.covered {
+  visibility: hidden;
+}
+
+/* ================================================================================== role colours on screens */
+/* portrait disc / tile in the role colour (raccoon portraits everywhere) */
+.role-disc {
+  background: radial-gradient(circle at 50% 36%, var(--rc-l) 0%, var(--rc) 48%, var(--rc-d) 100%);
+  box-shadow: inset 0 0 0 2px rgba(9, 4, 28, 0.6), inset 0 3px 0 rgba(255, 255, 255, 0.35), inset 0 -5px 8px rgba(0, 0, 0, 0.25);
+}
+
+.locked .role-disc,
+.role-disc.locked {
+  background: linear-gradient(rgba(26, 18, 60, 0.62), rgba(26, 18, 60, 0.7)), radial-gradient(circle at 50% 36%, var(--rc) 0%, var(--rc-d) 100%);
+}
+
+/* setup screen roster */
+.roster-icon.role-disc {
+  border-radius: 12px;
+}
+
+.roster-icon.role-disc img {
+  filter: drop-shadow(0 2px 2px rgba(5, 2, 20, 0.45));
+}
+
+.roster-icon.role-disc.locked img {
+  filter: brightness(0) opacity(0.5);
+}
+
+/* daily: allowed bandits */
+.allowed-row .portrait.role-disc {
+  overflow: visible;
+}
+
+.allowed-row .disc-role {
+  --ri: calc(18px * var(--k, 1));
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  border-width: 1.5px;
+}
+
+/* result screens: bandit XP portraits */
+.bx-item .bx-art {
+  background: radial-gradient(circle at 50% 36%, var(--rc-l, #9a86f0) 0%, var(--rc, #6a54d0) 48%, var(--rc-d, #2a1f6b) 100%);
+  box-shadow: inset 0 0 0 2px rgba(9, 4, 28, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.bx-item.bx-more .bx-art {
+  background: rgba(7, 3, 24, 0.5);
+}
+
+/* bandit menu: roster role groups */
+.bd-sec.role-head {
+  padding: 8px 4px 0;
+}
+
+.bd-sec.role-head:first-child {
+  padding-top: 2px;
+}
+
+.bd.narrow .bd-sec.role-head,
+.bd.narrow .bd-sec.role-head:first-child {
+  display: flex;
+  justify-content: center;
+  height: auto;
+  margin: 4px 0 0;
+  padding: 0;
+  background: none;
+}
+
+.bd.narrow .role-head > span:not(.role-ico),
+.bd.narrow .role-head::after {
+  display: none;
+}
+
+.bd-ros .bd-ros-art {
+  background: radial-gradient(circle at 50% 36%, var(--rc-l) 0%, var(--rc) 48%, var(--rc-d) 100%);
+  box-shadow: inset 0 0 0 2px rgba(9, 4, 28, 0.55), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.bd-ros.locked .bd-ros-art {
+  background: linear-gradient(rgba(26, 18, 60, 0.6), rgba(26, 18, 60, 0.7)), radial-gradient(circle at 50% 36%, var(--rc) 0%, var(--rc-d) 100%);
+}
+
+.bd-ros.locked .bd-ros-name {
+  color: #d6cdf5;
+}
+
+/* bandit menu: the big portrait glows in the role colour */
+.bd-big {
+  isolation: isolate;
+}
+
+.bd-big::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 4%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--rc-l, #ffd678) 0%, var(--rc, #8c64ff) 38%, transparent 70%);
+  opacity: 0.55;
+}
+
+/* star atlas */
+.atlas-sec {
+  grid-column: 1 / -1;
+  margin-top: calc(4px * var(--k, 1));
+  font-size: calc(13px * var(--k, 1));
+}
+
+.atlas-card .portrait.role-disc {
+  border-radius: var(--r-md);
+}
+
+.atlas-card .role-chip {
+  min-height: calc(22px * var(--k, 1));
+  font-size: calc(12px * var(--k, 1));
+  padding-right: 8px;
+}
+
+.bond-pair > .role-disc {
+  position: absolute;
+  top: 8%;
+  width: 56%;
+  height: 84%;
+  border-radius: var(--r-sm);
+}
+
+.bond-pair > .role-disc:first-child {
+  left: 0;
+}
+
+.bond-pair > .role-disc:nth-child(2) {
+  right: 0;
+}
+
+.bond-pair > .role-disc img {
+  position: absolute;
+  inset: -12% -6% 0;
+  width: 112%;
+  height: 112%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(5, 2, 20, 0.5));
+}
+
+.bond-pair > .role-disc:nth-child(2) img {
+  transform: scaleX(-1);
+}
+
+/* ================================================================================== page layouts */
+/* --- bandits */
+.page.bandits .bd-roster {
+  background: rgba(7, 3, 24, 0.5);
+}
+
+/* --- star atlas: wide cards, more columns as the screen grows */
+.page.atlas .atlas-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(290px * var(--k, 1))), 1fr));
+  gap: calc(10px * var(--k, 1));
+  padding: 0 0 6px;
+}
+
+.page.atlas .atlas-grid[data-tab='heroes'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.page.atlas .atlas-card {
+  align-items: center;
+  padding: calc(8px * var(--k, 1));
+  gap: calc(10px * var(--k, 1));
+}
+
+.page.atlas .atlas-card .portrait {
+  width: clamp(calc(70px * var(--k, 1)), 18vh, calc(104px * var(--k, 1)));
+  height: clamp(calc(70px * var(--k, 1)), 18vh, calc(104px * var(--k, 1)));
+}
+
+/* --- wisdom */
+.page.wisdom-page .perk-cols {
+  gap: calc(12px * var(--k, 1));
+}
+
+.wisdom-points.has {
+  border-color: var(--c-ink);
+  background: linear-gradient(180deg, #8a5cff, #4a26b8);
+}
+
+.page-right .wisdom-points {
+  font-size: calc(var(--pill-h) * 0.52);
+}
+
+/* --- achievements */
+.page.ach-page .ach-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(300px * var(--k, 1))), 1fr));
+  gap: calc(8px * var(--k, 1));
+}
+
+.page-right .ach-summary {
+  margin: 0;
+  max-width: none;
+  gap: 6px;
+  padding: 0 14px 0 4px;
+}
+
+.ach-summary .pill-meter small {
+  font-size: calc(var(--pill-h) * 0.36);
+}
+
+/* --- daily: big map + start on the left, rules on the right */
+.page.daily-page .page-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.page.daily-page .daily {
+  flex: 1 0 auto;
+  width: 100%;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: calc(16px * var(--k, 1));
+  align-items: start;
+}
+
+.daily-left {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--k, 1));
+}
+
+.daily-right {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--k, 1));
+}
+
+.daily-right .daily-name {
+  margin: 0;
+}
+
+.daily-right .allowed {
+  margin-top: 2px;
+}
+
+.daily-right .page-note {
+  margin: 2px 0 0;
+}
+
+.daily-cta {
+  display: flex;
+  justify-content: center;
+}
+
+.daily-cta .btn.big {
+  width: 100%;
+  --bh: clamp(calc(54px * var(--k, 1)), 13vh, calc(80px * var(--k, 1)));
+  font-size: clamp(calc(24px * var(--k, 1)), 6vh, calc(40px * var(--k, 1)));
+}
+
+.daily-reward.done {
+  background: linear-gradient(180deg, #4fb948, #23802f);
+}
+
+/* ---------------------------------------------------------------- page sizes */
+@media (max-height: 430px) {
+  .page-body {
+    padding-top: 8px;
+  }
+  .page-note {
+    margin-bottom: 6px;
+  }
+}
+
+@media (max-width: 720px) {
+  .page.atlas .atlas-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* tall screens (tablets): the daily content sits in the middle and the map grows to 4:3 */
+.page.daily-page .daily {
+  align-content: center;
+}
+
+@media (max-aspect-ratio: 3/2) {
+  .page.daily-page .daily-map {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+
+@media (min-height: 560px) {
+  /* daily on tablets: roomier rule cards and bigger allowed portraits */
+  .page.daily-page .rules {
+    gap: calc(8px * var(--k, 1));
+  }
+  .page.daily-page .rule {
+    padding: calc(8px * var(--k, 1)) calc(10px * var(--k, 1));
+    gap: calc(10px * var(--k, 1));
+  }
+  .page.daily-page .rule .ico {
+    width: calc(36px * var(--k, 1));
+    height: calc(36px * var(--k, 1));
+  }
+  .page.daily-page .rule-text small {
+    font-size: calc(12px * var(--k, 1));
+  }
+  .page.daily-page .rule-text b {
+    font-size: calc(18px * var(--k, 1));
+  }
+  .page.daily-page .allowed-row .portrait {
+    width: calc(62px * var(--k, 1));
+    height: calc(62px * var(--k, 1));
+  }
+  /* star atlas heroes: tall showcase cards (portrait on top, looks below) */
+  .page.atlas .atlas-grid[data-tab='heroes'] .atlas-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: calc(14px * var(--k, 1));
+  }
+  .page.atlas .atlas-grid[data-tab='heroes'] .atlas-card .portrait {
+    width: clamp(calc(140px * var(--k, 1)), 34vh, calc(300px * var(--k, 1)));
+    height: clamp(calc(140px * var(--k, 1)), 34vh, calc(300px * var(--k, 1)));
+  }
+  .page.atlas .atlas-grid[data-tab='heroes'] .atlas-text {
+    align-items: center;
+  }
+  .page.atlas .atlas-grid[data-tab='heroes'] .atlas-name {
+    justify-content: center;
+  }
+  .page.atlas .atlas-grid[data-tab='heroes'] .atlas-text b {
+    font-size: calc(24px * var(--k, 1));
+  }
+  .page.atlas .atlas-grid[data-tab='heroes'] .atlas-text p {
+    max-width: 34em;
+  }
+  .page.atlas .atlas-grid[data-tab='heroes'] .hero-looks .look {
+    width: calc(74px * var(--k, 1));
+    height: calc(74px * var(--k, 1));
   }
 }

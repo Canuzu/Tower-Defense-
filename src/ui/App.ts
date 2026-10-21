@@ -16,8 +16,9 @@ import { Hud } from './hud';
 import { h, clear } from './dom';
 import { setHaptics } from './haptics';
 import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, wisdomPoints, type Profile } from '../save/storage';
-import { perksModal, achievementsModal, dailyModal, achievementIcon } from './meta';
-import { banditsModal, banditXpStrip, unlockableTypes, type BanditsOpts } from './bandits';
+import { perksPage, achievementsPage, dailyPage, achievementIcon } from './meta';
+import { banditsPage, banditXpStrip, unlockableTypes, type BanditsOpts } from './bandits';
+import { TOWERS_BY_ROLE, roleGroups, roleCls, roleIcon, roleChip, roleName, towerRoleCls } from './roles';
 import { newlyUnlocked, bondCount, type AchievementDef } from '../game/achievements';
 import { dailyFor, todayKey } from '../game/daily';
 import { SYNERGIES } from '../game/synergy';
@@ -48,6 +49,8 @@ import {
   MEDAL_EMOJI,
   fitText,
   dec,
+  leavePage,
+  page,
 } from './kit';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
@@ -55,7 +58,6 @@ type AtlasTab = 'bandits' | 'heroes' | 'stars' | 'bonds';
 
 const MAP_LEVEL: Record<string, number> = { meadow: 1, caverns: 2, fjord: 3, forge: 4, candy: 5, rivers: 6 };
 const TIER_COLOR: Record<string, string> = { Beginner: '#43c45a', Intermediate: '#f5b81f', Advanced: '#f27a2c', Expert: '#e8344e' };
-const ROLE_CHIP: Record<string, string> = { Primary: 'green', Military: 'red', Magic: 'blue', Support: 'gold' };
 const MEDAL_DIFFS: Difficulty[] = ['easy', 'medium', 'hard', 'champion'];
 
 /**
@@ -93,6 +95,8 @@ export class App {
   /** the HUD tutorial is running (kept across a language switch) */
   private tutorialActive = false;
   private menuTop: HTMLElement | null = null;
+  /** Escape / Android back for the page or modal open over the menu */
+  private menuDismiss: (() => void) | null = null;
   private menuDock: HTMLElement | null = null;
   private rotateEl: HTMLElement;
 
@@ -153,7 +157,17 @@ export class App {
       return;
     }
     if (modalEl) {
+      // pages and modals opened from the menu close through their own handler (a page may
+      // return to the page it was opened from)
+      const dismiss = this.menuDismiss;
+      if (dismiss && !modalEl.classList.contains('leaving')) {
+        audio.play('click');
+        dismiss();
+        return;
+      }
       modalEl.remove();
+      this.menuDismiss = null;
+      this.coverMenu(false);
       if (this.scene === 'menu') this.refreshMenu();
       return;
     }
@@ -241,6 +255,9 @@ export class App {
 
   private setScreen(el: HTMLElement) {
     clear(this.screen);
+    // a page or modal open over the old screen is gone with it
+    this.menuDismiss = null;
+    this.coverMenu(false);
     this.screen.append(el);
   }
 
@@ -403,11 +420,11 @@ export class App {
     // left: painted map, description, bandit roster
     const roster = h('div', { class: 'roster-icons' });
     let unlockedCount = 0;
-    for (const id of TOWER_ORDER) {
+    for (const id of TOWERS_BY_ROLE) {
       const def = TOWERS[id];
       const open = this.devUnlock || level >= def.unlock;
       if (open) unlockedCount++;
-      roster.append(h('div', { class: 'roster-icon' + (open ? '' : ' locked'), title: open ? t(def.name) : t('Unlocks at level {n}', { n: def.unlock }) }, img(towerPortraitUrl(id), '', t(def.name)), open ? null : h('span', { class: 'lv' }, t('Lvl {n}', { n: def.unlock }))));
+      roster.append(h('div', { class: `roster-icon role-disc ${roleCls(def.role)}` + (open ? '' : ' locked'), title: open ? `${t(def.name)} · ${roleName(def.role)}` : t('Unlocks at level {n}', { n: def.unlock }) }, img(towerPortraitUrl(id), '', t(def.name)), open ? null : h('span', { class: 'lv' }, t('Lvl {n}', { n: def.unlock }))));
     }
     const left = h(
       'div',
@@ -456,8 +473,8 @@ export class App {
         const sel = this.profile.heroId === id;
         const c = h(
           'button',
-          { class: 'tile hero-tile' + (sel ? ' sel' : '') + (locked ? ' locked' : ''), type: 'button', 'aria-pressed': String(sel) },
-          h('div', { class: 'portrait' }, img(heroPortraitUrl(id, 1), '', t(def.name))),
+          { class: 'tile hero-tile role-tint role-hero' + (sel ? ' sel' : '') + (locked ? ' locked' : ''), type: 'button', 'aria-pressed': String(sel) },
+          h('div', { class: 'portrait role-disc' }, img(heroPortraitUrl(id, 1), '', t(def.name))),
           h(
             'div',
             { class: 'hero-text' },
@@ -525,41 +542,64 @@ export class App {
     this.startGame(d.mapId, d.difficulty, this.profile.heroId, d.challenge);
   }
 
-  private openPerks() {
+  // -------------------------------------------------------------------------------------------
+  // Full-screen pages (Bandits, Daily, Wisdom, Achievements, Star Atlas)
+  // -------------------------------------------------------------------------------------------
+
+  /**
+   * Opens a full-screen page. Back (button, Escape, Android back) runs `back` when the page was
+   * opened from somewhere else (Star Atlas, a result screen), otherwise the page slides away to
+   * the menu.
+   */
+  private openPage(build: (close: () => void) => HTMLElement, back?: () => void) {
     const host = this.modalHost();
-    host.open(
-      perksModal(
-        this.profile,
-        () => {
-          host.close();
-          this.refreshMenu();
-        },
-        () => {},
-      ),
+    let el: HTMLElement | null = null;
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      if (back) {
+        back();
+        // `back` normally replaces the page (another page, the result screen); if not, close it
+        if (el?.isConnected) host.close();
+      } else host.leave(() => this.refreshMenu());
+    };
+    el = build(this.tap(close));
+    host.open(el, close);
+    return el;
+  }
+
+  /** Player level (star + bar) for page headers. */
+  private levelPill(): HTMLElement {
+    const lv = levelFromXp(this.profile.xp);
+    const label = `${t('Player level {n}', { n: lv.level })}: ${fmt(lv.into)} / ${fmt(lv.need)} XP`;
+    return h(
+      'div',
+      { class: 'pill lvl-pill', title: label, role: 'img', 'aria-label': label },
+      h('span', { class: 'lvl-pill-star' }, uiIcon('xp', '⭐'), h('b', null, String(lv.level))),
+      h('span', { class: 'pill-meter' }, h('small', null, `${fmt(lv.into)} / ${fmt(lv.need)} XP`), bar(lv.into / lv.need)),
     );
+  }
+
+  private openPerks() {
+    this.openPage((close) => perksPage(this.profile, close, () => {}));
   }
 
   private openAchievements() {
     this.claimAchievements(null);
-    const host = this.modalHost();
-    host.open(
-      achievementsModal(this.profile, this.game, () => {
-        host.close();
-        this.refreshMenu();
-      }),
-    );
+    this.openPage((close) => achievementsPage(this.profile, this.game, close));
   }
 
   private openDaily() {
     const host = this.modalHost();
-    host.open(
-      dailyModal(
+    this.openPage((close) =>
+      dailyPage(
         this.profile,
-        () => {
+        this.tap(() => {
           host.close();
           this.startDaily();
-        },
-        () => host.close(),
+        }),
+        close,
       ),
     );
   }
@@ -569,24 +609,20 @@ export class App {
    * main menu when it closes (Star Atlas, result screens).
    */
   openBandits(opts: BanditsOpts & { back?: () => void } = {}) {
-    const host = this.modalHost();
-    const close = () => {
-      host.close();
-      if (opts.back) opts.back();
-      else this.refreshMenu();
-    };
-    host.open(
-      banditsModal(
-        {
-          profile: this.profile,
-          playerLevel: this.level,
-          devUnlock: this.devUnlock,
-          onUnlock: (id, path, tier) => this.raiseLiveLimit(id, path, tier),
-          close: this.tap(close),
-        },
-        opts,
-      ),
-      close,
+    this.openPage(
+      (close) =>
+        banditsPage(
+          {
+            profile: this.profile,
+            playerLevel: this.level,
+            devUnlock: this.devUnlock,
+            onUnlock: (id, path, tier) => this.raiseLiveLimit(id, path, tier),
+            close,
+            headRight: [this.levelPill()],
+          },
+          opts,
+        ),
+      opts.back,
     );
   }
 
@@ -946,26 +982,73 @@ export class App {
   // Settings & codex
   // -------------------------------------------------------------------------------------------
 
-  private modalHost(): { open: (el: HTMLElement, onDismiss?: () => void) => void; close: () => void } {
+  /**
+   * Where modals and pages open: the HUD's modal layer in a game, otherwise over the menu. Pages
+   * (`.page`) get a full-screen `.page-wrap`; one page replacing another skips the fade (`.swap`).
+   * `leave` plays a page's exit before removing it.
+   */
+  private modalHost(): { open: (el: HTMLElement, onDismiss?: () => void) => void; close: () => void; leave: (then?: () => void) => void } {
     if (this.hud) {
       const hud = this.hud;
-      return { open: (el, onDismiss) => hud.openModal(el, true, { onDismiss }), close: () => hud.closeModal() };
+      return {
+        open: (el, onDismiss) => hud.openModal(el, true, { onDismiss }),
+        close: () => hud.closeModal(),
+        leave: (then) => {
+          hud.closeModal();
+          then?.();
+        },
+      };
     }
-    return {
-      open: (el) => {
-        this.screen.querySelector('.modal-wrap')?.remove();
-        const wrap = h('div', { class: 'modal-wrap' }, el);
-        wrap.addEventListener('pointerdown', (e) => {
-          if (e.target === wrap) {
-            audio.play('click');
-            wrap.remove();
-            this.refreshMenu();
-          }
-        });
-        this.screen.append(wrap);
-      },
-      close: () => this.screen.querySelector('.modal-wrap')?.remove(),
+    const close = () => {
+      this.screen.querySelectorAll('.modal-wrap').forEach((w) => w.remove());
+      this.menuDismiss = null;
+      this.coverMenu(false);
     };
+    return {
+      open: (el, onDismiss) => {
+        const isPage = el.classList.contains('page');
+        const prev = [...this.screen.querySelectorAll('.modal-wrap')];
+        const swap = isPage && prev.some((w) => w.classList.contains('page-wrap') && !w.classList.contains('leaving'));
+        prev.forEach((w) => w.remove());
+        const wrap = h('div', { class: 'modal-wrap' + (isPage ? ' page-wrap' : '') + (swap ? ' swap' : '') }, el);
+        if (!isPage)
+          wrap.addEventListener('pointerdown', (e) => {
+            if (e.target !== wrap) return;
+            audio.play('click');
+            if (onDismiss) onDismiss();
+            else {
+              close();
+              this.refreshMenu();
+            }
+          });
+        this.menuDismiss = onDismiss ?? null;
+        this.screen.append(wrap);
+        this.coverMenu(isPage);
+      },
+      close,
+      leave: (then) => {
+        const wrap = this.screen.querySelector('.modal-wrap');
+        this.menuDismiss = null;
+        this.coverMenu(false);
+        if (!wrap) return then?.();
+        leavePage(wrap, () => {
+          wrap.remove();
+          then?.();
+        });
+      },
+    };
+  }
+
+  /** While a page covers the menu, the menu and its painted backdrop stop animating (battery). */
+  private coverTimer = 0;
+  private coverMenu(on: boolean) {
+    clearTimeout(this.coverTimer);
+    const apply = (v: boolean) => {
+      this.backdrop.classList.toggle('covered', v);
+      this.screen.querySelector(':scope > .screen')?.classList.toggle('covered', v);
+    };
+    if (on) this.coverTimer = window.setTimeout(() => apply(true), 450);
+    else apply(false);
   }
 
   /** `back` runs after the modal closes (in game: return to the pause menu). */
@@ -1065,7 +1148,6 @@ export class App {
   }
 
   openCodex(tab: AtlasTab = 'bandits') {
-    const host = this.modalHost();
     const level = this.level;
     const grid = h('div', { class: 'atlas-grid' });
     const tabs: [AtlasTab, string, number][] = [
@@ -1084,18 +1166,18 @@ export class App {
       return b;
     });
     const lockedChip = (lvl: number) => chip(uiIcon('lock', '🔒'), t('Unlocks at level {n}', { n: lvl }), 'dark');
+    let pageEl: HTMLElement | null = null;
     const select = (id: AtlasTab) => {
       tabEls.forEach((b, i) => {
         b.classList.toggle('on', tabs[i][0] === id);
         b.setAttribute('aria-selected', String(tabs[i][0] === id));
       });
       clear(grid);
-      grid.classList.toggle('two', id === 'heroes');
+      grid.dataset.tab = id;
       const cards: HTMLElement[] = [];
-      // bandit and hero cards open the Bandit menu (skills, XP unlocks); closing it comes back here
+      // bandit and hero cards open the Bandit menu (skills, XP unlocks); its back button comes back here
       const toBandits = (o: BanditsOpts) => () => {
         audio.play('click');
-        host.close();
         this.openBandits({ ...o, back: () => this.openCodex(id) });
       };
       const cta = (text: string, o: BanditsOpts) => {
@@ -1104,24 +1186,28 @@ export class App {
       };
       if (id === 'bandits') {
         grid.append(cta(t('Every raccoon earns its own XP. Open the Bandit menu to see all upgrade tiers and unlock new ones.'), {}));
-        for (const tid of TOWER_ORDER) {
-          const d = TOWERS[tid];
-          const locked = !this.devUnlock && level < d.unlock;
-          cards.push(
-            h(
+        // grouped by role, each group under its coloured header
+        for (const grp of roleGroups()) {
+          grid.append(h('div', { class: `atlas-sec role-head ${roleCls(grp.role)}` }, roleIcon(grp.role), h('span', null, roleName(grp.role)), h('span', { class: 'n' }, String(grp.ids.length))));
+          for (const tid of grp.ids) {
+            const d = TOWERS[tid];
+            const locked = !this.devUnlock && level < d.unlock;
+            const card = h(
               'button',
-              { class: 'tile atlas-card' + (locked ? ' locked' : ''), type: 'button', onclick: toBandits({ towerId: tid }), 'aria-label': t(d.name) },
-              h('div', { class: 'portrait' }, img(towerPortraitUrl(tid), '', t(d.name))),
+              { class: `tile atlas-card role-tint ${roleCls(d.role)}` + (locked ? ' locked' : ''), type: 'button', onclick: toBandits({ towerId: tid }), 'aria-label': `${t(d.name)} · ${roleName(d.role)}` },
+              h('div', { class: 'portrait role-disc' }, img(towerPortraitUrl(tid), '', t(d.name))),
               h(
                 'div',
                 { class: 'atlas-text' },
-                h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), h('div', { class: 'atlas-chips' }, chip(null, t(d.role), ROLE_CHIP[d.role] ?? 'dark'))),
+                h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), roleChip(d.role)),
                 h('small', null, t(d.species)),
-                h('p', null, t(d.desc)),
+                h('p', null, softHyphens(t(d.desc))),
                 locked ? h('div', null, lockedChip(d.unlock)) : null,
               ),
-            ),
-          );
+            );
+            cards.push(card);
+            grid.append(card);
+          }
         }
       } else if (id === 'heroes') {
         grid.append(cta(t('Heroes level up during a game. See every skill they learn, level by level.'), { heroId: HERO_ORDER[0] }));
@@ -1132,9 +1218,16 @@ export class App {
           cards.push(
             h(
               'button',
-              { class: 'tile atlas-card hero-tile' + (locked ? ' locked' : ''), type: 'button', onclick: toBandits({ heroId: hid }), 'aria-label': t(d.name) },
-              h('div', { class: 'portrait' }, img(heroPortraitUrl(hid, 1), '', t(d.name))),
-              h('div', { class: 'atlas-text' }, h('b', { class: 't-outline' }, t(d.name)), h('small', null, t(d.title)), h('p', null, t(d.desc)), locked ? h('div', null, lockedChip(d.unlock)) : looks),
+              { class: 'tile atlas-card hero-tile role-tint role-hero' + (locked ? ' locked' : ''), type: 'button', onclick: toBandits({ heroId: hid }), 'aria-label': t(d.name) },
+              h('div', { class: 'portrait role-disc' }, img(heroPortraitUrl(hid, 1), '', t(d.name))),
+              h(
+                'div',
+                { class: 'atlas-text' },
+                h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), roleChip('Hero')),
+                h('small', null, t(d.title)),
+                h('p', null, softHyphens(t(d.desc))),
+                locked ? h('div', null, lockedChip(d.unlock)) : looks,
+              ),
             ),
           );
         }
@@ -1145,7 +1238,7 @@ export class App {
           if (d.hp > 1) chips.append(chip(uiIcon('heart', '❤️'), fmt(d.hp), 'dark'));
           if (d.boss) chips.append(chip(uiIcon('crown', '👑'), t('Boss'), 'red'));
           if (d.camo) chips.append(chip(uiIcon('camo', '👁'), t('Camo'), 'blue'));
-          cards.push(h('div', { class: 'tile atlas-card' }, h('div', { class: 'portrait' }, img(starPortraitUrl(gid), '', t(d.name))), h('div', { class: 'atlas-text' }, h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), chips), h('p', null, t(d.desc)))));
+          cards.push(h('div', { class: 'tile atlas-card' }, h('div', { class: 'portrait' }, img(starPortraitUrl(gid), '', t(d.name))), h('div', { class: 'atlas-text' }, h('div', { class: 'atlas-name' }, h('b', { class: 't-outline' }, t(d.name)), chips), h('p', null, softHyphens(t(d.desc))))));
         }
       } else {
         grid.append(h('div', { class: 'atlas-cta well' }, uiIcon('bond', '⚡', 'cta-ico'), h('p', null, t('Bonds: place these pairs close together and both get stronger'))));
@@ -1154,7 +1247,7 @@ export class App {
             h(
               'div',
               { class: 'tile atlas-card', style: `--bc:${syn.color}` },
-              h('div', { class: 'bond-pair' }, img(towerPortraitUrl(syn.a)), img(towerPortraitUrl(syn.b)), h('span', { class: 'zap' }, uiIcon('bond', '⚡'))),
+              h('div', { class: 'bond-pair' }, h('span', { class: `role-disc ${towerRoleCls(syn.a)}` }, img(towerPortraitUrl(syn.a))), h('span', { class: `role-disc ${towerRoleCls(syn.b)}` }, img(towerPortraitUrl(syn.b))), h('span', { class: 'zap' }, uiIcon('bond', '⚡'))),
               h(
                 'div',
                 { class: 'atlas-text' },
@@ -1166,13 +1259,13 @@ export class App {
           );
         }
       }
-      grid.append(...cards);
-      stagger(cards, 'anim-rise');
-      const body = grid.parentElement;
+      if (!cards[0]?.parentElement) grid.append(...cards);
+      stagger(cards.slice(0, 16), 'anim-rise');
+      const body = pageEl?.querySelector<HTMLElement>('.page-body');
       if (body) body.scrollTop = 0;
     };
-    const m = modal({ title: t('Star Atlas'), color: 'blue', icon: uiIcon('book', '📖'), size: 'xwide', cls: 'atlas', onClose: this.tap(() => host.close()), head: [h('div', { class: 'tabs atlas-tabs', role: 'tablist' }, ...tabEls)] }, [grid]);
+    pageEl = this.openPage((close) => page({ title: t('Star Atlas'), icon: uiIcon('book', '📖'), accent: '#3fb2ff', cls: 'atlas', onBack: close, tabs: h('div', { class: 'tabs atlas-tabs', role: 'tablist' }, ...tabEls) }, [grid]));
     select(tab);
-    host.open(m);
   }
+
 }
