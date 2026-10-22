@@ -7,7 +7,7 @@ import { TOWERS, TOWER_ORDER } from '../game/towers';
 import { HEROES, HERO_ORDER, MAX_HERO_LEVEL, type HeroId } from '../game/heroes';
 import type { AbilityDef, TowerId, TowerStats } from '../game/towerTypes';
 import { unlocksOf, xpOf, canUnlock, unlockNext, banditLevel, levelXp, TIER_XP, type ProgressState } from '../game/progression';
-import { saveProfile, type Profile } from '../save/storage';
+import { saveProfile, isNew, markSeen, type Profile } from '../save/storage';
 import { towerIconUrl, abilityIconUrl } from '../render/art';
 import { audio } from '../audio/audio';
 import { haptic } from './haptics';
@@ -15,7 +15,7 @@ import { h, clear } from './dom';
 import { t } from '../i18n';
 import { softHyphens } from '../i18n/hyphen';
 import { roleGroups, roleCls, roleChip, roleIcon, roleName, towerRoleCls, TOWERS_BY_ROLE, type RoleKey } from './roles';
-import { uiIcon, img, btn, page, bar, stagger, PAGE_STAGGER, countUp, bump, fmt, dec, fitText, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti } from './kit';
+import { uiIcon, img, btn, page, bar, stagger, PAGE_STAGGER, countUp, bump, fmt, dec, fitText, towerPortraitUrl, heroPortraitUrl, watchScroll, confetti, newPill } from './kit';
 
 export type BanditSel = { kind: 'tower'; id: TowerId } | { kind: 'hero'; id: HeroId };
 
@@ -209,6 +209,19 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
   const pathSel = new Map<TowerId, number>();
   /** hero look shown in the big portrait */
   let heroLook = 1;
+  // bandits and heroes unlocked by player level and not looked at yet: NEW in the roster until
+  // selected, and beside the name in the detail for this visit
+  const keyOf = (s: BanditSel) => (s.kind === 'tower' ? 't:' : 'h:') + s.id;
+  const fresh = new Set<string>();
+  for (const id of TOWER_ORDER) if (isNew(p, 'tower', id, TOWERS[id].unlock)) fresh.add('t:' + id);
+  for (const id of HERO_ORDER) if (isNew(p, 'hero', id, HEROES[id].unlock)) fresh.add('h:' + id);
+  const looked = new Set<string>();
+  const see = (s: BanditSel) => {
+    looked.add(keyOf(s));
+    markSeen(p, s.kind, s.id);
+  };
+  see(sel);
+  const freshPill = (key: string) => (fresh.has(key) ? newPill('sm') : null);
 
   const roster = h('div', { class: 'bd-roster', role: 'listbox', 'aria-label': t('Bandits') });
   const detail = h('div', { class: 'bd-detail' });
@@ -284,6 +297,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
           h('span', { class: 'bd-ros-meta' }, bar(prog.frac, '', undefined, 9), locked ? null : h('span', { class: 'bd-ros-xp', title: t('XP to spend') }, uiIcon('xp', '⭐'), fmt(xp))),
         ),
         can ? upBadge() : null,
+        looked.has('t:' + id) ? null : freshPill('t:' + id),
       );
       b.addEventListener('click', () => select({ kind: 'tower', id }));
       rosterItems.set('t:' + id, b);
@@ -300,6 +314,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
         { class: 'tile bd-ros hero role-tint role-hero' + (on ? ' sel' : '') + (locked ? ' locked' : ''), type: 'button', role: 'option', 'aria-selected': String(on), title: t(def.name), 'aria-label': t(def.name) },
         h('span', { class: 'bd-ros-art' }, img(heroPortraitUrl(id, 1), '', ''), uiIcon('crown', '👑', 'bd-crown'), locked ? uiIcon('lock', '🔒', 'bd-ros-lock') : null),
         h('span', { class: 'bd-ros-text' }, h('b', { class: 'bd-ros-name' }, t(def.name)), h('small', { class: 'bd-ros-req' }, locked ? t('Unlocks at player level {n}', { n: def.unlock }) : t(def.title))),
+        looked.has('h:' + id) ? null : freshPill('h:' + id),
       );
       b.addEventListener('click', () => select({ kind: 'hero', id }));
       rosterItems.set('h:' + id, b);
@@ -316,6 +331,8 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
     audio.play('click');
     sel = s;
     heroLook = 1;
+    see(s);
+    rosterItems.get(keyOf(s))?.querySelector(':scope > .pill-new')?.remove();
     for (const [key, el] of rosterItems) {
       const on = key === (s.kind === 'tower' ? 't:' : 'h:') + s.id;
       el.classList.toggle('sel', on);
@@ -362,7 +379,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
     const info = h(
       'div',
       { class: 'bd-info' },
-      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), roleChip(def.role), h('small', { class: 'bd-species' }, t(def.species)), xpPill),
+      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), freshPill('t:' + id), roleChip(def.role), h('small', { class: 'bd-species' }, t(def.species)), xpPill),
       h('p', { class: 'bd-desc' }, softHyphens(t(def.desc))),
       h('div', { class: 'bd-stats' }, ...statChips(def.base(), def.cost)),
     );
@@ -536,7 +553,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
     const info = h(
       'div',
       { class: 'bd-info' },
-      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), roleChip('Hero'), h('small', { class: 'bd-species' }, t(def.title))),
+      h('div', { class: 'bd-name' }, h('b', { class: 't-outline' }, t(def.name)), freshPill('h:' + id), roleChip('Hero'), h('small', { class: 'bd-species' }, t(def.title))),
       h('p', { class: 'bd-desc' }, softHyphens(t(def.desc))),
       h('div', { class: 'bd-stats' }, ...statChips(stats, def.cost)),
     );

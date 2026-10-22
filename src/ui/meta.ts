@@ -12,7 +12,7 @@ import { audio } from '../audio/audio';
 import { h, clear } from './dom';
 import { t, getLang } from '../i18n';
 import { softHyphens } from '../i18n/hyphen';
-import { uiIcon, img, btn, page, bar, chip, socket, stagger, PAGE_STAGGER, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI } from './kit';
+import { uiIcon, img, btn, page, bar, chip, socket, stagger, PAGE_STAGGER, bump, fmt, mapImageSrc, towerPortraitUrl, heroPortraitUrl, starPortraitUrl, MEDAL, MEDAL_EMOJI, confirmBox, undoBar } from './kit';
 import { byRole, towerRoleCls, roleCls, roleIcon } from './roles';
 import type { TowerId } from '../game/towerTypes';
 
@@ -104,16 +104,41 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
   const body = h('div', { class: 'wisdom' });
   const ptsEl = h('span', { class: 't-num' }, '0');
   const pill = h('div', { class: 'pill wisdom-points', title: t('Wisdom') }, uiIcon('lantern', '🧠'), ptsEl);
+  let pageEl: HTMLElement | null = null;
+  let dropUndo: (() => void) | null = null;
+  // one tap must never wipe a build: ask first, then offer 5 s to take it back
   const reset = btn(
     t('Reset perks'),
     'red',
     () => {
-      if (!p.perks.length) return;
-      p.perks = [];
-      saveProfile(p);
-      audio.play('sell');
-      onChange();
-      render(false);
+      if (!p.perks.length || !pageEl) return;
+      audio.play('click');
+      const n = p.perks.length;
+      confirmBox(pageEl, {
+        title: t('Reset all perks?'),
+        text: n === 1 ? t('You get 1 point back.') : t('You get {n} points back.', { n }),
+        ok: t('Reset'),
+        okIcon: uiIcon('restart', '↺'),
+        icon: uiIcon('lantern', '🧠'),
+        onOk: () => {
+          const before = [...p.perks];
+          p.perks = [];
+          saveProfile(p);
+          audio.play('sell');
+          onChange();
+          render(false);
+          dropUndo?.();
+          dropUndo = undoBar(pageEl!, t('Perks reset · {n} points back', { n: before.length }), () => {
+            // only if nothing was learned in the meantime
+            if (p.perks.length) return;
+            p.perks = before;
+            saveProfile(p);
+            audio.play('upgrade');
+            onChange();
+            render(false);
+          });
+        },
+      });
     },
     { size: 'small', cls: 'wisdom-reset', icon: uiIcon('restart', '↺') },
   );
@@ -148,6 +173,9 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
             return;
           }
           p.perks.push(perk.id);
+          // learning something ends the chance to undo the reset
+          dropUndo?.();
+          dropUndo = null;
           saveProfile(p);
           audio.play('upgrade');
           onChange();
@@ -163,7 +191,8 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
     reset.disabled = p.perks.length === 0;
   };
   render(true);
-  return page({ title: t('Bandit Wisdom'), icon: uiIcon('lantern', '🧠'), accent: '#b07bff', cls: 'wisdom-page', onBack: close, right: [reset, pill] }, [body]);
+  pageEl = page({ title: t('Bandit Wisdom'), icon: uiIcon('lantern', '🧠'), accent: '#b07bff', cls: 'wisdom-page', onBack: close, right: [reset, pill] }, [body]);
+  return pageEl;
 }
 
 export function achievementsPage(p: Profile, g: Game | null, close: () => void): HTMLElement {

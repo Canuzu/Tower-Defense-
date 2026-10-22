@@ -193,6 +193,25 @@
   }
 }
 
+/* 4:3 and similar (tablets): the painting loses its sides, so it slides right far enough to keep
+ * the slinger on the left in view, and the slow zoom grows from there instead of pushing him out */
+@media (max-aspect-ratio: 3/2) {
+  .backdrop .bd-img {
+    object-position: 7% 30%;
+    transform-origin: 16% 34%;
+    animation-name: bd-kenburns-tall;
+  }
+}
+
+@keyframes bd-kenburns-tall {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.07) translate(0.9%, 1.2%);
+  }
+}
+
 /* ================================================================================== screens */
 .screen {
   position: absolute;
@@ -285,69 +304,119 @@
   gap: clamp(calc(10px * var(--k, 1)), 2vw, calc(18px * var(--k, 1)));
 }
 
-.lvl-card {
+/* player level: a star with the level on an XP ring, the next reward peeking out (tap: level info) */
+.lvl-badge {
+  --lb: clamp(calc(52px * var(--k, 1)), 14vh, calc(64px * var(--k, 1)));
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  align-items: center;
-  column-gap: calc(6px * var(--k, 1));
-  row-gap: 3px;
-  width: clamp(calc(138px * var(--k, 1)), 30vh, calc(184px * var(--k, 1)));
-  margin-top: calc(6px * var(--k, 1));
-  margin-left: calc(20px * var(--k, 1));
-  padding: calc(6px * var(--k, 1)) calc(14px * var(--k, 1)) calc(6px * var(--k, 1)) 0;
-  border-radius: var(--r-pill);
-  border: var(--bw) solid var(--c-ink);
-  background: linear-gradient(180deg, rgba(52, 40, 121, 0.94), rgba(23, 16, 54, 0.94));
-  box-shadow: var(--hl), var(--sh-drop), 0 8px 18px rgba(5, 2, 20, 0.35);
-}
-
-.lvl-star {
-  position: relative;
-  grid-row: 1 / span 2;
-  width: clamp(calc(50px * var(--k, 1)), 12.6vh, calc(66px * var(--k, 1)));
-  aspect-ratio: 1;
+  flex: none;
   display: grid;
   place-items: center;
-  margin: calc(-12px * var(--k, 1)) 0 calc(-12px * var(--k, 1)) calc(-24px * var(--k, 1));
-  z-index: 1;
+  width: var(--lb);
+  height: var(--lb);
+  margin-right: calc(10px * var(--k, 1));
+  border-radius: 50%;
+  border: var(--bw) solid var(--c-ink);
+  background: radial-gradient(circle at 50% 26%, #8c78f2 0%, #5b45c8 46%, #352592 100%);
+  box-shadow: inset 0 -6px 8px rgba(20, 8, 60, 0.4), 0 4px 0 var(--c-ink), 0 0 0 5px rgba(255, 255, 255, 0.08), 0 9px 18px rgba(5, 2, 20, 0.55);
+  transition: transform 0.16s var(--ease-spring);
 }
 
-.lvl-star .ico {
+/* XP ring: the share of the level done, bright on a dark track */
+.lvl-ring {
+  position: absolute;
+  inset: 1px;
+  border-radius: 50%;
+  background: conic-gradient(#7fe0ff 0%, #a18cff calc(var(--xp) * 0.6), #e08cff var(--xp), rgba(10, 5, 34, 0.78) var(--xp) 100%);
+  -webkit-mask: radial-gradient(circle, transparent 66%, #000 67.5%);
+  mask: radial-gradient(circle, transparent 66%, #000 67.5%);
+  filter: drop-shadow(0 0 3px rgba(160, 140, 255, 0.6));
+}
+
+.lvl-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(9, 4, 28, 0.7);
+}
+
+.lvl-badge-star {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 70%;
+  height: 70%;
+}
+
+.lvl-badge-star .ico {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 3px 0 rgba(10, 5, 30, 0.6)) drop-shadow(0 0 10px rgba(190, 120, 255, 0.45));
+  filter: drop-shadow(0 2px 0 rgba(10, 5, 30, 0.6)) drop-shadow(0 0 8px rgba(190, 120, 255, 0.5));
 }
 
-.lvl-star .emoji {
+.lvl-badge-star .emoji {
   position: absolute;
-  font-size: clamp(calc(42px * var(--k, 1)), 11vh, calc(58px * var(--k, 1)));
+  font-size: calc(var(--lb) * 0.62);
 }
 
-.lvl-star b {
-  --stroke: 5px;
+.lvl-badge-star b {
+  --stroke: 4.5px;
   position: relative;
-  font-size: clamp(calc(17px * var(--k, 1)), 4.4vh, calc(24px * var(--k, 1)));
+  margin-top: 8%;
+  font-size: calc(var(--lb) * 0.28);
   line-height: 1;
-  margin-top: 6%;
 }
 
-.lvl-card .bar {
-  --bar-h: clamp(calc(11px * var(--k, 1)), 2.6vh, calc(14px * var(--k, 1)));
+/* the next reward: a small disc at the lower left */
+.lvl-next {
+  position: absolute;
+  left: -12%;
+  bottom: -10%;
+  width: 46%;
+  height: 46%;
+}
+
+.lvl-next .rw-art {
   width: 100%;
-  align-self: end;
+  height: 100%;
+  border: 2px solid var(--c-ink);
+  border-radius: 50%;
+  box-shadow: 0 2px 0 rgba(9, 4, 28, 0.7);
+  overflow: hidden;
 }
 
-.lvl-xp {
-  --stroke: 3.5px;
-  align-self: start;
-  font-size: clamp(calc(11px * var(--k, 1)), 2.4vh, calc(14px * var(--k, 1)));
-  line-height: 1.05;
+.lvl-next .rw-map img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lvl-badge:hover {
+    transform: translateY(-3px) scale(1.04);
+  }
+}
+
+.lvl-badge:active {
+  transform: translateY(2px) scale(0.94);
+  transition-duration: 0.05s;
+}
+
+/* the settings gear speaks for itself */
+.rbtn.no-label .rbtn-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.menu-top .gear-btn {
+  --rb: clamp(calc(46px * var(--k, 1)), 12.5vh, calc(60px * var(--k, 1)));
 }
 
 .menu-dock {
@@ -357,6 +426,76 @@
   display: flex;
   align-items: flex-end;
   gap: clamp(calc(6px * var(--k, 1)), 1.6vw, calc(18px * var(--k, 1)));
+}
+
+/* brighter plinths: the buttons read against the busy key art */
+.menu-dock .rbtn-face {
+  background: radial-gradient(circle at 50% 26%, #8c78f2 0%, #5b45c8 46%, #352592 100%);
+  box-shadow: inset 0 0 0 3px #f7c04a, inset 0 0 0 5px rgba(18, 10, 43, 0.55), inset 0 -8px 10px rgba(20, 8, 60, 0.4), 0 4px 0 var(--c-ink), 0 0 0 5px rgba(255, 255, 255, 0.08), 0 9px 18px rgba(5, 2, 20, 0.55);
+}
+
+/* the core loop first: Bandits is the big gold button of the dock */
+.menu-dock .rbtn.bandits-btn {
+  --rb: clamp(calc(64px * var(--k, 1)), 18.5vh, calc(84px * var(--k, 1)));
+}
+
+.menu-dock .bandits-btn .rbtn-face {
+  background: radial-gradient(circle at 50% 26%, #ffe9a0 0%, #ffc53a 42%, #e08a12 100%);
+  box-shadow: inset 0 0 0 3px #fff3c4, inset 0 0 0 5.5px rgba(120, 60, 0, 0.55), inset 0 -9px 12px rgba(150, 60, 0, 0.45), 0 4px 0 var(--c-ink), 0 0 0 4px rgba(255, 207, 63, 0.35), 0 0 22px rgba(255, 207, 63, 0.55), 0 10px 18px rgba(5, 2, 20, 0.5);
+}
+
+.menu-dock .bandits-btn .rbtn-face .ico {
+  width: 74%;
+  height: 74%;
+}
+
+.menu-dock .bandits-btn .rbtn-label {
+  color: var(--c-gold);
+}
+
+.menu-dock .bandits-btn .badge {
+  top: -2px;
+}
+
+/* badge kinds besides the red count (something to claim or spend): NEW for content, a dot for an
+ * open daily challenge, a countdown to the next one */
+.rbtn > .badge-new,
+.rbtn > .badge-dot,
+.rbtn > .badge-timer {
+  position: absolute;
+  z-index: 2;
+  top: -4px;
+  right: calc(50% - var(--rb) / 2 - 8px);
+}
+
+.rbtn > .badge-dot {
+  top: 1px;
+  right: calc(50% - var(--rb) / 2 + 1px);
+  width: calc(16px * var(--k, 1));
+  height: calc(16px * var(--k, 1));
+  border-radius: 50%;
+  border: 2.5px solid var(--c-ink);
+  background: radial-gradient(circle at 40% 35%, #c8ffb0, #5bdc5a 55%, #23a24d);
+  box-shadow: 0 2px 0 var(--c-ink), 0 0 10px rgba(120, 255, 120, 0.7);
+  animation: ui-badge 1.6s var(--ease-in-out) infinite;
+}
+
+.rbtn > .badge-timer {
+  top: -6px;
+  padding: 1px 7px 2px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: rgba(16, 10, 44, 0.92);
+  box-shadow: 0 2px 0 var(--c-ink);
+  color: var(--c-muted);
+  font-weight: 800;
+  font-size: calc(11px * var(--k, 1));
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+html.reduce-fx .rbtn > .badge-dot {
+  animation: none;
 }
 
 .menu-cta {
@@ -512,12 +651,33 @@
   pointer-events: none;
 }
 
-.mc-name {
-  --stroke: 5px;
+/* bottom row: name on the left, the medal row on the right */
+/* a name too long to share the row pushes the medals onto a line above it (never cut off) */
+.mc-foot {
   position: absolute;
   left: 10px;
-  right: 10px;
+  right: 6px;
   bottom: 5px;
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2px 6px;
+}
+
+.mc-foot .mc-medals {
+  margin-left: auto;
+}
+
+/* a locked map has no medals to show yet: the name gets the row */
+.mapcard.locked .mc-medals {
+  display: none;
+}
+
+.mc-name {
+  --stroke: 5px;
+  flex: 1 0 auto;
+  max-width: 100%;
   font-size: clamp(calc(16px * var(--k, 1)), 3.8vh, calc(28px * var(--k, 1)));
   line-height: 1.05;
   overflow: hidden;
@@ -553,49 +713,143 @@
 }
 
 .mc-medals {
-  position: absolute;
-  top: 6px;
-  right: 6px;
+  flex: none;
   display: flex;
   gap: 1px;
-  padding: 2px 5px;
+  margin-bottom: 1px;
+  padding: 1px 4px;
   border-radius: var(--r-pill);
-  background: rgba(10, 5, 30, 0.6);
+  background: rgba(10, 5, 30, 0.62);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .mc-medals .ico {
-  width: clamp(calc(18px * var(--k, 1)), 4.6vh, calc(30px * var(--k, 1)));
-  height: clamp(calc(18px * var(--k, 1)), 4.6vh, calc(30px * var(--k, 1)));
+  width: clamp(calc(20px * var(--k, 1)), 5.6vh, calc(24px * var(--k, 1)));
+  height: clamp(calc(20px * var(--k, 1)), 5.6vh, calc(24px * var(--k, 1)));
   object-fit: contain;
 }
 
 .mc-medals .emoji {
-  font-size: clamp(calc(14px * var(--k, 1)), 3.6vh, calc(22px * var(--k, 1)));
+  font-size: clamp(calc(14px * var(--k, 1)), 3.6vh, calc(20px * var(--k, 1)));
 }
 
 .mc-medals .off {
-  filter: grayscale(1) brightness(0.75);
-  opacity: 0.4;
+  filter: grayscale(1) brightness(0.6);
+  opacity: 0.45;
+}
+
+/* earned medals shine */
+.mc-medals .got {
+  filter: drop-shadow(0 1px 0 rgba(10, 5, 30, 0.7)) drop-shadow(0 0 5px rgba(255, 224, 130, 0.85));
+  animation: mc-shine 3.2s ease-in-out infinite;
+}
+
+.mc-medals .got:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.mc-medals .got:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.mc-medals .got:nth-child(4) {
+  animation-delay: 1.2s;
+}
+
+@keyframes mc-shine {
+  0%,
+  70%,
+  100% {
+    transform: none;
+  }
+  82% {
+    transform: scale(1.18) rotate(-8deg);
+  }
+}
+
+html.reduce-fx .mc-medals .got {
+  animation: none;
+}
+
+/* corner chips: NEW, a game to continue, the record towards the next medal */
+.mc-chips {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 110px);
+}
+
+.mc-chips .pill-new {
+  font-size: calc(12px * var(--k, 1));
+  transform: rotate(3deg);
+}
+
+.mc-chip {
+  min-width: 0;
+  min-height: calc(22px * var(--k, 1));
+  padding: 0 8px 1px;
+  font-size: clamp(calc(11px * var(--k, 1)), 2.6vh, calc(13px * var(--k, 1)));
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-chip .ico {
+  height: 1.2em;
+}
+
+.mc-chip.dark {
+  background: rgba(7, 3, 24, 0.72);
 }
 
 @container (max-width: 250px) {
   .mc-medals {
-    gap: 0;
     padding: 1px 3px;
   }
   .mc-medals .ico {
-    width: 15px;
-    height: 15px;
+    width: 18px;
+    height: 18px;
+  }
+  .mc-name {
+    font-size: calc(15px * var(--k, 1));
   }
   .mc-tier {
     font-size: calc(11px * var(--k, 1));
     padding-right: 10px;
   }
+  .mc-chips {
+    max-width: calc(100% - 92px);
+  }
 }
 
+/* narrow cards: the continue chip keeps the play icon and the round */
+@container (max-width: 300px) {
+  .mc-cont {
+    display: none;
+  }
+}
+
+/* tablets (4:3 and similar): two wide columns whose rows share the full height, instead of a
+ * 16:9 grid that leaves half the screen empty */
+@media (max-aspect-ratio: 3/2) and (min-height: 600px) {
+  .maps .map-grid {
+    width: min(100%, calc(1500px * var(--k, 1)));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    align-content: stretch;
+    padding-bottom: 10px;
+  }
+  .maps .mapcard {
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+}
+
+/* locked maps keep their colours (an invitation, not a wall): lock + levels to go with a mini bar */
 .mapcard.locked .mc-img {
-  filter: grayscale(0.8) brightness(0.38);
+  filter: saturate(0.55) brightness(0.7);
 }
 
 .mc-lock {
@@ -605,8 +859,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding-bottom: 14%;
+  gap: 3px;
+  padding-bottom: 12%;
+}
+
+.mc-need {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  min-width: 46%;
+  padding: 3px 10px 5px;
+  border-radius: var(--r-sm);
+  background: rgba(10, 5, 30, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 0 rgba(9, 4, 28, 0.6);
+  text-align: center;
+}
+
+.mc-need b {
+  color: var(--c-cream);
+  font-weight: 800;
+  font-size: clamp(calc(12px * var(--k, 1)), 2.8vh, calc(16px * var(--k, 1)));
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.mc-need .bar {
+  border-width: 2px;
 }
 
 .mc-lock .ico {
@@ -641,6 +920,42 @@
 }
 
 /* ================================================================================== setup */
+/* the chosen map, blurred, behind the whole screen */
+.setup-screen {
+  isolation: isolate;
+}
+
+.setup-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: #140d33;
+}
+
+.setup-bg > img {
+  position: absolute;
+  left: -8%;
+  top: -8%;
+  width: 116%;
+  height: 116%;
+  object-fit: cover;
+  filter: blur(14px) saturate(1.15) brightness(0.62);
+}
+
+.setup-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(20, 12, 56, 0.25) 0%, rgba(12, 7, 36, 0.72) 100%);
+}
+
+/* battery saver: no blur filter, just a darker painting */
+html.reduce-fx .setup-bg > img {
+  filter: saturate(0.9) brightness(0.4);
+}
+
 .setup {
   flex: 1;
   min-height: 0;
@@ -736,40 +1051,71 @@
   object-fit: contain;
 }
 
-.roster-icon.locked > img {
-  filter: brightness(0) opacity(0.45);
+.roster-icon > .pill-new {
+  position: absolute;
+  top: -5px;
+  padding-inline: 3px;
+  font-size: calc(8.5px * var(--k, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+/* the bandits still to come: one chip ("+5 from Lv 2-6") instead of empty discs */
+.roster-more {
+  container-type: inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  gap: 0 4px;
+  min-width: 0;
+  padding: 0 6px;
+  border-radius: 12px;
+  border: 2px dashed rgba(198, 186, 238, 0.35);
+  background: rgba(7, 3, 24, 0.35);
+  color: var(--c-muted);
+  font-weight: 800;
+  font-size: clamp(calc(11px * var(--k, 1)), 2.6vh, calc(15px * var(--k, 1)));
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.roster-more .ico {
+  flex: none;
+  width: 1.3em;
+  height: 1.3em;
+  object-fit: contain;
+}
+
+.roster-more .rm-lv {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+
+/* a narrow chip puts the levels under the count (the chip is its own container: it always may
+ * wrap, the query only changes the levels line) */
+@container (max-width: 100px) {
+  .roster-more .rm-lv {
+    line-height: 1;
+    flex-basis: 100%;
+    text-align: center;
+    font-size: 0.82em;
+  }
+}
+
+@container (max-width: 54px) {
+  .roster-more .rm-lv,
+  .roster-more .ico {
+    display: none;
+  }
 }
 
 .roster-icon {
   container-type: inline-size;
-}
-
-/* locked: lock + level number, sized from the icon so neighbouring badges never touch */
-.roster-icon .lv {
-  position: absolute;
-  left: 50%;
-  bottom: -3px;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  max-width: 100%;
-  padding: 0 2px;
-  border-radius: 6px;
-  background: rgba(10, 5, 30, 0.88);
-  font-size: calc(10px * var(--k, 1));
-  font-size: clamp(8px, 42cqi, calc(11px * var(--k, 1)));
-  font-weight: 800;
-  color: var(--c-cream);
-  white-space: nowrap;
-  line-height: 1.3;
-}
-
-.roster-icon .lv .ico {
-  flex: none;
-  width: 1.05em;
-  height: 1.05em;
-  object-fit: contain;
 }
 
 .sec-title {
@@ -829,6 +1175,17 @@
 
 .diff-tile:not(.got) .medal {
   filter: grayscale(0.75) brightness(0.7) drop-shadow(0 3px 0 rgba(10, 5, 30, 0.6));
+}
+
+/* the chosen difficulty is tinted all over in its colour */
+.diff-tile.sel {
+  border-color: var(--c-ink);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 46%, rgba(0, 0, 0, 0.28) 100%), var(--dc);
+  box-shadow: 0 0 0 3px var(--c-cream), 0 0 20px var(--dc), inset 0 2px 0 rgba(255, 255, 255, 0.45), inset 0 -4px 0 rgba(0, 0, 0, 0.25), 0 6px 0 rgba(9, 4, 28, 0.6);
+}
+
+.diff-tile.sel::before {
+  opacity: 0;
 }
 
 .diff-tile.sel .medal {
@@ -924,11 +1281,59 @@
   line-height: 1.15;
 }
 
-.hero-text .hdesc {
-  color: var(--c-muted);
-  font-weight: 600;
-  font-size: clamp(calc(11px * var(--k, 1)), 1.9vh, calc(13px * var(--k, 1)));
-  line-height: 1.2;
+.hero-cell {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.hero-cell > .hero-tile {
+  min-width: 0;
+  padding-right: calc(34px * var(--k, 1));
+}
+
+/* the description sits behind this button (two lines on the tile: name and title) */
+.hero-info {
+  position: absolute;
+  right: calc(5px * var(--k, 1));
+  bottom: calc(6px * var(--k, 1));
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: calc(30px * var(--k, 1));
+  height: calc(30px * var(--k, 1));
+  border-radius: 50%;
+  border: 2.5px solid var(--c-ink);
+  background: radial-gradient(circle at 50% 30%, #8fdcff, #2f97ea 70%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 2px 0 var(--c-ink);
+  transition: transform 0.15s var(--ease-spring);
+}
+
+/* a 44 pt touch target around the small disc */
+.hero-info::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.hero-info .ico {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+
+.hero-info:active {
+  transform: scale(0.9);
+}
+
+.hero-tile > .pill-new {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+}
+
+.hero-text small {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -957,8 +1362,48 @@
   flex-wrap: wrap;
 }
 
-.setup-actions .start {
-  min-width: clamp(calc(170px * var(--k, 1)), 22vw, calc(260px * var(--k, 1)));
+/* start: as strong as PLAY in the menu, with the chosen hero's face */
+.setup-actions .btn.big.start {
+  --bh: 60px;
+  min-width: 240px;
+  padding: 4px 26px 8px 10px;
+  gap: 10px;
+  font-size: clamp(26px, 7vh, 34px);
+}
+
+.setup-actions .start .start-face {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(var(--bh) - 16px);
+  height: calc(var(--bh) - 16px);
+  border-radius: 50%;
+  border: 2.5px solid var(--c-ink);
+  overflow: hidden;
+}
+
+.setup-actions .start .start-face img {
+  width: 96%;
+  height: 96%;
+  margin-top: 8%;
+  object-fit: contain;
+}
+
+.setup-actions .start .stack .sub {
+  font-size: 0.5em;
+}
+
+.setup-actions .new-game {
+  align-self: center;
+}
+
+@media (min-height: 700px) and (min-width: 900px) {
+  .setup-actions .btn.big.start {
+    --bh: 84px;
+    min-width: 340px;
+    font-size: 42px;
+  }
 }
 
 /* ================================================================================== settings */
@@ -1212,6 +1657,79 @@
   color: var(--c-muted);
   font-weight: 700;
   font-size: clamp(calc(12px * var(--k, 1)), 2.2vh, calc(15px * var(--k, 1)));
+}
+
+/* XP row: level star, a bar filling from where the game started (wrapping at each level-up), the
+ * XP earned and a "Level 3!" chip that shows the rewards again */
+.reward.xp-row {
+  justify-content: flex-start;
+  gap: clamp(8px, 1.6vw, 14px);
+  padding: 5px 12px 5px 6px;
+  min-width: 0;
+}
+
+.xp-star {
+  --xs: clamp(calc(36px * var(--k, 1)), 10vh, calc(54px * var(--k, 1)));
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--xs);
+  height: var(--xs);
+}
+
+.xp-star .ico {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 0 rgba(10, 5, 30, 0.6)) drop-shadow(0 0 8px rgba(190, 120, 255, 0.5));
+}
+
+.xp-star .emoji {
+  position: absolute;
+  font-size: calc(var(--xs) * 0.8);
+}
+
+.reward .xp-star b {
+  --stroke: 4px;
+  position: relative;
+  margin-top: 9%;
+  font-size: calc(var(--xs) * 0.34);
+}
+
+.xp-mid {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xp-meter {
+  --bar-h: clamp(calc(16px * var(--k, 1)), 4.6vh, calc(22px * var(--k, 1)));
+}
+
+/* the bar is driven frame by frame (it wraps at level-ups): no width transition */
+.xp-meter > i {
+  transition: none;
+}
+
+.xp-mid small {
+  line-height: 1;
+}
+
+.reward .xp-gain {
+  flex: none;
+}
+
+.xp-up:empty {
+  display: none;
+}
+
+.xp-up .lvl-up {
+  cursor: pointer;
 }
 
 /* ================================================================================== star atlas */
@@ -2014,6 +2532,14 @@
   background: radial-gradient(circle at 50% 30%, #b5f78f, #2fad45 70%);
   box-shadow: 0 2px 0 var(--c-ink), 0 0 10px rgba(120, 240, 110, 0.75);
   animation: bd-bob 1.5s ease-in-out infinite;
+}
+
+/* NEW: unlocked by player level and not looked at yet (goes away once selected) */
+.bd-ros > .pill-new {
+  position: absolute;
+  top: -6px;
+  left: 4px;
+  z-index: 2;
 }
 
 .bd-up .svg-ico {
@@ -3602,12 +4128,6 @@ button.atlas-card {
   }
 }
 
-@media (max-height: 380px) {
-  .hero-text .hdesc {
-    display: none;
-  }
-}
-
 @media (max-height: 430px) {
   .setting {
     min-height: calc(46px * var(--k, 1));
@@ -4087,10 +4607,6 @@ html.reduce-fx .page-bg-img {
   filter: drop-shadow(0 2px 2px rgba(5, 2, 20, 0.45));
 }
 
-.roster-icon.role-disc.locked > img {
-  filter: brightness(0) opacity(0.5);
-}
-
 /* daily: allowed bandits */
 .allowed-row .portrait.role-disc {
   overflow: visible;
@@ -4521,4 +5037,585 @@ html.reduce-fx .page-bg-img {
     width: calc(74px * var(--k, 1));
     height: calc(74px * var(--k, 1));
   }
+}
+
+/* ================================================================================== NEW pill */
+/* content unlocked by player level and not looked at yet (newPill() in kit.ts) */
+.pill-new {
+  --stroke: 0;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px 7px 2px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: linear-gradient(180deg, #fff6b8 0%, #ffd23f 48%, #f3a51f 100%);
+  box-shadow: 0 2px 0 var(--c-ink), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  color: #4a2400;
+  font-weight: 800;
+  font-size: calc(11px * var(--k, 1));
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  pointer-events: none;
+}
+
+.pill-new.sm {
+  padding: 0 5px 1px;
+  font-size: calc(9.5px * var(--k, 1));
+  border-width: 1.5px;
+}
+
+/* ================================================================================== level-up reveal */
+/* rewardReveal() in kit.ts: star over rays, "LEVEL 3!", one card per reward, two buttons */
+.reveal-wrap,
+.confirm-wrap {
+  --k: 1;
+}
+
+@media (min-height: 560px) and (min-width: 900px) {
+  .reveal-wrap {
+    --k: 1.2;
+  }
+}
+
+@media (min-height: 860px) and (min-width: 1100px) {
+  .reveal-wrap {
+    --k: 1.45;
+  }
+}
+
+.reveal-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: calc(8px + var(--safe-t)) calc(16px + var(--safe-r)) calc(10px + var(--safe-b)) calc(16px + var(--safe-l));
+  background: radial-gradient(ellipse at 50% 30%, rgba(92, 54, 200, 0.82) 0%, rgba(30, 18, 82, 0.9) 45%, rgba(8, 4, 24, 0.95) 100%);
+  animation: ui-fade 0.25s ease-out both;
+  color: var(--c-cream);
+  text-align: center;
+}
+
+.reveal-wrap.closing,
+.confirm-wrap.closing,
+.undo-bar.closing {
+  animation: ui-fade-out 0.2s ease-in both;
+  pointer-events: none;
+}
+
+@keyframes ui-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.reveal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(calc(2px * var(--k, 1)), 1.2vh, calc(10px * var(--k, 1)));
+  width: min(100%, calc(1100px * var(--k, 1)));
+  max-height: 100%;
+}
+
+.rv-star {
+  --sz: clamp(calc(60px * var(--k, 1)), 19vh, calc(130px * var(--k, 1)));
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--sz);
+  height: var(--sz);
+  flex: none;
+  animation: ui-pop-big 0.9s var(--ease-spring) both 0.05s;
+}
+
+.rv-star .rays {
+  --rays: calc(var(--sz) * 3);
+}
+
+.rv-star > .ico {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 0 rgba(10, 5, 30, 0.6)) drop-shadow(0 0 22px rgba(200, 140, 255, 0.7));
+}
+
+.rv-star > .emoji {
+  position: absolute;
+  font-size: calc(var(--sz) * 0.8);
+}
+
+.rv-star b {
+  --stroke: 6px;
+  position: relative;
+  margin-top: 9%;
+  font-size: calc(var(--sz) * 0.36);
+  line-height: 1;
+}
+
+.rv-title {
+  margin: 0;
+  color: #fff2a8;
+  font-size: clamp(calc(28px * var(--k, 1)), 8.6vh, calc(56px * var(--k, 1)));
+  line-height: 1;
+  animation: ui-drop 0.7s var(--ease-spring) both 0.25s;
+}
+
+.rv-sub {
+  margin: 0;
+  color: var(--c-muted);
+  font-weight: 700;
+  font-size: clamp(calc(13px * var(--k, 1)), 2.6vh, calc(18px * var(--k, 1)));
+  line-height: 1.2;
+  animation: ui-fade 0.4s ease-out both 0.4s;
+}
+
+.rv-cards {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: clamp(calc(8px * var(--k, 1)), 1.6vw, calc(16px * var(--k, 1)));
+  width: 100%;
+  margin-top: clamp(calc(4px * var(--k, 1)), 1.8vh, calc(14px * var(--k, 1)));
+}
+
+.rv-actions {
+  display: flex;
+  justify-content: center;
+  gap: calc(12px * var(--k, 1));
+  margin-top: clamp(calc(4px * var(--k, 1)), 2vh, calc(16px * var(--k, 1)));
+  animation: ui-rise 0.5s var(--ease-spring) both 0.9s;
+}
+
+.reveal .rv-actions .btn {
+  min-width: calc(150px * var(--k, 1));
+  font-size: calc(17px * var(--k, 1));
+}
+
+.reveal .rv-actions .rv-ok {
+  min-width: calc(180px * var(--k, 1));
+  font-size: calc(22px * var(--k, 1));
+  --stroke: 5px;
+}
+
+/* reward card (also the level info and, small, the menu badge) */
+.rw-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  flex: 0 1 calc(190px * var(--k, 1));
+  min-width: 0;
+  padding: clamp(6px, 1.6vh, 12px) 8px clamp(6px, 1.6vh, 12px);
+  text-align: center;
+}
+
+.rw-card.kind-bandit,
+.rw-card.kind-hero {
+  box-shadow: inset 0 0 0 2px rgba(255, 207, 63, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.16), inset 0 -4px 0 rgba(0, 0, 0, 0.22), 0 4px 0 rgba(9, 4, 28, 0.65);
+}
+
+.rw-card > .pill-new,
+.rw-card > .rw-lv {
+  position: absolute;
+  top: -9px;
+  right: -6px;
+  z-index: 2;
+  font-size: calc(12px * var(--k, 1));
+  transform: rotate(4deg);
+}
+
+.rw-lv {
+  padding: 1px 8px 2px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: rgba(16, 10, 44, 0.95);
+  box-shadow: 0 2px 0 var(--c-ink);
+  color: var(--c-muted);
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.rw-art-box {
+  --ah: clamp(calc(46px * var(--k, 1)), 15.5vh, calc(110px * var(--k, 1)));
+  display: grid;
+  place-items: center;
+  height: var(--ah);
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.rw-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: var(--bw) solid var(--c-ink);
+}
+
+.rw-art > img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+}
+
+.rw-art.portrait > img {
+  width: 92%;
+  height: 92%;
+  margin-top: 6%;
+}
+
+.rw-map {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3);
+}
+
+.rw-map > img {
+  object-fit: cover;
+}
+
+.rw-wisdom {
+  background: radial-gradient(circle at 50% 36%, #d6b8ff 0%, #9a6cff 46%, #5a2fc0 100%);
+  box-shadow: inset 0 0 0 2px rgba(9, 4, 28, 0.5), inset 0 3px 0 rgba(255, 255, 255, 0.35);
+}
+
+.rw-wisdom .ico {
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 0 rgba(10, 5, 30, 0.5)) drop-shadow(0 0 10px rgba(255, 200, 90, 0.7));
+}
+
+.rw-wisdom .emoji {
+  font-size: 2em;
+}
+
+/* several of a kind on one card: overlapping art */
+.rw-stack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  max-width: 100%;
+}
+
+.rw-stack > .rw-art {
+  flex: none;
+  height: calc(var(--ah) * 0.8);
+  min-width: 0;
+  box-shadow: 0 2px 6px rgba(5, 2, 20, 0.5);
+}
+
+/* the more there are, the more they overlap (the row stays about two discs wide) */
+.rw-stack > .rw-art + .rw-art {
+  margin-left: calc(var(--ah) * -0.8 * (1 - 1.15 / var(--n, 2)));
+}
+
+.rw-stack > .rw-map {
+  height: calc(var(--ah) * 0.62);
+}
+
+.rw-stack > .rw-map + .rw-map {
+  margin-left: calc(var(--ah) * -0.99 * (1 - 1.1 / var(--n, 2)));
+}
+
+.rw-kind {
+  color: var(--c-muted);
+  font-weight: 800;
+  font-size: clamp(calc(10px * var(--k, 1)), 2.2vh, calc(13px * var(--k, 1)));
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rw-name {
+  --stroke: 4px;
+  max-width: 100%;
+  color: var(--c-cream);
+  font-weight: 800;
+  font-size: clamp(calc(13px * var(--k, 1)), 3vh, calc(19px * var(--k, 1)));
+  line-height: 1.1;
+  -webkit-text-stroke: var(--stroke) var(--c-ink);
+  paint-order: stroke fill;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* low phones: the sub line goes, the cards stay roomy */
+@media (max-height: 400px) {
+  .rv-sub {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .rw-card {
+    padding-inline: 4px;
+  }
+  .rv-actions .btn {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-wrap,
+  .reveal-wrap *,
+  .confirm-wrap,
+  .confirm-wrap *,
+  .undo-bar,
+  .undo-bar * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html.reduce-motion .reveal-wrap,
+html.reduce-motion .reveal-wrap *,
+html.reduce-motion .confirm-wrap,
+html.reduce-motion .confirm-wrap *,
+html.reduce-motion .undo-bar,
+html.reduce-motion .undo-bar * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0s !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ================================================================================== level info (menu badge) */
+.lvl-info-xp {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 4px 10px;
+}
+
+.lvl-info-star {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(64px * var(--k, 1));
+  height: calc(64px * var(--k, 1));
+}
+
+.lvl-info-star .ico {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.lvl-info-star b {
+  --stroke: 5px;
+  position: relative;
+  margin-top: 8%;
+  font-size: calc(20px * var(--k, 1));
+}
+
+.lvl-info-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lvl-info-bar small {
+  color: var(--c-muted);
+  font-weight: 700;
+  font-size: calc(13px * var(--k, 1));
+}
+
+.lvl-info-next {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.lvl-info-next .rv-cards {
+  margin-top: 0;
+}
+
+.lvl-info .rw-art-box {
+  height: clamp(calc(46px * var(--k, 1)), 13vh, calc(84px * var(--k, 1)));
+}
+
+/* ================================================================================== confirm + undo */
+.confirm-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(ellipse at 50% 45%, rgba(26, 14, 66, 0.6) 0%, rgba(8, 4, 24, 0.86) 100%);
+  animation: ui-fade 0.18s ease-out both;
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 420px);
+  padding: 16px 18px 18px;
+  text-align: center;
+}
+
+.confirm-ico .ico {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.confirm-title {
+  --stroke: 5px;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.confirm-text {
+  margin: 0 0 8px;
+  color: var(--c-muted);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-actions .btn {
+  min-width: 128px;
+}
+
+.undo-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px + var(--safe-b));
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 32px);
+  padding: 6px 6px 6px 16px;
+  border-radius: var(--r-pill);
+  border: var(--bw) solid var(--c-ink);
+  background: linear-gradient(180deg, rgba(56, 42, 128, 0.97), rgba(26, 18, 62, 0.97));
+  box-shadow: var(--hl), var(--sh-drop), 0 12px 26px rgba(5, 2, 20, 0.5);
+  overflow: hidden;
+  transform: translateX(-50%);
+  animation: undo-in 0.35s var(--ease-spring) both;
+}
+
+@keyframes undo-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 24px);
+  }
+}
+
+.undo-text {
+  color: var(--c-cream);
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.undo-bar .btn.small {
+  flex: none;
+  --bh: 40px;
+  padding: 2px 14px 5px;
+}
+
+/* the time left, running out along the lower edge */
+.undo-time {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 2px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--c-gold);
+  transform-origin: left center;
+  animation: undo-time var(--ms, 5000ms) linear both;
+}
+
+@keyframes undo-time {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* ================================================================================== hero info (setup) */
+.hero-info-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+}
+
+.hero-info-body > .portrait {
+  flex: none;
+  width: clamp(calc(96px * var(--k, 1)), 30vh, calc(160px * var(--k, 1)));
+  height: clamp(calc(96px * var(--k, 1)), 30vh, calc(160px * var(--k, 1)));
+  border-radius: 50%;
+  border: var(--bw) solid var(--c-ink);
+  overflow: hidden;
+}
+
+.hero-info-body > .portrait img {
+  width: 94%;
+  height: 94%;
+  margin-top: 8%;
+}
+
+.hero-info-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hero-info-text b {
+  --stroke: 4px;
+  font-size: calc(17px * var(--k, 1));
+  line-height: 1.1;
+}
+
+.hero-info-text p {
+  margin: 0;
+  color: var(--c-muted);
+  font-weight: 600;
+  font-size: calc(15px * var(--k, 1));
+  line-height: 1.35;
 }

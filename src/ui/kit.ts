@@ -12,6 +12,13 @@ import type { MapDef } from '../game/maps';
 import type { GloopId } from '../game/gloops';
 import { gloopIcon } from './icons';
 import { getLang, t } from '../i18n';
+import { TOWERS, TOWER_ORDER } from '../game/towers';
+import { HEROES, HERO_ORDER } from '../game/heroes';
+import { MAPS, MAP_BY_ID } from '../game/maps';
+import { PERKS } from '../game/perks';
+import { towerRoleCls } from './roles';
+import { audio } from '../audio/audio';
+import { haptic } from './haptics';
 
 type Child = Node | string | null | undefined | false;
 export type Color = 'green' | 'gold' | 'red' | 'blue' | 'purple' | 'dark';
@@ -195,11 +202,21 @@ export function btn(label: string | Node, color: Color, onClick: (e: MouseEvent)
   return b;
 }
 
-/** Round icon button with an outlined label under it (menu dock, settings). */
-export function roundBtn(icon: HTMLElement, label: string, onClick: () => void, badge: string | null = null, cls = ''): HTMLButtonElement {
-  const b = h('button', { class: ('rbtn ' + cls).trim(), type: 'button', 'aria-label': label }, h('span', { class: 'rbtn-face' }, icon), h('span', { class: 'rbtn-label' }, label), badge ? h('span', { class: 'badge' }, badge) : null) as HTMLButtonElement;
+/**
+ * Round icon button with an outlined label under it (menu dock, settings). `badge`: a string is
+ * the red count badge (something to claim or spend); an element (newPill(), a dot, a countdown)
+ * is placed as it is.
+ */
+export function roundBtn(icon: HTMLElement, label: string, onClick: () => void, badge: string | HTMLElement | null = null, cls = ''): HTMLButtonElement {
+  const badgeEl = typeof badge === 'string' ? h('span', { class: 'badge' }, badge) : badge;
+  const b = h('button', { class: ('rbtn ' + cls).trim(), type: 'button', 'aria-label': label }, h('span', { class: 'rbtn-face' }, icon), h('span', { class: 'rbtn-label' }, label), badgeEl) as HTMLButtonElement;
   b.addEventListener('click', onClick);
   return b;
+}
+
+/** Gold "NEW" pill for content the player has not looked at yet (bandits, heroes, maps). */
+export function newPill(cls = ''): HTMLElement {
+  return h('span', { class: ('pill-new ' + cls).trim() }, t('NEW'));
 }
 
 export function closeBtn(onClick: () => void): HTMLButtonElement {
@@ -412,4 +429,288 @@ export function confetti(host: HTMLElement, n = 70) {
   }
   host.append(box);
   setTimeout(() => box.remove(), 4600);
+}
+
+// ------------------------------------------------------------------------------------------- overlays
+
+/**
+ * Overlays that sit above pages and modals (level-up reveal, confirm dialogs). Escape and the
+ * Android back button (App.back -> dismissTopOverlay) close the topmost one before anything else.
+ */
+const overlays: (() => void)[] = [];
+let overlayKeys = false;
+
+function pushOverlay(dismiss: () => void) {
+  overlays.push(dismiss);
+  if (overlayKeys) return;
+  overlayKeys = true;
+  // capture phase: the page / HUD behind must not see the key as well
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key !== 'Escape' || !overlays.length) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      dismissTopOverlay();
+    },
+    true,
+  );
+}
+
+function dropOverlay(dismiss: () => void) {
+  const i = overlays.lastIndexOf(dismiss);
+  if (i >= 0) overlays.splice(i, 1);
+}
+
+/** Closes the topmost overlay (reveal, confirm); false when none is open. */
+export function dismissTopOverlay(): boolean {
+  const top = overlays[overlays.length - 1];
+  if (!top) return false;
+  top();
+  return true;
+}
+
+/** Fades an overlay out (right away with reduced motion), then removes it. */
+function fadeOut(el: HTMLElement, done?: () => void) {
+  if (reducedMotion()) {
+    el.remove();
+    done?.();
+    return;
+  }
+  el.classList.add('closing');
+  setTimeout(() => {
+    el.remove();
+    done?.();
+  }, 200);
+}
+
+export interface ConfirmOpts {
+  title: string;
+  text: string;
+  ok: string;
+  okColor?: Color;
+  okIcon?: HTMLElement | null;
+  cancel?: string;
+  icon?: HTMLElement | null;
+  onOk: () => void;
+  onCancel?: () => void;
+}
+
+/**
+ * Small confirm dialog over `host` (a page, the modal layer): dims it and asks. Cancel, the
+ * backdrop, Escape and Android back keep things as they are.
+ */
+export function confirmBox(host: HTMLElement, o: ConfirmOpts): () => void {
+  let done = false;
+  const finish = (ok: boolean) => {
+    if (done) return;
+    done = true;
+    dropOverlay(cancel);
+    audio.play('click');
+    fadeOut(wrap);
+    if (ok) o.onOk();
+    else o.onCancel?.();
+  };
+  const cancel = () => finish(false);
+  const okBtn = btn(o.ok, o.okColor ?? 'red', () => finish(true), { icon: o.okIcon ?? null });
+  const box = h(
+    'div',
+    { class: 'confirm panel anim-pop', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': o.title },
+    o.icon ? h('div', { class: 'confirm-ico' }, o.icon) : null,
+    h('b', { class: 'confirm-title t-outline' }, o.title),
+    h('p', { class: 'confirm-text' }, o.text),
+    h('div', { class: 'confirm-actions' }, btn(o.cancel ?? t('Cancel'), 'dark', cancel), okBtn),
+  );
+  const wrap = h('div', { class: 'confirm-wrap' }, box);
+  wrap.addEventListener('pointerdown', (e) => e.target === wrap && cancel());
+  host.append(wrap);
+  pushOverlay(cancel);
+  requestAnimationFrame(() => okBtn.focus({ preventScroll: true }));
+  return cancel;
+}
+
+/**
+ * Snackbar with an undo button at the bottom of `host` for `ms` (a slim bar runs down the time).
+ * Returns a function that removes it early.
+ */
+export function undoBar(host: HTMLElement, text: string, onUndo: () => void, ms = 5000): () => void {
+  host.querySelector(':scope > .undo-bar')?.remove();
+  let gone = false;
+  const close = () => {
+    if (gone) return;
+    gone = true;
+    clearTimeout(timer);
+    fadeOut(el);
+  };
+  const undo = btn(t('Undo'), 'gold', () => {
+    if (gone) return;
+    close();
+    audio.play('click');
+    onUndo();
+  }, { size: 'small', icon: restartIcon() });
+  const el = h('div', { class: 'undo-bar', role: 'status', style: `--ms:${ms}ms` }, h('span', { class: 'undo-text' }, text), undo, h('i', { class: 'undo-time', 'aria-hidden': 'true' }));
+  host.append(el);
+  const timer = setTimeout(close, ms);
+  return close;
+}
+
+// ------------------------------------------------------------------------------------------- level rewards
+
+/** Player level that opens each map. */
+export const MAP_LEVEL: Record<string, number> = { meadow: 1, caverns: 2, fjord: 3, forge: 4, candy: 5, rivers: 6 };
+
+export type RewardKind = 'bandit' | 'hero' | 'map' | 'wisdom';
+
+export interface LevelReward {
+  kind: RewardKind;
+  /** tower, hero or map id ('' for wisdom points) */
+  id: string;
+  /** player level that brings it */
+  level: number;
+  /** wisdom points */
+  n?: number;
+}
+
+/**
+ * Everything the levels after `fromLv` up to `toLv` bring: bandits (TOWERS[id].unlock), heroes,
+ * maps (MAP_LEVEL), then the wisdom points (one per level, as long as there are perks left to
+ * spend them on). Also used by the in-game level-up banner.
+ */
+export function levelRewards(fromLv: number, toLv: number): LevelReward[] {
+  const inRange = (lv: number) => lv > fromLv && lv <= toLv;
+  const out: LevelReward[] = [];
+  for (const id of TOWER_ORDER) if (inRange(TOWERS[id].unlock)) out.push({ kind: 'bandit', id, level: TOWERS[id].unlock });
+  for (const id of HERO_ORDER) if (inRange(HEROES[id].unlock)) out.push({ kind: 'hero', id, level: HEROES[id].unlock });
+  for (const m of MAPS) if (inRange(MAP_LEVEL[m.id] ?? 1)) out.push({ kind: 'map', id: m.id, level: MAP_LEVEL[m.id] ?? 1 });
+  const cap = PERKS.length + 1;
+  const n = Math.min(toLv, cap) - Math.min(fromLv, cap);
+  if (n > 0) out.push({ kind: 'wisdom', id: '', level: toLv, n });
+  return out;
+}
+
+/** Display name of a reward ("Mystic", "Crystal Mine", "+2 points"). */
+export function rewardName(r: LevelReward): string {
+  if (r.kind === 'bandit') return t(TOWERS[r.id as keyof typeof TOWERS].name);
+  if (r.kind === 'hero') return t(HEROES[r.id as keyof typeof HEROES].name);
+  if (r.kind === 'map') return t(MAP_BY_ID[r.id].name);
+  return r.n === 1 ? t('+1 point') : t('+{n} points', { n: r.n ?? 1 });
+}
+
+/** Painted art of a reward: raccoon / hero portrait on its role disc, map painting, lantern. */
+export function rewardArt(r: LevelReward, cls = ''): HTMLElement {
+  if (r.kind === 'bandit') return h('span', { class: `rw-art portrait role-disc ${towerRoleCls(r.id as keyof typeof TOWERS)} ${cls}`.trim() }, img(towerPortraitUrl(r.id), '', ''));
+  if (r.kind === 'hero') return h('span', { class: `rw-art portrait role-disc role-hero ${cls}`.trim() }, img(heroPortraitUrl(r.id, 1), '', ''));
+  if (r.kind === 'map') return h('span', { class: `rw-art rw-map ${cls}`.trim() }, img(mapImageSrc(MAP_BY_ID[r.id]), '', ''));
+  return h('span', { class: `rw-art rw-wisdom ${cls}`.trim() }, uiIcon('lantern', '🧠'));
+}
+
+const KIND_LABEL: Record<RewardKind, [string, string]> = {
+  bandit: ['New bandit', 'New bandits'],
+  hero: ['New hero', 'New heroes'],
+  map: ['New map', 'New maps'],
+  wisdom: ['Wisdom', 'Wisdom'],
+};
+
+export interface RewardCardOpts {
+  /** pill in the corner: NEW (just unlocked) or the level it unlocks at (preview) */
+  pill?: 'new' | 'level' | null;
+  onClick?: () => void;
+}
+
+/** One reward card (several items of a kind share one card: stacked art, names joined). */
+export function rewardCard(items: LevelReward[], o: RewardCardOpts = {}): HTMLElement {
+  const r = items[0];
+  const many = items.length > 1;
+  const art = many ? h('span', { class: 'rw-stack', style: `--n:${Math.min(items.length, 4)}` }, ...items.slice(0, 4).map((x) => rewardArt(x))) : rewardArt(r);
+  const names = items.map(rewardName);
+  const pill = o.pill === 'new' ? newPill() : o.pill === 'level' ? h('span', { class: 'rw-lv' }, t('Lv {n}', { n: r.level })) : null;
+  const kids = [pill, h('span', { class: 'rw-art-box' }, art), h('small', { class: 'rw-kind' }, t(KIND_LABEL[r.kind][many ? 1 : 0])), h('b', { class: 'rw-name' }, names.join(' + '))];
+  const cls = `rw-card tile kind-${r.kind}` + (many ? ' many' : '');
+  if (!o.onClick) return h('div', { class: cls }, ...kids);
+  const b = h('button', { class: cls, type: 'button', 'aria-label': `${t(KIND_LABEL[r.kind][many ? 1 : 0])}: ${names.join(', ')}` }, ...kids);
+  b.addEventListener('click', o.onClick);
+  return b;
+}
+
+/**
+ * Reward cards for a set of rewards: one card per bandit and hero (bandits share a card when there
+ * would be more than five), all maps on one card, the wisdom points on one.
+ */
+export function rewardCards(list: LevelReward[], o: { pill?: RewardCardOpts['pill']; onPick?: (r: LevelReward) => void; canPick?: (r: LevelReward) => boolean } = {}): HTMLElement[] {
+  const of = (k: RewardKind) => list.filter((r) => r.kind === k);
+  const bandits = of('bandit');
+  const heroes = of('hero');
+  const maps = of('map');
+  const wisdom = of('wisdom');
+  const groups: LevelReward[][] = [];
+  const total = bandits.length + heroes.length + (maps.length ? 1 : 0) + (wisdom.length ? 1 : 0);
+  if (total > 5 && bandits.length > 1) groups.push(bandits);
+  else for (const b of bandits) groups.push([b]);
+  for (const x of heroes) groups.push([x]);
+  if (maps.length) groups.push(maps);
+  if (wisdom.length) groups.push(wisdom);
+  const pick = o.onPick;
+  return groups.map((g) => rewardCard(g, { pill: o.pill, onClick: pick && (o.canPick?.(g[0]) ?? true) ? () => pick(g[0]) : undefined }));
+}
+
+export interface RevealOpts {
+  /** "Great!", Escape, Android back: the reveal is gone */
+  onClose?: () => void;
+  /** "To the bandits" (only shown when a bandit or hero is among the rewards); the reveal closes first */
+  onBandits?: (r: LevelReward) => void;
+}
+
+/**
+ * Level-up reveal: the XP star over spinning rays, "LEVEL 3!", a card for everything the new
+ * levels bring (NEW pill), "To the bandits" and "Great!". Several levels at once make one reveal.
+ * Added to `host` (above pages and the HUD); null when the levels bring nothing to show.
+ */
+export function rewardReveal(host: HTMLElement, fromLv: number, toLv: number, o: RevealOpts = {}): HTMLElement | null {
+  const list = levelRewards(fromLv, toLv);
+  if (toLv <= fromLv || !list.length) return null;
+  const firstBandit = list.find((r) => r.kind === 'bandit' || r.kind === 'hero') ?? null;
+  let done = false;
+  const close = (then?: () => void) => {
+    if (done) return;
+    done = true;
+    dropOverlay(dismiss);
+    fadeOut(wrap);
+    o.onClose?.();
+    then?.();
+  };
+  const dismiss = () => {
+    audio.play('click');
+    close();
+  };
+  const toBandits = (r: LevelReward) => {
+    audio.play('click');
+    close(() => o.onBandits?.(r));
+  };
+  // a bandit or hero card is a way into the Bandit menu (maps and wisdom are plain cards)
+  const cards = rewardCards(list, { pill: 'new', onPick: o.onBandits ? toBandits : undefined, canPick: (r) => r.kind === 'bandit' || r.kind === 'hero' });
+  cards.forEach((c, i) => {
+    c.classList.add('anim-pop');
+    c.style.setProperty('--d', `${520 + i * 110}ms`);
+  });
+  const star = h('div', { class: 'rv-star' }, h('div', { class: 'rays' }), uiIcon('xp', '⭐'), h('b', { class: 't-num' }, String(toLv)));
+  const great = btn(t('Great!'), 'green', dismiss, { cls: 'rv-ok glint' });
+  const actions = h('div', { class: 'rv-actions' }, firstBandit && o.onBandits ? btn(t('To the bandits'), 'blue', () => toBandits(firstBandit), { icon: uiIcon('mask', '🦝') }) : null, great);
+  const box = h(
+    'div',
+    { class: 'reveal', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('LEVEL {n}!', { n: toLv }) },
+    star,
+    h('h2', { class: 'rv-title t-title' }, t('LEVEL {n}!', { n: toLv })),
+    h('p', { class: 'rv-sub' }, t('You unlocked new rewards')),
+    h('div', { class: 'rv-cards', style: `--cards:${cards.length}` }, ...cards),
+    actions,
+  );
+  const wrap = h('div', { class: 'reveal-wrap' }, twinkles(18, 11, 16), box);
+  wrap.addEventListener('pointerdown', (e) => e.target === wrap && dismiss());
+  host.append(wrap);
+  pushOverlay(dismiss);
+  audio.play('levelup');
+  haptic('heavy');
+  setTimeout(() => wrap.isConnected && confetti(wrap, 60), 380);
+  requestAnimationFrame(() => great.focus({ preventScroll: true }));
+  return wrap;
 }

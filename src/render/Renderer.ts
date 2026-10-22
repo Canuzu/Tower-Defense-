@@ -20,6 +20,7 @@ import { drawStar, drawStarShadow, pathStarShadow, starSprite, starSize, starCen
 import { towerVis, towerSpriteOf, towerPose, drawTowerSprite, drawTowerShadow, drawTowerRing, towerTop, ghostSprite, restPose, spoolW } from './towerView';
 import { drawProjectileSprite, drawDroneSprite, drawOrbiterSprite, drawRunnerSprite, drawTrapSprite, drawDropSprite, drawCrateSprite, PROJ_TUNING, type Crate } from './projView';
 import { Ambient } from './ambient';
+import { PlaceOverlay, drawRangeRing, drawRangePreview } from './placeView';
 
 export interface Ghost {
   kind: 'tower' | 'hero';
@@ -130,16 +131,37 @@ export class Renderer {
   ghost: Ghost | null = null;
   selected: Tower | null = null;
   hover: Tower | null = null;
-  damageFlash = 0;
   reducedEffects = false;
+  /** placement aids while a raccoon is being placed (hatched blocked area, HUD zones) */
+  readonly place = new PlaceOverlay();
+  /** second range ring while a range upgrade is hovered or held in the upgrade panel */
+  rangePreview: { tower: Tower; range: number } | null = null;
+  /**
+   * Set by the HUD: big moments (a boss shattered) go to its centre-stage queue instead of rising
+   * as world text over the fight.
+   */
+  onHeadline: ((text: string) => void) | null = null;
+  /**
+   * Last leak (design plan A10), read by the HUD in its 'lifeLost' handler: css-px point at the
+   * visible end of the track and the map side it leaves through (0 left, 1 right, 2 top, 3 bottom).
+   */
+  readonly lastLeak = { x: 0, y: 0, side: 1, path: 0 };
+  /** exit-side red vignette strength per side (left, right, top, bottom) */
+  private leakVig = new Float32Array(4);
+  private leakRingAt = new Float64Array(8).fill(-9);
+  private vigH: HTMLCanvasElement | null = null;
+  private vigV: HTMLCanvasElement | null = null;
+  private bondFont = '';
+  private bondFontScale = 0;
+  private frenzyGrad: CanvasGradient | null = null;
+  private frenzyGradW = 0;
+  private frenzyGradH = 0;
   /** visible area reserved by the UI (css px) */
   insetRight = 0;
   insetTop = 0;
   /** horizontal camera nudge (css px) the HUD asks for so a selected tower stays visible beside its panel */
   panTarget = 0;
   private pan = 0;
-  /** performance.now() until which a canvas headline (boss shattered) is rising; HUD banners wait for it */
-  headlineUntil = 0;
   private dt = 0;
   private crates: (Crate & { landed: boolean })[] = [];
   private fxQueue: Scheduled[] = [];
@@ -371,7 +393,6 @@ export class Renderer {
     }
     this.beams.length = nb;
     if (this.shakeT > 0) this.shakeT -= dt;
-    if (this.damageFlash > 0) this.damageFlash -= dt;
     if (this.fxQueue.length) {
       const q = this.fxQueue;
       for (let i = 0; i < q.length; i++) {
@@ -419,11 +440,19 @@ export class Renderer {
       }
     }
 
+    // placing: the hatched area no ghost can stand on, under everything that stands on the ground
+    if (this.place.active) this.place.draw(ctx, dt, motionOff());
+
     // ground layer: contact shadows, selection rings, bonds, range
     this.drawShadows(ctx, g);
     this.drawBonds(ctx, g);
     const sel = this.selected;
-    if (sel && g.towers.includes(sel)) this.drawRange(ctx, sel.x, sel.y, sel.stats.range > 3000 ? 0 : sel.range, true, sel.stats.buffAura ? '#ffe066' : '#ffffff');
+    if (sel && g.towers.includes(sel)) {
+      const r0 = sel.stats.range > 3000 ? 0 : sel.range;
+      drawRangeRing(ctx, sel.x, sel.y, r0, this.scale, this.time, true, sel.def ? sel.def.role : 'Hero', sel.stats.buffAura ? '#ffe066' : '#fff6e0');
+      const pv = this.rangePreview;
+      if (pv && pv.tower === sel && r0 > 0) drawRangePreview(ctx, sel.x, sel.y, r0, pv.range, this.scale, this.time);
+    }
     for (const tw of g.towers) {
       if (tw === this.selected || tw === this.hover) drawTowerRing(ctx, tw.x, tw.y, tw.radius, this.time, tw === this.selected, tw.stats.buffAura ? '#ffe066' : '#fff1b8');
     }
@@ -475,22 +504,98 @@ export class Renderer {
 
     // screen-space overlays
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    if (this.place.active) this.place.drawUi(ctx);
     if (g.frenzyT > 0) {
-      const a = 0.18 + Math.sin(this.time * 8) * 0.06;
-      const grad = ctx.createRadialGradient(this.viewW / 2, this.viewH / 2, Math.min(this.viewW, this.viewH) * 0.35, this.viewW / 2, this.viewH / 2, Math.max(this.viewW, this.viewH) * 0.7);
-      grad.addColorStop(0, 'rgba(255,120,40,0)');
-      grad.addColorStop(1, `rgba(255,90,40,${a})`);
-      ctx.fillStyle = grad;
+      // the gradient is built once per screen size; the pulse runs through globalAlpha
+      if (!this.frenzyGrad || this.frenzyGradW !== this.viewW || this.frenzyGradH !== this.viewH) {
+        this.frenzyGradW = this.viewW;
+        this.frenzyGradH = this.viewH;
+        this.frenzyGrad = ctx.createRadialGradient(this.viewW / 2, this.viewH / 2, Math.min(this.viewW, this.viewH) * 0.35, this.viewW / 2, this.viewH / 2, Math.max(this.viewW, this.viewH) * 0.7);
+        this.frenzyGrad.addColorStop(0, 'rgba(255,120,40,0)');
+        this.frenzyGrad.addColorStop(1, 'rgba(255,90,40,1)');
+      }
+      ctx.globalAlpha = 0.18 + Math.sin(this.time * 8) * 0.06;
+      ctx.fillStyle = this.frenzyGrad;
       ctx.fillRect(0, 0, this.viewW, this.viewH);
+      ctx.globalAlpha = 1;
     }
-    if (this.damageFlash > 0) {
-      const a = Math.min(0.45, this.damageFlash);
-      const grad = ctx.createRadialGradient(this.viewW / 2, this.viewH / 2, Math.min(this.viewW, this.viewH) * 0.3, this.viewW / 2, this.viewH / 2, Math.max(this.viewW, this.viewH) * 0.65);
-      grad.addColorStop(0, 'rgba(255,0,40,0)');
-      grad.addColorStop(1, `rgba(255,0,40,${a})`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, this.viewW, this.viewH);
+    this.drawLeakVignette(ctx, dt);
+  }
+
+  /**
+   * A star got through (design plan A10): a red ring flash where the track leaves the visible map
+   * and a red vignette on that side only. The HUD adds the "-N" tag and the heart flying to the
+   * lives pill from `lastLeak`. All of it stays off with reduce-motion.
+   */
+  leak(e: Enemy, lives: number) {
+    const g = this.game;
+    if (!g || !g.paths.length) return;
+    const pi = e.pathIndex < g.paths.length ? e.pathIndex : 0;
+    const p = g.paths[pi];
+    const sx = p.xs[p.count - 1] * this.scale + this.ox;
+    const sy = p.ys[p.count - 1] * this.scale + this.oy;
+    const mapR = this.viewW - this.insetRight;
+    const top = this.insetTop;
+    // the side the track leaves through: the nearest edge of the visible map
+    const dl = sx;
+    const dr = mapR - sx;
+    const dtp = sy - top;
+    const db = this.viewH - sy;
+    let side = 0;
+    let best = dl;
+    if (dr < best) (best = dr), (side = 1);
+    if (dtp < best) (best = dtp), (side = 2);
+    if (db < best) side = 3;
+    const m = 30;
+    const L = this.lastLeak;
+    L.x = Math.min(mapR - m, Math.max(m, sx));
+    L.y = Math.min(this.viewH - m, Math.max(top + m, sy));
+    L.side = side;
+    L.path = pi;
+    if (lives <= 0 || motionOff()) return;
+    this.leakVig[side] = Math.min(1, Math.max(this.leakVig[side], 0.8 + lives / 40));
+    const slot = pi & 7;
+    if (this.time - this.leakRingAt[slot] < 0.22) return;
+    this.leakRingAt[slot] = this.time;
+    const wx = (L.x - this.ox) / this.scale;
+    const wy = (L.y - this.oy) / this.scale;
+    const k = 1 / Math.max(0.3, this.scale);
+    this.particles.spawn(PK.Flash, wx, wy, { life: 0.22, size: 14 * k, size2: 46 * k, color: '#ff6b7a' });
+    this.particles.spawn(PK.Ring, wx, wy, { life: 0.5, size: 10 * k, size2: 62 * k, color: '#ff4d5e' });
+    if (!this.reducedEffects) this.particles.spawn(PK.Ring, wx, wy, { life: 0.75, size: 6 * k, size2: 92 * k, color: '#ffd0d6' });
+  }
+
+  /** Red edge on the side a star leaked through (cached gradient strips, no per-frame allocation). */
+  private drawLeakVignette(ctx: CanvasRenderingContext2D, dt: number) {
+    const v = this.leakVig;
+    if (v[0] <= 0 && v[1] <= 0 && v[2] <= 0 && v[3] <= 0) return;
+    if (!this.vigH || !this.vigV) {
+      this.vigH = vignetteStrip(true);
+      this.vigV = vignetteStrip(false);
     }
+    const mapR = this.viewW - this.insetRight;
+    const top = this.insetTop;
+    const wH = Math.min(190, mapR * 0.2);
+    const wV = Math.min(150, (this.viewH - top) * 0.3);
+    const d = this.dpr;
+    for (let s = 0; s < 4; s++) {
+      const a = v[s];
+      if (a <= 0) continue;
+      v[s] = Math.max(0, a - dt * 1.25);
+      ctx.globalAlpha = Math.min(1, a) * 0.85;
+      if (s === 0) ctx.drawImage(this.vigH, 0, top, wH, this.viewH - top);
+      else if (s === 1) {
+        ctx.setTransform(-d, 0, 0, d, mapR * d, 0);
+        ctx.drawImage(this.vigH, 0, top, wH, this.viewH - top);
+        ctx.setTransform(d, 0, 0, d, 0, 0);
+      } else if (s === 2) ctx.drawImage(this.vigV, 0, top, mapR, wV);
+      else {
+        ctx.setTransform(d, 0, 0, -d, 0, this.viewH * d);
+        ctx.drawImage(this.vigV, 0, 0, mapR, wV);
+        ctx.setTransform(d, 0, 0, d, 0, 0);
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   // -------------------------------------------------------------------------------------------
@@ -592,22 +697,6 @@ export class Renderer {
         this.particles.spawn(PK.Smoke, o.x + rand(-5, 5), o.y - 6, { vy: -35, vx: rand(-8, 8), life: 1.6, size: 8, size2: 20 });
       }
     }
-  }
-
-  private drawRange(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, valid: boolean, color = '#ffffff') {
-    if (r <= 0) return;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, TAU);
-    ctx.fillStyle = valid ? 'rgba(255,255,255,0.13)' : 'rgba(255,60,60,0.18)';
-    ctx.fill();
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([10, 8]);
-    ctx.lineDashOffset = -this.time * 20;
-    ctx.strokeStyle = valid ? color : '#ff4d4d';
-    ctx.globalAlpha = 0.85;
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
   }
 
   private drawBonds(ctx: CanvasRenderingContext2D, g: Game) {
@@ -1534,17 +1623,23 @@ export class Renderer {
     const def = isHero ? HEROES[gh.id as HeroId] : TOWERS[gh.id as TowerId];
     const stats = isHero ? HEROES[gh.id as HeroId].base() : TOWERS[gh.id as TowerId].base();
     const range = stats.range > 3000 ? 0 : stats.range;
-    this.drawRange(ctx, gh.x, gh.y, range, gh.valid);
+    drawRangeRing(ctx, gh.x, gh.y, range, this.scale, this.time, gh.valid, isHero ? 'Hero' : (def as (typeof TOWERS)[TowerId]).role);
     if (!isHero) {
+      if (this.bondFontScale !== this.scale) {
+        this.bondFontScale = this.scale;
+        this.bondFont = `800 ${(14 / this.scale).toFixed(2)}px 'Baloo 2', system-ui, sans-serif`;
+      }
       for (const b of g.previewBonds(gh.id as TowerId, gh.x, gh.y)) {
         this.drawBondLine(ctx, gh.x, gh.y - 14, b.tower.x, b.tower.y - 14, b.color, 1);
-        if (b.name) {
+        // an invalid spot shows its reason chip (HUD) instead of the bond name
+        if (b.name && gh.valid) {
           const mx = (gh.x + b.tower.x) / 2;
           const my = (gh.y + b.tower.y) / 2 - 22;
-          ctx.font = `900 ${13 / this.scale}px system-ui, sans-serif`;
+          ctx.font = this.bondFont;
           ctx.textAlign = 'center';
-          ctx.lineWidth = 3 / this.scale;
-          ctx.strokeStyle = '#2a1b2e';
+          ctx.lineJoin = 'round';
+          ctx.lineWidth = 4 / this.scale;
+          ctx.strokeStyle = '#120a2b';
           ctx.strokeText('⚡ ' + t(b.name), mx, my);
           ctx.fillStyle = b.color;
           ctx.fillText('⚡ ' + t(b.name), mx, my);
@@ -1820,6 +1915,32 @@ export class Renderer {
     clearSpriteCache();
     this.dropMap();
   }
+}
+
+let motionMq: MediaQueryList | null = null;
+/** reduce-motion (OS setting or the in-game one): leak flashes and fades are skipped */
+function motionOff(): boolean {
+  if (typeof document === 'undefined') return true;
+  if (document.documentElement.classList.contains('reduce-motion')) return true;
+  motionMq ??= typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  return !!motionMq?.matches;
+}
+
+/** Red edge gradient strip (built once): horizontal fades left -> right, vertical top -> bottom. */
+function vignetteStrip(horizontal: boolean): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  const n = 64;
+  c.width = horizontal ? n : 2;
+  c.height = horizontal ? 2 : n;
+  const x = c.getContext('2d')!;
+  const g = horizontal ? x.createLinearGradient(0, 0, n, 0) : x.createLinearGradient(0, 0, 0, n);
+  g.addColorStop(0, 'rgba(255,24,64,0.95)');
+  g.addColorStop(0.25, 'rgba(255,24,64,0.55)');
+  g.addColorStop(0.6, 'rgba(255,24,64,0.16)');
+  g.addColorStop(1, 'rgba(255,24,64,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, c.width, c.height);
+  return c;
 }
 
 function easeBack(t: number) {

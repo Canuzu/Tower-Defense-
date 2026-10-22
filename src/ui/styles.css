@@ -1685,12 +1685,16 @@ html.reduce-fx .badge {
  *   --hud-h   top bar height        --map-r  width taken by the sidebar on the right
  *   --ab-s    ability button size   --up-w   upgrade panel width (the map area is 0 .. 100% - --map-r)
  *   --dock-h  height of the ability dock (set by hud.ts; toasts sit above it)
- *   --free-l / --free-r  edges of the map area no panel covers (inside the notch insets): toasts and
- *             banners centre in it
+ *   --free-l / --free-r  edges of the map area no panel covers (inside the notch insets): the stage
+ *             and the progress card centre in it (toasts are placed by hud.ts, off the track)
+ *   --pause-s pause button (>= 44px touch target)   --bar-h  height of the top bar row
  * The map is fitted to the full height: the top bar floats over it, so nothing is reserved for it.
+ * Messages (hudFeed.ts): .stage (centre ribbon) > .pcard (progress, top centre) > .toast (tips).
  */
 .hud {
   --hud-h: clamp(32px, 7.8vh, 52px);
+  --pause-s: max(44px, calc(var(--hud-h) * 0.96));
+  --bar-h: max(var(--hud-h), var(--pause-s));
   --hud-gap: clamp(5px, 1.1vh, 9px);
   --hud-top: calc(4px + var(--safe-t));
   --map-r: calc(var(--sidebar-w) + var(--safe-r));
@@ -1716,14 +1720,9 @@ html.reduce-fx .badge {
   font-size: clamp(12px, 2.4vh, 18px);
 }
 
-.hud.up-left > .banner,
-.hud.up-right > .banner {
-  font-size: clamp(22px, 6vh, 52px);
-}
-
-.hud.up-left > .banner .b-main,
-.hud.up-right > .banner .b-main {
-  white-space: normal;
+.hud.up-left > .stage .rb-body,
+.hud.up-right > .stage .rb-body {
+  font-size: clamp(18px, 5vh, 34px);
 }
 
 .hud > .hud-bar {
@@ -1757,6 +1756,33 @@ html.reduce-fx .badge {
 .hud-top > *,
 .top-right > * {
   pointer-events: auto;
+}
+
+/* ink scrim behind the top bar: the counters read on bright map art */
+.hud > .hud-scrim {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: var(--map-r);
+  height: calc(var(--hud-top) + var(--bar-h) + 24px);
+  background: linear-gradient(180deg, rgba(18, 10, 43, 0.52) 0%, rgba(18, 10, 43, 0.26) 55%, rgba(18, 10, 43, 0));
+  pointer-events: none;
+}
+
+/* a star or raccoon under a counter: the counter steps back (hud.ts updatePillFade) */
+.hud .pill,
+.hud .frenzy {
+  transition: opacity 0.25s;
+}
+
+.hud .pill.under,
+.hud .frenzy.under {
+  opacity: 0.4;
+}
+
+/* placing: the bar lets the hatched "no room here" zone under it show through */
+.hud.placing .hud-top > * {
+  opacity: 0.55;
 }
 
 /* ---------------------------------------------------------------- counters (icon overlaps the pill) */
@@ -1793,7 +1819,26 @@ html.reduce-fx .badge {
 }
 
 .pill.cash {
+  position: relative;
   color: #ffe680;
+}
+
+/* running combo: a small chip hanging under the cash pill */
+.pill.cash > .combo-chip {
+  position: absolute;
+  left: calc(var(--hud-h) * 0.42);
+  top: calc(100% + 3px);
+  padding: 1px 7px 2px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: var(--g-gold);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 0 rgba(9, 4, 28, 0.7);
+  color: #4a2700;
+  font-size: clamp(11px, 2.7vh, 15px);
+  line-height: 1.1;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  pointer-events: none;
 }
 
 .pill.cash .val {
@@ -1979,14 +2024,14 @@ html.reduce-fx .badge {
   }
 }
 
-/* ---------------------------------------------------------------- round icon buttons (speed, pause, settings) */
+/* ---------------------------------------------------------------- top-right: the pause button (44px+ target) */
 .hbtn {
   position: relative;
   flex: none;
   display: grid;
   place-items: center;
-  width: calc(var(--hud-h) * 0.9);
-  height: calc(var(--hud-h) * 0.9);
+  width: var(--pause-s);
+  height: var(--pause-s);
   border-radius: 50%;
   border: var(--bw) solid var(--c-ink);
   background: radial-gradient(circle at 50% 28%, #7565c8 0%, #46389a 55%, #2d2270 100%);
@@ -2009,76 +2054,6 @@ html.reduce-fx .badge {
 @media (hover: hover) and (pointer: fine) {
   .hbtn:hover {
     filter: brightness(1.15);
-  }
-}
-
-.hbtn .spd {
-  position: absolute;
-  right: -7px;
-  bottom: -6px;
-  min-width: 22px;
-  padding: 1px 4px 2px;
-  border-radius: var(--r-pill);
-  border: 2px solid var(--c-ink);
-  background: #2d2270;
-  color: #fff;
-  font-size: clamp(10px, 2.3vh, 13px);
-  font-weight: 800;
-  line-height: 1;
-  -webkit-text-stroke: 2.5px var(--c-ink);
-  paint-order: stroke fill;
-}
-
-.hbtn.speed.on {
-  background: radial-gradient(circle at 50% 28%, #fff2a8 0%, #ffcf3f 50%, #e08a00 100%);
-  box-shadow: inset 0 -4px 0 #a35c00, inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 3px 0 var(--c-ink);
-}
-
-.hbtn.speed.on .spd {
-  background: var(--c-gold-2);
-}
-
-.hbtn.speed.max {
-  background: radial-gradient(circle at 50% 28%, #ffb3b3 0%, #ff5868 50%, #c9184a 100%);
-  box-shadow: inset 0 -4px 0 #8f1029, inset 0 2px 0 rgba(255, 255, 255, 0.55), 0 3px 0 var(--c-ink);
-}
-
-.hbtn.speed.max .spd {
-  background: var(--c-red);
-}
-
-.combo {
-  position: absolute;
-  left: calc(14px + var(--safe-l));
-  top: calc(var(--hud-top) + var(--hud-h) + 10px);
-  font-weight: 800;
-  font-size: clamp(16px, 4vh, 32px);
-  color: #ffe680;
-  -webkit-text-stroke: 5px var(--ink);
-  paint-order: stroke fill;
-  text-shadow: 0 3px 0 var(--ink), 0 0 12px rgba(255, 150, 50, 0.6);
-  pointer-events: none;
-  transform-origin: left center;
-}
-
-.combo.bump {
-  animation: hud-combo 0.18s;
-}
-
-/* keep the combo clear of a left upgrade panel and of the sandbox spawn panel (top-left) */
-.hud.up-left > .combo {
-  left: calc(var(--up-w) + 22px + var(--safe-l));
-}
-
-.hud.sandbox > .combo {
-  left: auto;
-  right: calc(var(--map-r) + 14px);
-  transform-origin: right center;
-}
-
-@keyframes hud-combo {
-  50% {
-    transform: scale(1.25) rotate(-3deg);
   }
 }
 
@@ -2231,7 +2206,9 @@ html.reduce-fx .badge {
   border-width: 1.5px;
 }
 
+/* hotkey badge (1-9): only where there is a keyboard and a mouse */
 .card .key {
+  display: none;
   position: absolute;
   top: 3px;
   left: 3px;
@@ -2244,6 +2221,101 @@ html.reduce-fx .badge {
   font-weight: 800;
   line-height: 1.1;
   text-align: center;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-height: 501px) {
+  .card .key {
+    display: block;
+  }
+}
+
+/* unlocked by a player level and not used yet: gold ring + NEW (hud.ts setFresh) */
+.card .card-new {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  left: 3px;
+  padding: 0 5px 1px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: var(--g-gold);
+  color: #4a2700;
+  font-size: clamp(9px, 2.2vh, 12px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  box-shadow: 0 2px 0 rgba(9, 4, 28, 0.6);
+  pointer-events: none;
+}
+
+.card.fresh .card-new {
+  display: block;
+}
+
+.card.fresh .key {
+  display: none;
+}
+
+.card.fresh {
+  box-shadow: 0 0 0 2.5px var(--c-gold), 0 0 14px rgba(255, 207, 63, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  animation: hud-fresh 1.8s var(--ease-in-out) infinite;
+}
+
+@keyframes hud-fresh {
+  50% {
+    box-shadow: 0 0 0 3px #fff2a8, 0 0 22px rgba(255, 207, 63, 0.95), inset 0 2px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* the bandit's name (tablets, see the media query further down) */
+.card .cname {
+  display: none;
+}
+
+/* an error at its source: the card / button shakes and its label says why ("Missing 120") */
+@keyframes hud-shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  18% {
+    translate: -5px 0;
+  }
+  38% {
+    translate: 5px 0;
+  }
+  58% {
+    translate: -3px 0;
+  }
+  78% {
+    translate: 2px 0;
+  }
+}
+
+.hud .shake {
+  animation: hud-shake 0.38s ease-out;
+}
+
+.card.err-msg .price {
+  background: linear-gradient(180deg, rgba(130, 18, 44, 0.9), rgba(84, 8, 30, 0.97));
+  color: #ffd0d6;
+  font-size: clamp(10px, 2.1vh, 15px);
+}
+
+.card.err-msg .price .coin {
+  display: none;
+}
+
+.buy.err-msg {
+  filter: none !important;
+}
+
+.buy.err-msg small {
+  color: #fff;
+  background: rgba(150, 16, 44, 0.85);
+  border-radius: var(--r-pill);
+  padding: 0 5px;
 }
 
 .card .lockmark {
@@ -2357,6 +2429,7 @@ html.reduce-fx .badge {
 }
 
 .auto {
+  position: relative;
   flex: none;
   width: clamp(40px, 9vh, 56px);
   display: flex;
@@ -2372,6 +2445,19 @@ html.reduce-fx .badge {
   font-size: clamp(10px, 2vh, 13px);
   line-height: 1;
   color: var(--c-muted);
+}
+
+/* touch targets: at least 44px including an invisible margin (::after) */
+.auto::after,
+.tg-arrow::after,
+.hud .xbtn::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.tg-arrow::after {
+  inset: -8px -9px;
 }
 
 .auto .toggle {
@@ -2393,10 +2479,11 @@ html.reduce-fx .badge {
 
 .play {
   --bh: clamp(46px, 12vh, 84px);
+  position: relative;
   flex: 1;
   min-width: 0;
   height: var(--bh);
-  padding: 0 6px 4px;
+  padding: 0 6px calc(var(--bh) * 0.16);
   gap: 2px;
   border-radius: var(--r-lg);
   font-size: calc(var(--bh) * 0.44);
@@ -2415,6 +2502,39 @@ html.reduce-fx .badge {
 
 .play.running .play-ico .ico {
   height: calc(var(--bh) * 0.48);
+}
+
+/* speed pips: the play button cycles 1x / 2x / 3x while a round runs */
+.play-pips {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bh) * 0.1);
+  transform: translateX(-50%);
+  display: flex;
+  gap: calc(var(--bh) * 0.07);
+  pointer-events: none;
+}
+
+.play-pips i {
+  width: calc(var(--bh) * 0.11);
+  height: calc(var(--bh) * 0.11);
+  border-radius: 50%;
+  background: rgba(9, 4, 28, 0.42);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s, transform 0.2s var(--ease-spring);
+}
+
+.play-pips i.on {
+  background: #fffaf0;
+  box-shadow: 0 0 0 1.5px var(--c-ink);
+}
+
+.play.running .play-pips i.on {
+  transform: scale(1.12);
+}
+
+.play.waiting .play-pips {
+  opacity: 0.7;
 }
 
 .play.fast {
@@ -2446,8 +2566,8 @@ html.reduce-fx .badge {
 .upanel {
   --pad: clamp(6px, 1.5vh, 10px);
   position: absolute;
-  top: calc(var(--hud-top) + var(--hud-h) + 8px);
-  max-height: calc(100% - var(--hud-top) - var(--hud-h) - 16px - var(--safe-b));
+  top: calc(var(--hud-top) + var(--bar-h) + 6px);
+  max-height: calc(100% - var(--hud-top) - var(--bar-h) - 14px - var(--safe-b));
   width: var(--up-w);
   display: flex;
   flex-direction: column;
@@ -3220,6 +3340,7 @@ html.reduce-fx .badge {
 }
 
 .tg-arrow {
+  position: relative;
   flex: none;
   width: clamp(26px, 7vh, 36px);
   align-self: stretch;
@@ -3345,11 +3466,11 @@ html.reduce-fx .badge {
   transition: transform 0.16s var(--ease-spring), filter 0.15s;
 }
 
-/* the tab is slim: a bigger invisible hit area for thumbs */
+/* the tab is slim: a bigger invisible hit area for thumbs (44px+) */
 .dock-tab::after {
   content: '';
   position: absolute;
-  inset: -6px -3px -6px -6px;
+  inset: -8px;
 }
 
 .dock-tab:active {
@@ -3554,74 +3675,266 @@ html.reduce-fx .badge {
   }
 }
 
-/* ---------------------------------------------------------------- banners & toasts */
-.banner {
+/* ---------------------------------------------------------------- messages (hudFeed.ts)
+ * .stage  centre ribbon, one at a time (.st-boss .st-unlock .st-round .st-action .st-combo)
+ * .pcard  progress card top centre (achievements, XP, hero levels)
+ * .toast  tips only, placed by hud.ts where it covers no track */
+.hud > .stage {
   position: absolute;
   left: calc((var(--free-l) + var(--free-r)) / 2);
-  top: 34%;
+  top: 31%;
   transform: translate(-50%, -50%);
-  max-width: calc(var(--free-r) - var(--free-l) - 24px);
-  text-align: center;
+  max-width: calc(var(--free-r) - var(--free-l) - 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   pointer-events: none;
-  font-weight: 800;
-  font-size: clamp(30px, 9vh, 80px);
-  line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 7px var(--ink);
-  paint-order: stroke fill;
-  text-shadow: 0 6px 0 var(--ink), 0 10px 30px rgba(5, 2, 20, 0.5);
-  animation: hud-banner 1.8s ease-out forwards;
   z-index: 35;
+  animation: hud-stage-in 0.34s var(--ease-spring) both;
 }
 
-.banner .b-main {
-  display: block;
-  white-space: nowrap;
+/* a progress card is up at the top: the stage keeps clear of it */
+.hud.pc-on > .stage {
+  top: max(31%, calc(var(--hud-top) + var(--bar-h) + clamp(34px, 9.5vh, 54px) + 30px + clamp(36px, 10vh, 64px) * 0.5 + 18px));
 }
 
-.banner.small {
-  font-size: clamp(24px, 6.5vh, 54px);
+.stage .ribbon {
+  margin: 0 24px;
+  max-width: calc(100% - 48px);
 }
 
-.banner small {
-  display: block;
-  font-size: max(14px, 0.36em);
-  -webkit-text-stroke: 4px var(--ink);
-  text-shadow: 0 3px 0 var(--ink);
-  margin-top: 6px;
+.stage .rb-body {
+  min-height: clamp(36px, 10vh, 64px);
+  padding: 2px clamp(14px, 2.6vw, 28px) 5px;
+  font-size: clamp(20px, 6.2vh, 44px);
+}
+
+.stage .rb-body > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage .rb-tail {
+  width: 32px;
+}
+
+/* round / ability / combo: a size smaller than bosses and unlocks */
+.stage.st-round .rb-body,
+.stage.st-action .rb-body,
+.stage.st-combo .rb-body {
+  min-height: clamp(32px, 8.4vh, 54px);
+  font-size: clamp(17px, 5vh, 36px);
+}
+
+.stage .rb-body .ico {
+  height: 1.25em;
+}
+
+.st-sub {
+  max-width: 100%;
+  padding: 0 6px;
+  text-align: center;
+  text-wrap: balance;
+  font-weight: 800;
+  font-size: clamp(13px, 3.4vh, 22px);
+  line-height: 1.1;
   color: var(--c-gold);
+  -webkit-text-stroke: 4px var(--c-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 var(--c-ink);
 }
 
-.banner.boss .b-main {
-  color: #ff6b6b;
+.st-boss .st-sub {
+  color: #fff6e0;
 }
 
-@keyframes hud-banner {
+.hud > .stage.out {
+  animation: hud-stage-out 0.22s ease-in forwards;
+}
+
+.hud > .stage.cut {
+  animation: hud-stage-out 0.12s ease-in forwards;
+}
+
+.hud > .stage.again {
+  animation: hud-stage-again 0.32s var(--ease-spring);
+}
+
+@keyframes hud-stage-in {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.4) rotate(-6deg);
+    transform: translate(-50%, -50%) scale(0.55) rotate(-4deg);
   }
-  12% {
+  60% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.12) rotate(2deg);
-  }
-  22% {
-    transform: translate(-50%, -50%) scale(1) rotate(0);
-  }
-  80% {
-    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06) rotate(1deg);
   }
   100% {
-    opacity: 0;
-    transform: translate(-50%, -62%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
-.toast {
+@keyframes hud-stage-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -64%) scale(0.96);
+  }
+}
+
+@keyframes hud-stage-again {
+  40% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* progress card: gold rim, trophy / XP / hero disc, "+300" */
+.hud > .pcard {
   position: absolute;
   left: calc((var(--free-l) + var(--free-r)) / 2);
-  bottom: calc(var(--dock-h) + 18px + var(--safe-b));
+  top: calc(var(--hud-top) + var(--bar-h) + 8px);
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.4vw, 12px);
+  width: max-content;
+  max-width: min(480px, calc(var(--free-r) - var(--free-l) - 20px));
+  padding: 4px clamp(10px, 2vw, 16px) 4px 4px;
+  border-radius: var(--r-pill);
+  border: var(--bw) solid var(--c-ink);
+  background-image: var(--sparkle-img), linear-gradient(180deg, #3d2e8a 0%, #241a5e 55%, #171036 100%);
+  background-size: 170px 130px, 170px 130px, 170px 130px, 170px 130px, 170px 130px, 170px 130px, auto;
+  box-shadow: inset 0 0 0 2px #f7c04a, inset 0 3px 0 2px rgba(255, 255, 255, 0.12), 0 4px 0 rgba(9, 4, 28, 0.75), var(--sh-soft);
+  pointer-events: none;
+  z-index: 34;
+  animation: hud-pcard-in 0.36s var(--ease-spring) both;
+}
+
+.pc-ico {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: clamp(34px, 9.5vh, 54px);
+  height: clamp(34px, 9.5vh, 54px);
+  border-radius: 50%;
+  border: 2px solid var(--c-ink);
+  background: radial-gradient(circle at 50% 32%, #fff6c4 0%, #ffcf3f 52%, #d98a0c 100%);
+  box-shadow: inset 0 -3px 0 rgba(150, 80, 0, 0.45), 0 2px 0 rgba(9, 4, 28, 0.6);
+}
+
+.pc-ico > .ico {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 0 rgba(18, 10, 43, 0.45));
+}
+
+.pc-n {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: radial-gradient(circle at 50% 30%, #ff8b97, #e0334e);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pc-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pc-text small {
+  font-weight: 800;
+  font-size: clamp(10px, 2.3vh, 13px);
+  line-height: 1.1;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--c-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-text b {
+  font-weight: 800;
+  font-size: clamp(14px, 3.7vh, 22px);
+  line-height: 1.1;
+  color: var(--c-cream);
+  -webkit-text-stroke: 3px var(--c-ink);
+  paint-order: stroke fill;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-amt {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 800;
+  font-size: clamp(15px, 4vh, 24px);
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 3.5px var(--c-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 var(--c-ink);
+}
+
+.pc-amt .ico {
+  height: 1.25em;
+  width: auto;
+  -webkit-text-stroke: 0;
+}
+
+.hud > .pcard.out {
+  animation: hud-pcard-out 0.26s ease-in forwards;
+}
+
+.hud > .pcard.again {
+  animation: hud-pcard-again 0.3s var(--ease-spring);
+}
+
+@keyframes hud-pcard-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.85);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes hud-pcard-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -14px) scale(0.95);
+  }
+}
+
+@keyframes hud-pcard-again {
+  40% {
+    transform: translate(-50%, 0) scale(1.06);
+  }
+}
+
+.hud > .toast {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: max-content;
   max-width: min(560px, calc(var(--free-r) - var(--free-l) - 24px));
   padding: 8px 18px 9px;
@@ -3638,6 +3951,13 @@ html.reduce-fx .badge {
   animation: hud-toast 0.3s var(--ease-spring);
   pointer-events: none;
   z-index: 30;
+}
+
+/* round complete: gold, never pushed aside by other tips */
+.toast.gold {
+  background: var(--g-gold);
+  color: #4a2700;
+  box-shadow: inset 0 2px 0 #fff6c8, inset 0 -3px 0 rgba(160, 90, 0, 0.35), 0 4px 0 var(--ink), var(--sh-soft);
 }
 
 .toast.has-ico {
@@ -3664,14 +3984,185 @@ html.reduce-fx .badge {
 
 .toast.out {
   opacity: 0;
-  transform: translate(-50%, 8px);
+  transform: translateY(8px);
   transition: opacity 0.2s, transform 0.2s;
 }
 
 @keyframes hud-toast {
   from {
     opacity: 0;
-    transform: translate(-50%, 16px) scale(0.92);
+    transform: translateY(16px) scale(0.92);
+  }
+}
+
+/* placing: why the ghost cannot stand here (above its head; hud.ts sets the transform) */
+.hud > .place-why {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 36;
+  padding: 2px 10px 3px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--c-ink);
+  background: linear-gradient(180deg, #ff8b97, #e0334e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 3px 0 rgba(9, 4, 28, 0.7);
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(12px, 3.1vh, 17px);
+  line-height: 1.15;
+  white-space: nowrap;
+  -webkit-text-stroke: 3px var(--c-ink);
+  paint-order: stroke fill;
+  pointer-events: none;
+}
+
+/* leaks (A10): "-5" + heart at the exit, a heart flying into the lives pill, a heartbeat edge at low lives */
+.hud > .leak-tag {
+  position: absolute;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transform: translate(-50%, -50%);
+  font-weight: 800;
+  font-size: clamp(17px, 4.6vh, 30px);
+  line-height: 1;
+  color: #ff6b7a;
+  -webkit-text-stroke: 4px var(--c-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 var(--c-ink);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hud-leak-tag 1.5s ease-out forwards;
+}
+
+.leak-tag .ico {
+  height: 1.15em;
+  width: auto;
+  -webkit-text-stroke: 0;
+  filter: drop-shadow(0 2px 0 rgba(9, 4, 28, 0.7));
+}
+
+/* lean away from the map edge the track leaves through */
+.leak-tag.at-r {
+  transform: translate(-100%, -50%);
+}
+
+.leak-tag.at-l {
+  transform: translate(0, -50%);
+}
+
+.leak-tag.at-b {
+  transform: translate(-50%, -100%);
+}
+
+.leak-tag.at-t {
+  transform: translate(-50%, 10%);
+}
+
+.leak-tag.bump {
+  animation: hud-leak-tag 1.5s ease-out forwards, hud-leak-again 0.3s var(--ease-spring);
+}
+
+@keyframes hud-leak-tag {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  12% {
+    opacity: 1;
+    scale: 1.18;
+  }
+  24% {
+    scale: 1;
+  }
+  70% {
+    opacity: 1;
+    translate: 0 -10px;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -26px;
+  }
+}
+
+@keyframes hud-leak-again {
+  40% {
+    scale: 1.3;
+  }
+}
+
+.hud > .leak-heart {
+  position: absolute;
+  z-index: 40;
+  width: clamp(22px, 6vh, 34px);
+  height: clamp(22px, 6vh, 34px);
+  margin: calc(clamp(22px, 6vh, 34px) * -0.5) 0 0 calc(clamp(22px, 6vh, 34px) * -0.5);
+  pointer-events: none;
+  animation: hud-heart-fly 0.64s cubic-bezier(0.55, 0, 0.7, 0.45) forwards;
+}
+
+.leak-heart .ico {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  font-size: clamp(18px, 5vh, 28px);
+  filter: drop-shadow(0 2px 0 rgba(9, 4, 28, 0.6));
+}
+
+@keyframes hud-heart-fly {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 0.6;
+  }
+  16% {
+    opacity: 1;
+    translate: 0 -16px;
+    scale: 1.25;
+  }
+  100% {
+    opacity: 0.95;
+    translate: var(--dx, 0) var(--dy, 0);
+    scale: 0.75;
+  }
+}
+
+.hud > .hud-pulse {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: var(--map-r);
+  z-index: 2;
+  opacity: 0;
+  background: radial-gradient(ellipse 74% 70% at 50% 50%, rgba(255, 24, 64, 0) 55%, rgba(255, 24, 64, 0.26) 78%, rgba(255, 24, 64, 0.58) 100%);
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.hud > .hud-pulse.on {
+  opacity: 1;
+  animation: hud-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes hud-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  12% {
+    opacity: 1;
+  }
+  24% {
+    opacity: 0.45;
+  }
+  36% {
+    opacity: 0.9;
+  }
+  62% {
+    opacity: 0.3;
   }
 }
 
@@ -3745,7 +4236,7 @@ html.reduce-fx .badge {
 .sandbox-panel {
   position: absolute;
   left: calc(8px + var(--safe-l));
-  top: calc(var(--hud-top) + var(--hud-h) + 8px);
+  top: calc(var(--hud-top) + var(--bar-h) + 8px);
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -3818,8 +4309,8 @@ html.reduce-fx .badge {
     --up-w: min(340px, 47vw);
   }
   .upanel {
-    top: calc(var(--hud-top) + var(--hud-h) + 6px);
-    max-height: calc(100% - var(--hud-top) - var(--hud-h) - 12px - var(--safe-b));
+    top: calc(var(--hud-top) + var(--bar-h) + 4px);
+    max-height: calc(100% - var(--hud-top) - var(--bar-h) - 10px - var(--safe-b));
     border-radius: var(--r-md);
   }
   .u-portrait {
@@ -3837,10 +4328,39 @@ html.reduce-fx .badge {
   }
 }
 
-/* small tablets & desktop: the shop gets roomier */
+/* small tablets & desktop: the shop gets roomier, and each portrait gets its name */
 @media (min-height: 700px) and (min-width: 1000px) {
   .hud {
     --up-w: min(420px, 40vw);
+  }
+  .card {
+    aspect-ratio: 1 / 1.14;
+  }
+  .card .price {
+    height: 21%;
+  }
+  .card .cname {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 21%;
+    padding: 6px 3px 2px;
+    text-align: center;
+    font-weight: 800;
+    font-size: clamp(11px, 1.45vh, 15px);
+    line-height: 1.1;
+    color: var(--c-cream);
+    -webkit-text-stroke: 3px var(--c-ink);
+    paint-order: stroke fill;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: linear-gradient(180deg, rgba(18, 10, 43, 0), rgba(18, 10, 43, 0.62));
+    pointer-events: none;
+  }
+  .card.locked .cname {
+    color: var(--c-muted);
   }
 }
 
@@ -3862,8 +4382,18 @@ html.reduce-fx .badge {
   .ab-dock.open > .abilities,
   .u-xp.can,
   .path.unlocked-now,
-  .hand {
+  .hand,
+  .hud > .stage,
+  .hud > .pcard,
+  .hud > .toast,
+  .card.fresh,
+  .hud .shake {
     animation: none !important;
+  }
+  .hud > .hud-pulse,
+  .hud > .leak-tag,
+  .hud > .leak-heart {
+    display: none;
   }
 }
 
@@ -3879,6 +4409,13 @@ html.reduce-motion .ab-dock.open > .abilities,
 html.reduce-motion .u-xp.can,
 html.reduce-motion .path.unlocked-now,
 html.reduce-motion .hand,
+html.reduce-motion .hud > .stage,
+html.reduce-motion .hud > .pcard,
+html.reduce-motion .hud > .toast,
+html.reduce-motion .card.fresh,
+html.reduce-motion .hud .shake,
+html.reduce-fx .card.fresh,
+html.reduce-fx .hud > .hud-pulse.on,
 html.reduce-fx .ab-dock.ready:not(.open) .dock-tab,
 html.reduce-fx .u-xp.can,
 html.reduce-fx .play.waiting,
@@ -3887,4 +4424,16 @@ html.reduce-fx .ability.ready::before,
 html.reduce-fx .frenzy.ready .fill,
 html.reduce-fx .frenzy.active .bolt {
   animation: none !important;
+}
+
+/* reduce-motion: no heartbeat edge, no leak tags / flying hearts (hud.ts skips them too) */
+html.reduce-motion .hud > .hud-pulse,
+html.reduce-motion .hud > .leak-tag,
+html.reduce-motion .hud > .leak-heart {
+  display: none;
+}
+
+/* battery saver: the low-lives edge stays, without beating */
+html.reduce-fx .hud > .hud-pulse.on {
+  opacity: 0.7;
 }

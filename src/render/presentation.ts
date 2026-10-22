@@ -124,19 +124,20 @@ export function makePresentation(r: Renderer): FxSink {
       r.coins(x, y, Math.min(8, 2 + Math.floor(Math.log10(Math.max(1, amount)) * 2)));
     },
     leak(e: Enemy, lives: number) {
+      r.leak(e, lives);
       if (lives > 0) {
-        r.damageFlash = Math.min(0.6, 0.25 + lives / 200);
         r.shake(Math.min(10, 2 + lives / 20));
         audio.play('leak', 0.7);
-        haptic('heavy');
+        haptic(lives >= 10 ? 'heavy' : 'medium');
       }
-      void e;
     },
     bossDeath(e: Enemy) {
       // one headline per cascade: the outermost boss names itself, the bosses inside it stay quiet
       if (lastMerged > 0) return;
-      r.floatText(e.x, e.y - e.radius, t('{name} SHATTERED!', { name: t(e.def.name).toUpperCase() }), '#ffffff', 22);
-      r.headlineUntil = performance.now() + 1100;
+      const text = t('{name} SHATTERED!', { name: t(e.def.name).toUpperCase() });
+      // in a game the HUD's centre stage shows it (one message at a time); the menu demo has no HUD
+      if (r.onHeadline) r.onHeadline(text);
+      else r.floatText(e.x, e.y - e.radius, text, '#ffffff', 22);
       haptic('heavy');
     },
     shake(p) {

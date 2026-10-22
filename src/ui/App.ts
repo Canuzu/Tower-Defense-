@@ -14,8 +14,9 @@ import { uiIconUrl, mapExtArt } from '../render/art';
 import { audio } from '../audio/audio';
 import { Hud } from './hud';
 import { h, clear } from './dom';
-import { setHaptics } from './haptics';
-import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, wisdomPoints, type Profile } from '../save/storage';
+import { setHaptics, haptic } from './haptics';
+import { loadProfile, saveProfile, loadGame, saveGame, clearGame, latestSave, levelFromXp, wisdomPoints, isNew, markSeen, xpForLevel, type Profile, type SeenKind } from '../save/storage';
+import { PERKS } from '../game/perks';
 import { perksPage, achievementsPage, dailyPage, achievementIcon } from './meta';
 import { banditsPage, banditXpStrip, unlockableTypes, type BanditsOpts } from './bandits';
 import { TOWERS_BY_ROLE, roleGroups, roleCls, roleIcon, roleChip, roleName, towerRoleCls } from './roles';
@@ -49,15 +50,25 @@ import {
   MEDAL_EMOJI,
   fitText,
   dec,
+  bump,
+  reducedMotion,
   leavePage,
   page,
   PAGE_STAGGER,
+  MAP_LEVEL,
+  newPill,
+  levelRewards,
+  rewardName,
+  rewardArt,
+  rewardCards,
+  rewardReveal,
+  dismissTopOverlay,
+  type LevelReward,
 } from './kit';
 
 type Scene = 'menu' | 'maps' | 'setup' | 'game';
 type AtlasTab = 'bandits' | 'heroes' | 'stars' | 'bonds';
 
-const MAP_LEVEL: Record<string, number> = { meadow: 1, caverns: 2, fjord: 3, forge: 4, candy: 5, rivers: 6 };
 const TIER_COLOR: Record<string, string> = { Beginner: '#43c45a', Intermediate: '#f5b81f', Advanced: '#f27a2c', Expert: '#e8344e' };
 const MEDAL_DIFFS: Difficulty[] = ['easy', 'medium', 'hard', 'champion'];
 
@@ -151,6 +162,8 @@ export class App {
 
   /** Android back button / Escape-like navigation. */
   back() {
+    // a level-up reveal or a confirm dialog closes first
+    if (dismissTopOverlay()) return;
     const modalEl = this.root.querySelector('.modal-wrap');
     if (this.scene === 'game' && this.hud) {
       if (this.hud.isModalOpen) this.hud.dismissModal();
@@ -315,6 +328,8 @@ export class App {
     this.menuTop = this.buildMenuTop(true);
     this.menuDock = this.buildMenuDock(true);
     this.setScreen(h('div', { class: 'screen menu' }, logo, this.menuTop, this.menuDock, cta));
+    // level-ups not celebrated yet (a game left before its result screen) wait for the menu entrance
+    this.queueReveal(900);
   }
 
   /** Rebuilds the badges/level after a modal changed them, without replaying entrance animations. */
@@ -326,31 +341,129 @@ export class App {
     this.menuDock.replaceWith(dock);
     this.menuTop = top;
     this.menuDock = dock;
+    // after claiming achievements (their XP can bring a level) or a page that changed the profile
+    this.queueReveal();
   }
 
   private buildMenuTop(animate: boolean): HTMLElement {
-    const lv = levelFromXp(this.profile.xp);
-    const card = h(
-      'div',
-      { class: 'lvl-card', title: t('Player level {n}', { n: lv.level }), role: 'img', 'aria-label': `${t('Player level {n}', { n: lv.level })}: ${fmt(lv.into)} / ${fmt(lv.need)} XP` },
-      h('div', { class: 'lvl-star' }, uiIcon('xp', '⭐'), h('b', { class: 't-num' }, String(lv.level))),
-      bar(lv.into / lv.need),
-      h('div', { class: 'lvl-xp t-outline' }, `${fmt(lv.into)} / ${fmt(lv.need)} XP`),
-    );
-    const gear = roundBtn(uiIcon('gear', '⚙️'), t('Settings'), this.tap(() => this.openSettings()));
-    const top = h('div', { class: 'menu-top' }, card, gear);
-    if (animate) stagger([card, gear], 'anim-drop', 1);
+    const badge = this.levelBadge();
+    // the gear speaks for itself: no label under it (the button keeps its accessible name)
+    const gear = roundBtn(uiIcon('gear', '⚙️'), t('Settings'), this.tap(() => this.openSettings()), null, 'gear-btn no-label');
+    const top = h('div', { class: 'menu-top' }, badge, gear);
+    if (animate) stagger([badge, gear], 'anim-drop', 1);
     return top;
   }
 
+  /** Menu: player level star with an XP ring and the icon of the next reward (tap: level info). */
+  private levelBadge(): HTMLElement {
+    const lv = levelFromXp(this.profile.xp);
+    const next = levelRewards(lv.level, lv.level + 1);
+    const pick = next.find((r) => r.kind !== 'wisdom') ?? next[0] ?? null;
+    const label = `${t('Player level {n}', { n: lv.level })}: ${fmt(lv.into)} / ${fmt(lv.need)} XP` + (pick ? ` · ${t('Next: {name}', { name: rewardName(pick) })}` : '');
+    const b = h(
+      'button',
+      { class: 'lvl-badge', type: 'button', style: `--xp:${((lv.into / lv.need) * 100).toFixed(1)}%`, title: label, 'aria-label': label },
+      h('span', { class: 'lvl-ring', 'aria-hidden': 'true' }),
+      h('span', { class: 'lvl-badge-star' }, uiIcon('xp', '⭐'), h('b', { class: 't-num' }, String(lv.level))),
+      pick ? h('span', { class: 'lvl-next', 'aria-hidden': 'true' }, rewardArt(pick)) : null,
+    );
+    b.addEventListener('click', this.tap(() => this.openLevelInfo()));
+    return b;
+  }
+
+  /** Level info (from the menu badge): XP to the next level and what it brings. */
+  private openLevelInfo() {
+    const host = this.modalHost();
+    const lv = levelFromXp(this.profile.xp);
+    const next = { level: lv.level + 1, list: levelRewards(lv.level, lv.level + 1) };
+    const toNext = xpForLevel(next.level) - this.profile.xp;
+    const cards = rewardCards(next.list, { pill: 'level' });
+    stagger(cards, 'anim-pop', 2);
+    const close = () => {
+      host.close();
+      this.refreshMenu();
+    };
+    const m = modal(
+      { title: t('Player level {n}', { n: lv.level }), color: 'purple', icon: uiIcon('xp', '⭐'), size: 'narrow', cls: 'lvl-info', onClose: this.tap(close) },
+      [
+        h(
+          'div',
+          { class: 'lvl-info-xp' },
+          h('span', { class: 'lvl-info-star' }, uiIcon('xp', '⭐'), h('b', { class: 't-num' }, String(lv.level))),
+          h('div', { class: 'lvl-info-bar' }, bar(lv.into / lv.need, '', `${fmt(lv.into)} / ${fmt(lv.need)} XP`, 20), h('small', null, t('{xp} XP to level {n}', { xp: fmt(toNext), n: next.level }))),
+        ),
+        cards.length ? h('div', { class: 'lvl-info-next' }, h('span', { class: 't-up' }, t('Level {n} brings', { n: next.level })), h('div', { class: 'rv-cards' }, ...cards)) : null,
+        h('p', { class: 'page-note' }, uiIcon('info', 'ℹ️'), h('span', null, t('Earn XP by finishing rounds, winning medals, daily challenges and achievements.'))),
+      ],
+      [btn(t('Great!'), 'green', this.tap(close))],
+    );
+    host.open(m, close);
+  }
+
+  /**
+   * Level-ups the player has not seen celebrated yet (claimed achievements, a game left before its
+   * result screen): one reveal on the menu, once no page covers it.
+   */
+  private revealTimer = 0;
+  private queueReveal(delay = 450) {
+    clearTimeout(this.revealTimer);
+    this.revealTimer = window.setTimeout(() => {
+      if (this.scene !== 'menu' || this.screen.querySelector('.modal-wrap') || this.root.querySelector('.reveal-wrap')) return;
+      this.revealLevels(() => this.refreshMenu());
+    }, delay);
+  }
+
+  /** Shows the level-up reveal for the levels since the last one (if they bring anything). */
+  private revealLevels(onClose?: () => void, onBandits?: (r: LevelReward) => void): boolean {
+    const lv = this.level;
+    const from = this.profile.revealed;
+    if (lv <= from) return false;
+    this.profile.revealed = lv;
+    saveProfile(this.profile);
+    const el = rewardReveal(this.root, from, lv, {
+      onClose,
+      onBandits: onBandits ?? ((r) => this.openBandits(r.kind === 'hero' ? { heroId: r.id as HeroId } : { towerId: r.id as TowerId })),
+    });
+    return !!el;
+  }
+
+  /** NEW for a bandit / hero / map unlocked by player level and not looked at yet (never in dev mode's extra unlocks). */
+  isNew(kind: SeenKind, id: string): boolean {
+    const lv = kind === 'tower' ? TOWERS[id as TowerId].unlock : kind === 'hero' ? HEROES[id as HeroId].unlock : MAP_LEVEL[id] ?? 1;
+    return isNew(this.profile, kind, id, lv);
+  }
+
+  markSeen(kind: SeenKind, id: string): boolean {
+    return markSeen(this.profile, kind, id);
+  }
+
+  /** Daily badge: a dot while today's challenge is open, a countdown to the next one once it is done. */
+  private dailyBadge(): HTMLElement {
+    if (!this.profile.dailyDone[todayKey()]) return h('span', { class: 'badge-dot', title: t('New daily challenge') });
+    const el = h('span', { class: 'badge-timer' });
+    const paint = () => {
+      const now = new Date();
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+      const min = Math.max(1, Math.ceil((next - now.getTime()) / 60000));
+      el.textContent = min >= 60 ? t('{n} h', { n: Math.floor(min / 60) }) : t('{n} min', { n: min });
+      el.title = t('Next daily challenge in {t}', { t: el.textContent });
+    };
+    paint();
+    const id = window.setInterval(() => (el.isConnected ? paint() : clearInterval(id)), 30000);
+    return el;
+  }
+
   private buildMenuDock(animate: boolean): HTMLElement {
-    const pts = wisdomPoints(this.profile);
-    const unseen = newlyUnlocked(this.profile, null).length;
-    const dailyDone = !!this.profile.dailyDone[todayKey()];
-    const unlockable = unlockableTypes(this.profile).length;
+    const p = this.profile;
+    // badge rule: red counts only for something to claim or spend, NEW for content, a dot / countdown for the daily
+    const pts = p.perks.length < PERKS.length ? wisdomPoints(p) : 0;
+    const unseen = newlyUnlocked(p, null).length;
+    const unlockable = unlockableTypes(p).length;
+    const newBandit = TOWER_ORDER.some((id) => this.isNew('tower', id)) || HERO_ORDER.some((id) => this.isNew('hero', id));
+    const bandits = roundBtn(uiIcon('mask', '🦝'), t('Bandits'), this.tap(() => this.openBandits()), unlockable > 0 ? String(unlockable) : newBandit ? newPill('badge-new') : null, 'bandits-btn');
     const items = [
-      roundBtn(uiIcon('mask', '🦝'), t('Bandits'), this.tap(() => this.openBandits()), unlockable > 0 ? String(unlockable) : null, 'bandits-btn'),
-      roundBtn(uiIcon('calendar', '📅'), t('Daily'), this.tap(() => this.openDaily()), dailyDone ? null : '!'),
+      bandits,
+      roundBtn(uiIcon('calendar', '📅'), t('Daily'), this.tap(() => this.openDaily()), this.dailyBadge()),
       roundBtn(uiIcon('lantern', '🧠'), t('Wisdom'), this.tap(() => this.openPerks()), pts > 0 ? String(pts) : null),
       roundBtn(uiIcon('trophy', '🏅'), t('Achievements'), this.tap(() => this.openAchievements()), unseen > 0 ? String(unseen) : null),
       roundBtn(uiIcon('book', '📖'), t('Star Atlas'), this.tap(() => this.openCodex())),
@@ -371,6 +484,16 @@ export class App {
     return d === 'sandbox' ? uiIcon('sack', MEDAL_EMOJI.sandbox, cls) : uiIcon(MEDAL[d], MEDAL_EMOJI[d], cls);
   }
 
+  /** Newest saved game on a map (any difficulty but sandbox). */
+  private mapSave(m: MapDef): SaveState | null {
+    let best: SaveState | null = null;
+    for (const d of MEDAL_DIFFS) {
+      const s = loadGame(m.id, d);
+      if (s && (!best || s.savedAt > best.savedAt)) best = s;
+    }
+    return best;
+  }
+
   showMaps() {
     this.scene = 'maps';
     audio.play('click');
@@ -379,25 +502,48 @@ export class App {
     let medalCount = 0;
     const maps = [...MAPS].sort((a, b) => (MAP_LEVEL[a.id] ?? 9) - (MAP_LEVEL[b.id] ?? 9));
     const cards: HTMLElement[] = [];
+    const level = this.level;
     for (const m of maps) {
+      const need = MAP_LEVEL[m.id] ?? 1;
       const unlocked = this.mapUnlocked(m);
       const medals = h('div', { class: 'mc-medals' });
       for (const d of MEDAL_DIFFS) {
         const got = !!this.profile.medals[m.id]?.[d];
         if (got) medalCount++;
-        const ic = this.medalIcon(d, got ? '' : 'off');
+        const ic = this.medalIcon(d, got ? 'got' : 'off');
         ic.setAttribute('title', t(DIFFICULTIES[d].name));
         medals.append(ic);
       }
+      // corner chips: NEW, a game to continue, or the record towards the next medal
+      const save = unlocked ? this.mapSave(m) : null;
+      const chips = h('div', { class: 'mc-chips' });
+      if (save) chips.append(chip(uiIcon('play', '▶'), h('span', null, h('span', { class: 'mc-cont' }, t('Resume') + ' · '), t('Round {n}', { n: save.round })), 'blue mc-chip'));
+      else if (unlocked && this.isNew('map', m.id)) chips.append(newPill());
+      else if (unlocked) {
+        const d = MEDAL_DIFFS.find((x) => !this.profile.medals[m.id]?.[x]);
+        const best = d ? this.profile.bestRounds[m.id]?.[d] ?? 0 : 0;
+        if (d && best > 0) chips.append(chip(uiIcon(MEDAL[d], MEDAL_EMOJI[d]), t('Record {a}/{b}', { a: best, b: DIFFICULTIES[d].endRound }), 'dark mc-chip'));
+      }
+      let lock: HTMLElement | null = null;
+      if (!unlocked) {
+        const left = need - level;
+        const frac = this.profile.xp / Math.max(1, xpForLevel(need));
+        lock = h(
+          'div',
+          { class: 'mc-lock' },
+          uiIcon('lock', '🔒'),
+          h('div', { class: 'mc-need' }, h('b', null, left === 1 ? t('1 more level') : t('{n} more levels', { n: left })), bar(frac, 'gold', undefined, 9)),
+        );
+      }
       const card = h(
         'button',
-        { class: 'mapcard' + (unlocked ? '' : ' locked'), type: 'button', 'aria-label': t(m.name) },
+        { class: 'mapcard' + (unlocked ? '' : ' locked'), type: 'button', 'aria-label': unlocked ? t(m.name) : `${t(m.name)} · ${t('Unlocks at level {n}', { n: need })}` },
         img(mapImageSrc(m), 'mc-img', t(m.name)),
         h('div', { class: 'mc-shade' }),
         h('div', { class: 'mc-tier', style: `--tc:${TIER_COLOR[m.tier]}` }, t(m.tier)),
-        medals,
-        h('div', { class: 'mc-name t-outline' }, t(m.name)),
-        unlocked ? null : h('div', { class: 'mc-lock' }, uiIcon('lock', '🔒'), chip(null, t('Unlocks at level {n}', { n: MAP_LEVEL[m.id] }), 'dark')),
+        chips.childElementCount ? chips : null,
+        lock,
+        h('div', { class: 'mc-foot' }, h('div', { class: 'mc-name t-outline' }, t(m.name)), medals),
       );
       card.addEventListener('click', () => {
         if (!unlocked) {
@@ -407,6 +553,9 @@ export class App {
           card.classList.add('shake');
           return;
         }
+        this.markSeen('map', m.id);
+        // a game in progress: the setup opens on its difficulty (with "Continue" as the big button)
+        if (save) this.setupDiff = save.difficulty;
         this.showSetup(m);
       });
       cards.push(card);
@@ -414,7 +563,7 @@ export class App {
     }
     stagger(cards, 'anim-rise', 1);
     const total = h('div', { class: 'pill medal-total anim-fade', title: t('Medals') }, uiIcon('medal3', '🥇'), h('span', null, `${medalCount}/${MAPS.length * MEDAL_DIFFS.length}`));
-    this.setScreen(h('div', { class: 'screen' }, this.topbar(t('Choose a map'), () => this.showMenu(), total), grid));
+    this.setScreen(h('div', { class: 'screen maps' }, this.topbar(t('Choose a map'), () => this.showMenu(), total), grid));
   }
 
   private lastSetupMap: MapDef = MAPS[0];
@@ -428,16 +577,27 @@ export class App {
     this.setBackdrop('dim');
     const level = this.level;
 
-    // left: painted map, description, bandit roster
+    // left: painted map, description, bandit roster (the ones still to come share one chip)
     const roster = h('div', { class: 'roster-icons' });
     let unlockedCount = 0;
+    const lockedLv: number[] = [];
     for (const id of TOWERS_BY_ROLE) {
       const def = TOWERS[id];
       const open = this.devUnlock || level >= def.unlock;
-      if (open) unlockedCount++;
-      // locked: lock + level number (a "Lvl 5" label is wider than the icon on small phones)
-      const req = t('Unlocks at level {n}', { n: def.unlock });
-      roster.append(h('div', { class: `roster-icon role-disc ${roleCls(def.role)}` + (open ? '' : ' locked'), title: open ? `${t(def.name)} · ${roleName(def.role)}` : req, role: 'img', 'aria-label': open ? `${t(def.name)} · ${roleName(def.role)}` : req }, img(towerPortraitUrl(id), '', ''), open ? null : h('span', { class: 'lv', 'aria-hidden': 'true' }, uiIcon('lock', '🔒'), String(def.unlock))));
+      if (!open) {
+        lockedLv.push(def.unlock);
+        continue;
+      }
+      unlockedCount++;
+      const label = `${t(def.name)} · ${roleName(def.role)}`;
+      roster.append(h('div', { class: `roster-icon role-disc ${roleCls(def.role)}`, title: label, role: 'img', 'aria-label': label }, img(towerPortraitUrl(id), '', ''), this.isNew('tower', id) ? newPill('sm') : null));
+    }
+    if (lockedLv.length) {
+      const a = Math.min(...lockedLv);
+      const b = Math.max(...lockedLv);
+      const lv = a === b ? t('from Lv {a}', { a }) : t('from Lv {a}–{b}', { a, b });
+      const label = `+${lockedLv.length} ${lv}`;
+      roster.append(h('div', { class: 'roster-more', style: `grid-column:span ${Math.min(lockedLv.length, 9)}`, title: label, role: 'img', 'aria-label': label }, uiIcon('lock', '🔒'), h('b', null, `+${lockedLv.length}`), h('span', { class: 'rm-lv' }, lv)));
     }
     const left = h(
       'div',
@@ -484,38 +644,48 @@ export class App {
         const def = HEROES[id];
         const locked = !this.devUnlock && level < def.unlock;
         const sel = this.profile.heroId === id;
+        const fresh = !locked && this.isNew('hero', id);
+        // name + title on the tile (two lines); the description sits behind the info button
         const c = h(
           'button',
           { class: 'tile hero-tile role-tint role-hero' + (sel ? ' sel' : '') + (locked ? ' locked' : ''), type: 'button', 'aria-pressed': String(sel) },
           h('div', { class: 'portrait role-disc' }, img(heroPortraitUrl(id, 1), '', t(def.name))),
-          h(
-            'div',
-            { class: 'hero-text' },
-            h('b', { class: 't-outline' }, t(def.name)),
-            h('small', null, t(def.title)),
-            locked ? chip(uiIcon('lock', '🔒'), t('Unlocks at level {n}', { n: def.unlock }), 'dark') : h('span', { class: 'hdesc' }, t(def.desc)),
-          ),
+          h('div', { class: 'hero-text' }, h('b', { class: 't-outline' }, t(def.name)), locked ? chip(uiIcon('lock', '🔒'), t('Level {n}', { n: def.unlock }), 'dark') : h('small', null, t(def.title))),
           sel ? uiIcon('check', '✔', 'sel-mark') : null,
+          fresh ? newPill('sm') : null,
         );
         c.addEventListener('click', () => {
           if (locked) {
             audio.play('error');
             return;
           }
-          if (sel) return;
+          this.markSeen('hero', id);
+          if (sel) {
+            if (fresh) render(false);
+            return;
+          }
           this.profile.heroId = id;
           saveProfile(this.profile);
           audio.play('click');
           render(false);
         });
-        return c;
+        const info = h('button', { class: 'hero-info', type: 'button', title: t('About {name}', { name: t(def.name) }), 'aria-label': t('About {name}', { name: t(def.name) }) }, uiIcon('info', 'ℹ️'));
+        info.addEventListener('click', this.tap(() => this.heroInfo(id, locked, () => render(false))));
+        return h('div', { class: 'hero-cell' }, c, info);
       });
       heroes.append(...heroTiles);
 
       clear(actions);
-      const existing = loadGame(m.id, this.setupDiff);
-      if (existing && this.setupDiff !== 'sandbox') actions.append(btn(t('Continue round {n}', { n: existing.round }), 'blue', this.tap(() => this.resume(existing))));
-      actions.append(btn(existing ? t('New game') : t('Start'), 'green', () => this.startGame(m.id, this.setupDiff, this.profile.heroId), { cls: 'start glint', icon: uiIcon('play', '▶') }));
+      const existing = this.setupDiff !== 'sandbox' ? loadGame(m.id, this.setupDiff) : null;
+      const heroId = this.profile.heroId;
+      const face = h('span', { class: 'start-face role-disc role-hero', 'aria-hidden': 'true' }, img(heroPortraitUrl(heroId, 1), '', ''));
+      const start = () => this.startGame(m.id, this.setupDiff, this.profile.heroId);
+      if (existing) {
+        actions.append(
+          btn(t('New game'), 'dark', start, { cls: 'new-game' }),
+          btn(t('Continue'), 'green', this.tap(() => this.resume(existing)), { size: 'big', cls: 'start glint', icon: face, sub: t('Round {n}', { n: existing.round }) }),
+        );
+      } else actions.append(btn(t("Let's go!"), 'green', start, { size: 'big', cls: 'start glint', icon: face }));
       if (first) {
         stagger(tiles, 'anim-pop', 2);
         stagger(heroTiles, 'anim-rise', 6);
@@ -533,7 +703,40 @@ export class App {
       heroes,
       actions,
     );
-    this.setScreen(h('div', { class: 'screen' }, this.topbar(t(m.name), () => this.showMaps()), h('div', { class: 'setup' }, left, right)));
+    // the chosen map, blurred, behind everything
+    const bg = h('div', { class: 'setup-bg', 'aria-hidden': 'true' }, img(mapImageSrc(m), '', ''));
+    this.setScreen(h('div', { class: 'screen setup-screen' }, bg, this.topbar(t(m.name), () => this.showMaps()), h('div', { class: 'setup' }, left, right)));
+  }
+
+  /** A hero's description (setup info button), with "Choose" when it can be picked. */
+  private heroInfo(id: HeroId, locked: boolean, changed: () => void) {
+    const host = this.modalHost();
+    const def = HEROES[id];
+    const close = () => host.close();
+    const choose =
+      !locked && this.profile.heroId !== id
+        ? btn(t('Choose'), 'green', () => {
+            audio.play('click');
+            this.profile.heroId = id;
+            this.markSeen('hero', id);
+            saveProfile(this.profile);
+            close();
+            changed();
+          }, { icon: uiIcon('check', '✔') })
+        : null;
+    const m = modal(
+      { title: t(def.name), color: 'gold', size: 'narrow', cls: 'hero-info-modal', onClose: this.tap(close) },
+      [
+        h(
+          'div',
+          { class: 'hero-info-body' },
+          h('div', { class: 'portrait role-disc role-hero' }, img(heroPortraitUrl(id, 1), '', t(def.name))),
+          h('div', { class: 'hero-info-text' }, h('b', { class: 't-outline' }, t(def.title)), h('p', null, softHyphens(t(def.desc))), locked ? chip(uiIcon('lock', '🔒'), t('Unlocks at level {n}', { n: def.unlock }), 'dark') : null),
+        ),
+      ],
+      [btn(t('Close'), 'dark', this.tap(close)), choose],
+    );
+    host.open(m, close);
   }
 
   // -------------------------------------------------------------------------------------------
@@ -779,6 +982,9 @@ export class App {
           saveProfile(this.profile);
           return true;
         },
+        // NEW / gold ring on shop cards unlocked by player level and not looked at yet (profile.seen)
+        isNew: (kind, id) => this.isNew(kind, id),
+        markSeen: (kind, id) => void this.markSeen(kind, id),
       },
       this.root,
     );
@@ -802,12 +1008,20 @@ export class App {
     const xp = Math.round((20 + round * 2) * g.diff.xpMul);
     this.addXp(xp);
     this.profile.stats.bestRound = Math.max(this.profile.stats.bestRound, round);
+    if (!g.config.challenge) {
+      const best = (this.profile.bestRounds[g.map.id] ??= {});
+      best[g.config.difficulty] = Math.max(best[g.config.difficulty] ?? 0, round);
+    }
     if ((!g.won || g.freeplay) && !g.config.challenge) saveGame(g.serialize());
     this.trackStats(g);
     saveProfile(this.profile);
   }
 
-  /** `banner` is off while the result screen opens (it shows the level-up itself). */
+  /**
+   * `banner` is off while the result screen opens (it shows the level-up itself). In a game a
+   * level-up is only the HUD's banner (with the rewards; the new shop cards get their ring through
+   * setPlayerLevel); the full reveal follows on the result screen or the menu.
+   */
   private addXp(xp: number, banner = true) {
     const before = this.level;
     this.profile.xp += xp;
@@ -815,11 +1029,7 @@ export class App {
     const after = this.level;
     if (after > before && this.hud) this.hud.setPlayerLevel(after);
     if (after > before && this.hud && banner) {
-      const unlocked = [
-        ...TOWER_ORDER.filter((id) => TOWERS[id].unlock > before && TOWERS[id].unlock <= after).map((id) => t(TOWERS[id].name)),
-        ...HERO_ORDER.filter((id) => HEROES[id].unlock > before && HEROES[id].unlock <= after).map((id) => t(HEROES[id].name)),
-      ];
-      this.hud.banner(t('LEVEL {n}!', { n: after }), unlocked.length ? t('Unlocked: {list}', { list: unlocked.join(', ') }) : t('Player level up'), false);
+      this.hud.levelUp({ from: before, to: after, rewards: levelRewards(before, after) });
       audio.play('levelup');
     }
   }
@@ -863,10 +1073,11 @@ export class App {
     );
     const hero = h('div', { class: 'result-hero' }, h('div', { class: 'result-art' }, h('div', { class: 'rays' }), uiIcon('trophy', '🏆'), medal), msg, this.resultAchievements());
     let m: HTMLElement;
-    const strip = this.banditStrip(() => hud.openModal(m, true, { locked: true }));
+    const reopen = () => hud.openModal(m, true, { locked: true });
+    const strip = this.banditStrip(reopen);
     m = modal(
       { title: t('VICTORY!'), color: 'gold', size: 'wide', cls: 'win' },
-      [h('div', { class: 'result' }, hero, h('div', { class: 'result-side' }, this.resultStats(g, true), this.xpReward(), strip))],
+      [h('div', { class: 'result' }, hero, h('div', { class: 'result-side' }, this.resultStats(g, true), this.xpReward(reopen), strip))],
       [
         btn(
           t('Freeplay'),
@@ -910,10 +1121,11 @@ export class App {
       const hero = h('div', { class: 'result-hero' }, art, h('p', { class: 'result-msg' }, t('The stars broke through on round {n}.', { n: g.round })), this.resultAchievements());
       const snap = g.roundSnapshot;
       let m: HTMLElement;
-      const strip = this.banditStrip(() => hud.openModal(m, true, { locked: true }));
+      const reopen = () => hud.openModal(m, true, { locked: true });
+      const strip = this.banditStrip(reopen);
       m = modal(
         { title: t('GAME OVER'), color: 'red', size: 'wide', cls: 'lose' },
-        [h('div', { class: 'result lose' }, hero, h('div', { class: 'result-side' }, this.resultStats(g, false), this.xpReward(), strip))],
+        [h('div', { class: 'result lose' }, hero, h('div', { class: 'result-side' }, this.resultStats(g, false), this.xpReward(reopen), strip))],
         [
           snap ? btn(t('Retry round {n}', { n: snap.round }), 'gold', this.tap(() => this.resume(snap, true)), { icon: restartIcon() }) : null,
           btn(t('Restart'), 'green', this.tap(() => this.startGame(g.config.mapId, g.config.difficulty, g.config.heroId, g.config.challenge)), { icon: uiIcon('play', '▶') }),
@@ -948,13 +1160,66 @@ export class App {
     return h('div', { class: 'stat-grid' }, ...tiles);
   }
 
-  private xpReward() {
-    const val = h('b', { class: 't-num' }, '+0');
-    countUp(val, this.xpGainedThisGame, { delay: 1000, format: (n) => '+' + fmt(n) });
-    const lv = this.level;
-    const up = lv > this.levelAtStart ? chip(uiIcon('xp', '⭐'), t('Level {n}!', { n: lv }), 'gold lvl-up anim-pop') : null;
-    if (up) up.style.setProperty('--d', '1500ms');
-    return h('div', { class: 'reward anim-pop', style: '--d:900ms' }, uiIcon('xp', '⭐'), val, h('small', null, t('XP earned')), up);
+  /**
+   * XP row of the result screens: the level star, a bar that fills from where this game started
+   * (wrapping at every level-up) and the XP earned. Once it is full, a level-up gets its reveal;
+   * the "Level 3!" chip shows it again. `reopen` brings the result screen back from the Bandit menu.
+   */
+  private xpReward(reopen: () => void) {
+    const gained = this.xpGainedThisGame;
+    const endXp = this.profile.xp;
+    const startXp = Math.max(0, endXp - gained);
+    const fromLv = this.levelAtStart;
+    const num = h('b', { class: 't-num' }, '');
+    const star = h('span', { class: 'xp-star' }, uiIcon('xp', '⭐'), num);
+    const meter = bar(0, '', ' ', 18);
+    meter.classList.add('xp-meter');
+    const fill = meter.firstElementChild as HTMLElement;
+    const label = meter.lastElementChild as HTMLElement;
+    const val = h('b', { class: 't-num xp-gain' }, '+0');
+    const slot = h('span', { class: 'xp-up' });
+    const el = h('div', { class: 'reward xp-row anim-pop', style: '--d:900ms' }, star, h('div', { class: 'xp-mid' }, meter, h('small', null, t('XP earned'))), val, slot);
+    let shown = 0;
+    const paint = (xp: number) => {
+      const lv = levelFromXp(xp);
+      if (lv.level !== shown) {
+        if (shown) bump(star);
+        shown = lv.level;
+        num.textContent = String(lv.level);
+      }
+      meter.classList.toggle('zero', lv.into <= 0);
+      fill.style.setProperty('--p', `${((lv.into / lv.need) * 100).toFixed(1)}%`);
+      label.textContent = `${fmt(lv.into)} / ${fmt(lv.need)} XP`;
+    };
+    const toBandits = (r: LevelReward) => this.openBandits({ ...(r.kind === 'hero' ? { heroId: r.id as HeroId } : { towerId: r.id as TowerId }), back: reopen });
+    const finish = () => {
+      paint(endXp);
+      const lv = this.level;
+      if (lv <= fromLv) return;
+      const up = h('button', { class: 'chip gold lvl-up anim-pop', type: 'button', title: t('Show rewards') }, uiIcon('xp', '⭐'), t('Level {n}!', { n: lv }));
+      up.addEventListener('click', this.tap(() => rewardReveal(this.root, fromLv, lv, { onBandits: toBandits })));
+      slot.append(up);
+      haptic('medium');
+      // the reveal waits a moment for the bar to settle (unless the screen is already gone)
+      setTimeout(() => el.isConnected && this.revealLevels(undefined, toBandits), reducedMotion() ? 200 : 450);
+    };
+    paint(startXp);
+    countUp(val, gained, { delay: 1000, dur: 1300, format: (n) => '+' + fmt(n) });
+    if (reducedMotion() || gained <= 0) {
+      finish();
+      return el;
+    }
+    const begin = performance.now() + 1000;
+    const dur = 1300;
+    const step = (now: number) => {
+      if (!el.isConnected && now > begin + 50) return finish();
+      const k = Math.min(1, Math.max(0, (now - begin) / dur));
+      paint(startXp + gained * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step);
+      else finish();
+    };
+    requestAnimationFrame(step);
+    return el;
   }
 
   /** Achievements unlocked during this game (their toasts would hide behind the result modal). */

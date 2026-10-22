@@ -53,7 +53,8 @@ RULES = [
     ('e_', {'size': 168, 'anchor': [0.5, 0.5]}),
     ('p_', {'size': 128, 'anchor': [0.5, 0.5]}),
     ('ab_', {'size': 192, 'anchor': [0.5, 0.5]}),
-    ('ui_keyart', {'size': 1920, 'trim': False, 'clean': False, 'anchor': [0, 0], 'quality': 82}),
+    # key art behind the menus: the full 2688 px of the raw painting (tablets showed 1920 px upscaled)
+    ('ui_keyart', {'size': 2688, 'trim': False, 'clean': False, 'anchor': [0, 0], 'quality': 82}),
     ('ui_appicon', None),  # native app icon: written to resources/ by scripts/art/native_icons.py
     ('ui_logo', {'size': 900, 'anchor': [0.5, 0.5], 'quality': 90}),
     ('ui_medal', {'size': 192, 'anchor': [0.5, 0.5]}),

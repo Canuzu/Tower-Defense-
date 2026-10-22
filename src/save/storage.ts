@@ -46,6 +46,18 @@ export interface Profile {
   towerUnlocks: ProgressState['towerUnlocks'];
   /** boss types whose intro banner was already shown */
   seenBosses: string[];
+  /**
+   * Content unlocked by player level that the player has looked at since (keys from seenKey: a
+   * bandit, hero or map); anything unlocked and not in here wears a NEW pill. Content unlocking at
+   * or below `seenBase` never counts as new (starter content, and everything a profile from before
+   * NEW pills existed had already unlocked).
+   */
+  seen: string[];
+  seenBase: number;
+  /** highest player level whose rewards the level-up reveal has shown */
+  revealed: number;
+  /** best round reached per map and difficulty (map cards: "Record 27/40") */
+  bestRounds: Record<string, Partial<Record<Difficulty, number>>>;
 }
 
 const KEY = 'gloop-guardians/profile/v1';
@@ -66,6 +78,10 @@ export const defaultProfile = (): Profile => ({
   towerXpTotal: {},
   towerUnlocks: {},
   seenBosses: [],
+  seen: [],
+  seenBase: 1,
+  revealed: 1,
+  bestRounds: {},
 });
 
 function read<T>(key: string): T | null {
@@ -104,6 +120,11 @@ export function loadProfile(): Profile {
     towerXpTotal: p.towerXpTotal ?? {},
     towerUnlocks: p.towerUnlocks ?? {},
     seenBosses: p.seenBosses ?? [],
+    // profiles from before NEW pills / the level-up reveal: what they already have is not news
+    seen: p.seen ?? [],
+    seenBase: p.seenBase ?? levelFromXp(p.xp ?? 0).level,
+    revealed: p.revealed ?? levelFromXp(p.xp ?? 0).level,
+    bestRounds: p.bestRounds ?? {},
   };
 }
 
@@ -146,6 +167,32 @@ export function latestSave(): SaveState | null {
 /** Wisdom points: one per level gained. */
 export function wisdomPoints(p: Profile): number {
   return levelFromXp(p.xp).level - 1 - p.perks.length;
+}
+
+export type SeenKind = 'tower' | 'hero' | 'map';
+
+/** Key of a level-unlocked thing in `profile.seen`. */
+export const seenKey = (kind: SeenKind, id: string) => kind[0] + ':' + id;
+
+/** Unlocked by player level and not looked at yet: shows a NEW pill. */
+export function isNew(p: Profile, kind: SeenKind, id: string, unlockLevel: number): boolean {
+  return unlockLevel > p.seenBase && levelFromXp(p.xp).level >= unlockLevel && !p.seen.includes(seenKey(kind, id));
+}
+
+/** Marks a bandit / hero / map as looked at (its NEW pill goes away). Returns true when it was new. */
+export function markSeen(p: Profile, kind: SeenKind, id: string): boolean {
+  const key = seenKey(kind, id);
+  if (p.seen.includes(key)) return false;
+  p.seen.push(key);
+  saveProfile(p);
+  return true;
+}
+
+/** Total XP needed to reach `level` (inverse of levelFromXp). */
+export function xpForLevel(level: number): number {
+  let xp = 0;
+  for (let l = 1; l < level; l++) xp += 400 + (l - 1) * 250;
+  return xp;
 }
 
 /** Player level from XP: each level needs a bit more. */
