@@ -62,7 +62,7 @@ add([g('black', 6, 0.9)], 'Black Holes swallow explosions!');
 add([g('yellow', 14, 0.4), g('pink', 40, 0.25, 5)]);
 add([g('white', 16, 0.6)], 'Ice Stars cannot be frozen.');
 add([g('black', 7, 0.6), g('white', 7, 0.6, 3)]);
-add([g('green', 20, 0.3), g('green', 1, 1, 7, 'c')], 'CAMO star! You need towers that detect camo.');
+add([g('green', 20, 0.3), g('green', 1, 1, 7, 'c')], 'CAMO star! You need bandits that detect camo.');
 add([g('yellow', 25, 0.35, 0, 'r'), g('purple', 10, 0.7, 6)], 'Nebulas shrug off magic and fire.');
 add([g('pink', 23, 0.3), g('zebra', 4, 1, 6)]);
 add([g('red', 100, 0.08), g('blue', 60, 0.1, 6), g('green', 45, 0.13, 12), g('yellow', 45, 0.15, 17)], 'RUSH!');

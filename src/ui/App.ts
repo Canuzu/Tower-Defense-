@@ -1150,7 +1150,7 @@ export class App {
     const items: [HTMLElement, string, number, (n: number) => string, boolean][] = [
       [star('red'), t('Stars shattered'), s.pops, fmt, true],
       [star('moab'), t('Bosses defeated'), s.bossesPopped, fmt, true],
-      [uiIcon('coin', '🪙'), t('Cash earned'), Math.floor(s.cashEarned), (n) => '$' + fmt(n), true],
+      [uiIcon('coin', '🪙'), t('Cash earned'), Math.floor(s.cashEarned), fmt, true],
       // the combo still running when the game ends has not been folded into bestCombo yet
       [uiIcon('target', '🎯'), t('Best combo'), Math.max(s.bestCombo, g.combo), (n) => fmt(n) + 'x', true],
       [star('golden'), t('Lucky Stars'), s.goldenPopped ?? 0, fmt, true],

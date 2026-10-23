@@ -24,7 +24,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyDef> = {
   easy: {
     id: 'easy',
     name: 'Easy',
-    desc: '40 rounds · 200 lives · cheaper towers',
+    desc: '40 rounds · 200 lives · cheaper bandits',
     lives: 200,
     cash: 650,
     costMul: 0.85,
@@ -48,7 +48,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyDef> = {
   hard: {
     id: 'hard',
     name: 'Hard',
-    desc: '80 rounds · 100 lives · pricier towers',
+    desc: '80 rounds · 100 lives · pricier bandits',
     lives: 100,
     cash: 650,
     costMul: 1.08,

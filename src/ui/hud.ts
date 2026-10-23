@@ -388,7 +388,7 @@ export class Hud {
     this.frenzyLbl = h('span', { class: 'lbl' }, tr('FRENZY'));
     this.frenzyEl = h(
       'button',
-      { class: 'frenzy', type: 'button', title: tr('Fill the meter by shattering stars, then tap for 10s of FRENZY (+50% attack speed)') },
+      { class: 'frenzy', type: 'button', title: tr('Fill the meter by shattering stars, then tap for 10s of {frenzy} (+50% attack speed)') },
       h('div', { class: 'track' }, this.frenzyFill),
       h('span', { class: 'bolt', html: BOLT_SVG }),
       this.frenzyLbl,
@@ -461,7 +461,7 @@ export class Hud {
       h('span', { class: 'card-new', 'aria-hidden': 'true' }, tr('NEW')),
       // tablets: the name under the portrait
       h('div', { class: 'cname' }, name),
-      h('div', { class: 'price' }, uiIcon('coin', '$', 'coin'), h('span', { class: 'pv' }, '')),
+      h('div', { class: 'price' }, uiIcon('coin', '🪙', 'coin'), h('span', { class: 'pv' }, '')),
     );
     card.dataset.kind = kind;
     card.dataset.id = id;
@@ -559,7 +559,7 @@ export class Hud {
       }),
       g.events.on('roundEnd', ({ round, bonus }) => {
         // never pushed aside by other tips: it goes to the front of the queue
-        this.tips.show({ text: tr('Round {n} complete! +${bonus}', { n: round, bonus: num(bonus) }), ms: 2000, icon: 'coin', cls: 'gold', front: true });
+        this.tips.show({ text: tr('Round {n} complete! +{bonus}', { n: round, bonus: num(bonus) }), ms: 2000, icon: 'coin', cls: 'gold', front: true });
         const before = this.unlockableTypes();
         this.host.onRoundEnd(round);
         if (this.tutorialStep === 2 && round >= 1) this.tutorial(3);
@@ -584,10 +584,10 @@ export class Hud {
       }),
       g.events.on('frenzyReady', () => {
         // the meter pulses every time; the tip only the first couple of times
-        if (this.frenzyTips++ < 2) this.tips.show({ text: tr('FRENZY is ready! Tap the meter!'), ms: 2200 });
+        if (this.frenzyTips++ < 2) this.tips.show({ text: tr('{frenzy} is ready! Tap the meter!'), ms: 2200 });
         audio.play('ready');
       }),
-      g.events.on('frenzyStart', () => this.stage.show({ kind: 'action', text: tr('FRENZY!'), sub: tr('+50% attack speed'), color: 'red' })),
+      g.events.on('frenzyStart', () => this.stage.show({ kind: 'action', text: tr('{frenzy}!'), sub: tr('+50% attack speed'), color: 'red' })),
       g.events.on('victory', () => this.host.onVictory()),
       g.events.on('gameOver', () => this.host.onDefeat()),
       g.events.on('lifeLost', (lives) => this.onLifeLost(lives)),
@@ -1128,7 +1128,7 @@ export class Hud {
           const buy = h(
             'button',
             { class: 'btn small buy gold', type: 'button', title: tr(u.name) },
-            h('span', { class: 'bp' }, uiIcon('coin', '$', 'coin'), h('span', null, num(cost))),
+            h('span', { class: 'bp' }, uiIcon('coin', '🪙', 'coin'), h('span', null, num(cost))),
             h('small', null, tr('Tier {n}', { n: tier + 1 })),
           ) as HTMLButtonElement;
           buy.dataset.cost = String(cost);
@@ -1203,7 +1203,7 @@ export class Hud {
     }
     const sellV = t.sellValue(g.sandbox) + Math.floor(t.stash);
     const sellLbl = h('span', null, tr('Sell'));
-    const sellBtn = btn(h('span', { class: 'sell-in' }, sellLbl, h('span', { class: 'sv' }, uiIcon('coin', '$', 'coin'), num(sellV))), 'red', () => {
+    const sellBtn = btn(h('span', { class: 'sell-in' }, sellLbl, h('span', { class: 'sv' }, uiIcon('coin', '🪙', 'coin'), num(sellV))), 'red', () => {
       // expensive towers need a second tap so they are not sold by accident
       if (sellV >= 1000 && !sellBtn.classList.contains('armed') && !this.game.sandbox) {
         sellBtn.classList.add('armed');
@@ -1384,7 +1384,7 @@ export class Hud {
       el.append(h('span', { class: 'st ' + key, title }, icon, v));
       this.statEls[key] = v;
     };
-    add('pops', img(starPortraitUrl('red'), 'ico'), tr('Pops'));
+    add('pops', img(starPortraitUrl('red'), 'ico'), tr('Shattered'));
     if (t.stats.bank) add('stash', uiIcon('sack', '💰'), tr('Stash'));
     else if (t.stats.income) add('income', uiIcon('coin', '🪙'), tr('Income'));
     const a = t.stats.attacks[0];
@@ -1401,10 +1401,10 @@ export class Hud {
   private updateStats(t: Tower) {
     const s = this.statEls;
     if (s.pops) setText(s.pops, num(t.pops));
-    if (s.stash && t.stats.bank) setText(s.stash, `$${num(t.stash)}/${num(t.stats.bank.capacity)}`);
+    if (s.stash && t.stats.bank) setText(s.stash, `${num(t.stash)}/${num(t.stats.bank.capacity)}`);
     if (s.income && t.stats.income) {
       const inc = t.stats.income;
-      setText(s.income, tr('${n}/round', { n: num(inc.perDrop * inc.drops * t.buffs.incomeMul + inc.bonusPerRound) }));
+      setText(s.income, tr('{n}/round', { n: num(inc.perDrop * inc.drops * t.buffs.incomeMul + inc.bonusPerRound) }));
     }
     const a = t.stats.attacks[0];
     if (!a || !s.dmg) return;
@@ -1575,7 +1575,7 @@ export class Hud {
         const step = d * Math.min(1, dt * (d > 0 ? 8 : 14));
         this.shownCash += Math.abs(step) < 1 ? Math.sign(d) : step;
       }
-      setText(this.cashEl, g.sandbox ? '∞' : '$' + num(Math.round(this.shownCash)));
+      setText(this.cashEl, g.sandbox ? '∞' : num(Math.round(this.shownCash)));
     }
     if (g.lives !== this.lastLives) {
       setText(this.livesEl, g.sandbox ? '∞' : num(Math.max(0, g.lives)));
@@ -1600,10 +1600,10 @@ export class Hud {
     toggle(this.frenzyEl, 'active', g.frenzyT > 0);
     if (g.frenzyT > 0) {
       this.frenzyFill.style.width = `${(g.frenzyT / g.frenzyDuration) * 100}%`;
-      setText(this.frenzyLbl, tr('FRENZY {n}s', { n: Math.ceil(g.frenzyT) }));
+      setText(this.frenzyLbl, tr('{frenzy} {n}s', { n: Math.ceil(g.frenzyT) }));
     } else {
       this.frenzyFill.style.width = `${Math.min(100, (g.frenzyMeter / g.frenzyMax) * 100)}%`;
-      setText(this.frenzyLbl, tr(ready ? 'TAP: FRENZY!' : 'FRENZY'));
+      setText(this.frenzyLbl, tr(ready ? 'TAP: {frenzy}!' : 'FRENZY'));
     }
     // combo: a small chip under the cash; big combos get a call-out on the stage
     if (g.combo >= 10) {

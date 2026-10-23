@@ -21,10 +21,10 @@ const firstAttack = (s: TowerStats) => s.attacks[0];
 
 export const PERKS: PerkDef[] = [
   // economy
-  { id: 'cash1', name: 'Pocket Money', desc: 'Start every game with +$100.', icon: '🪙', branch: 'economy' },
-  { id: 'cash2', name: 'Piggy Bank', desc: 'Start every game with another +$200.', icon: '🐷', branch: 'economy', requires: 'cash1' },
+  { id: 'cash1', name: 'Pocket Money', desc: 'Start every game with +100 coins.', icon: '🪙', branch: 'economy' },
+  { id: 'cash2', name: 'Piggy Bank', desc: 'Start every game with another +200 coins.', icon: '🐷', branch: 'economy', requires: 'cash1' },
   { id: 'bonus', name: 'Overtime', desc: '+20% end-of-round bonus cash.', icon: '⏰', branch: 'economy', requires: 'cash1' },
-  { id: 'thrift', name: 'Haggling', desc: 'All towers and upgrades cost 3% less.', icon: '🏷️', branch: 'economy', requires: 'bonus' },
+  { id: 'thrift', name: 'Haggling', desc: 'All bandits and upgrades cost 3% less.', icon: '🏷️', branch: 'economy', requires: 'bonus' },
   { id: 'acorns', name: 'Treasure Sniffer', desc: 'Hoarders dig up +1 shiny per round.', icon: '💎', branch: 'economy', requires: 'cash2' },
   // critters
   {
@@ -101,8 +101,8 @@ export const PERKS: PerkDef[] = [
   { id: 'hero3', name: 'Veteran', desc: 'Heroes start at level 4.', icon: '🎖️', branch: 'heroes', requires: 'hero2' },
   { id: 'herocost', name: 'Fan Club', desc: 'Heroes cost 15% less.', icon: '💖', branch: 'heroes', requires: 'hero1' },
   // power
-  { id: 'frenzy1', name: 'Hot Streak', desc: 'FRENZY lasts 3 seconds longer.', icon: '🔥', branch: 'power' },
-  { id: 'frenzy2', name: 'Fired Up', desc: 'The FRENZY meter fills 20% faster.', icon: '⚡', branch: 'power', requires: 'frenzy1' },
+  { id: 'frenzy1', name: 'Hot Streak', desc: '{frenzy} lasts 3 seconds longer.', icon: '🔥', branch: 'power' },
+  { id: 'frenzy2', name: 'Fired Up', desc: 'The {frenzy} meter fills 20% faster.', icon: '⚡', branch: 'power', requires: 'frenzy1' },
   { id: 'lives', name: 'Thick Fur', desc: '+15 lives (not in Champion mode).', icon: '❤️', branch: 'power' },
   { id: 'abilities', name: 'Quick Recharge', desc: 'Abilities recharge 10% faster.', icon: '♻️', branch: 'power', requires: 'frenzy1' },
   { id: 'bonds', name: 'Strong Bonds', desc: 'Bond partners can be 20% further apart.', icon: '🔗', branch: 'power', requires: 'lives' },

@@ -371,7 +371,8 @@ export function fitText(el: HTMLElement, min = 0.78, wrap = true) {
     const w = el.clientWidth;
     if (w && el.scrollWidth > w + 0.5) {
       const size = parseFloat(getComputedStyle(el).fontSize);
-      el.style.fontSize = `${(size * Math.max(min, (w / el.scrollWidth) * 0.97)).toFixed(2)}px`;
+      // never below the 11px floor of the type scale
+      el.style.fontSize = `${Math.max(Math.min(size, 11), size * Math.max(min, (w / el.scrollWidth) * 0.97)).toFixed(2)}px`;
     }
     if (wrap && w && el.scrollWidth > el.clientWidth + 0.5) {
       el.style.fontSize = '';

@@ -117,11 +117,11 @@ export function makePresentation(r: Renderer): FxSink {
       r.addBeam(kind, pts, color, width);
       if (kind === 'tracer') audio.play('snipe', 0.3);
     },
-    text(x, y, str, color, size) {
-      r.floatText(x, y, t(str), color, size);
+    text(x, y, str, color, size, coin) {
+      r.floatText(x, y, t(str), color, size, coin);
     },
     cash(x, y, amount) {
-      r.floatText(x, y, '+$' + localNum(Math.round(amount)), '#ffe066', amount >= 1000 ? 22 : 16);
+      r.floatText(x, y, '+' + localNum(Math.round(amount)), '#ffe066', amount >= 1000 ? 22 : 16, true);
       r.coins(x, y, Math.min(8, 2 + Math.floor(Math.log10(Math.max(1, amount)) * 2)));
     },
     leak(e: Enemy, lives: number) {

@@ -51,7 +51,7 @@ export interface Particle {
   /** css px font size for text */
   font: number;
   ground: boolean;
-  /** sprite variant (crystal shard shape) */
+  /** sprite variant (crystal shard shape); on text, 1 puts the paw coin in front (cash amounts) */
   variant: number;
 }
 
@@ -606,15 +606,23 @@ export class Particles {
       const pop = age < 0.15 ? 0.6 + (age / 0.15) * 0.55 : age < 0.25 ? 1.15 - ((age - 0.15) / 0.1) * 0.15 : 1;
       ctx.globalAlpha = Math.min(1, t * 2.5);
       const fs = (p.font / worldToCss) * pop;
-      ctx.font = `900 ${fs}px "Baloo 2", "Lilita One", system-ui, sans-serif`;
+      ctx.font = `800 ${fs}px "Baloo 2", "Lilita One", system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = fs * 0.22;
       ctx.strokeStyle = 'rgba(30,15,40,0.9)';
       ctx.lineJoin = 'round';
-      ctx.strokeText(p.text, p.x, p.y);
+      // cash amounts carry the coin instead of a "$": coin left, number right, centred together
+      let x = p.x;
+      if (p.variant === 1) {
+        const cs = fs * 0.82;
+        const w = ctx.measureText(p.text).width;
+        x += (cs + fs * 0.12) / 2;
+        ctx.drawImage(getCoin(), x - w / 2 - fs * 0.12 - cs, p.y - cs / 2 - fs * 0.04, cs, cs);
+      }
+      ctx.strokeText(p.text, x, p.y);
       ctx.fillStyle = p.color;
-      ctx.fillText(p.text, p.x, p.y);
+      ctx.fillText(p.text, x, p.y);
     }
     ctx.globalAlpha = 1;
   }

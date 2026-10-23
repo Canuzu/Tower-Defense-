@@ -152,7 +152,7 @@ function heroAbilities(id: HeroId): (AbilityDef | null)[] {
 function statChips(s: TowerStats, cost: number): HTMLElement[] {
   const out: HTMLElement[] = [];
   const add = (icon: HTMLElement, value: string, title: string, cls = '') => out.push(h('span', { class: ('bd-stat ' + cls).trim(), title }, icon, h('span', null, value)));
-  add(uiIcon('coin', '🪙'), '$' + fmt(cost), t('Price'), 'cost');
+  add(uiIcon('coin', '🪙'), fmt(cost), t('Price'), 'cost');
   add(glyph(G_RANGE, 5, '#ffe6a6'), fmt(s.range), t('Range'));
   const a = s.attacks[0];
   if (a) {
@@ -182,8 +182,8 @@ function statChips(s: TowerStats, cost: number): HTMLElement[] {
     if (pierce > 0) add(glyph(G_PIERCE, 5.5, '#cfe8ff'), String(pierce), t('Pierce'));
     if (rate > 0) add(glyph(G_RATE, 4.5, '#e0ffd0'), `${dec(1 / rate, rate < 1 ? 1 : 2)}/s`, t('Attacks per second'));
   }
-  if (s.income) add(uiIcon('sack', '💰'), t('${n}/round', { n: fmt(s.income.perDrop * s.income.drops + s.income.bonusPerRound) }), t('Income'));
-  if (s.buffAura && !a) add(uiIcon('bond', '⚡'), t('Aura'), t('Buffs nearby towers'));
+  if (s.income) add(uiIcon('sack', '💰'), t('{n}/round', { n: fmt(s.income.perDrop * s.income.drops + s.income.bonusPerRound) }), t('Income'));
+  if (s.buffAura && !a) add(uiIcon('bond', '⚡'), t('Aura'), t('Buffs nearby bandits'));
   if (s.camo) add(uiIcon('camo', '👁'), t('Camo'), t('Camo detection'));
   return out;
 }
@@ -454,7 +454,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
           h('div', { class: 'bd-tbox ' + (url ? 'look' : 'gen') }, url ? img(url, 'bd-tbox-img', '') : glyph(CHEVRONS[tier >= 2 ? 1 : 0], 6.5, '#fff6d6', 'chev')),
           h('b', { class: 'bd-tn' }, String(tier)),
           state === 'open' ? uiIcon('check', '✔', 'bd-st') : state === 'locked' ? uiIcon('lock', '🔒', 'bd-st') : null,
-          h('span', { class: 'bd-price', title: t('Price') }, '$' + fmt(inf.cost)),
+          h('span', { class: 'bd-price', title: t('Price') }, uiIcon('coin', '🪙'), fmt(inf.cost)),
         );
         let foot: HTMLElement;
         if (state === 'open') foot = h('span', { class: 'bd-ok' }, uiIcon('check', '✔'), t('Unlocked'));

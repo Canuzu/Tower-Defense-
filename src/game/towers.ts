@@ -626,10 +626,10 @@ const hoot: TowerDef = {
       {
         name: 'Supply Drop',
         cost: 7000,
-        desc: 'Faster still. Ability: call in a crate with $1,200.',
+        desc: 'Faster still. Ability: call in a crate with 1,200 coins.',
         apply: (s) => {
           atk(s, 'shot', 'hitscan').rate *= 0.8;
-          setAbility(s, { id: 'supplyDrop', name: 'Supply Drop', icon: '📦', desc: 'Drops a crate worth $1,200.', cooldown: 60, params: { cash: 1200 } });
+          setAbility(s, { id: 'supplyDrop', name: 'Supply Drop', icon: '📦', desc: 'Drops a crate worth 1,200 coins.', cooldown: 60, params: { cash: 1200 } });
         },
       },
       {
@@ -639,7 +639,7 @@ const hoot: TowerDef = {
         apply: (s) => {
           s.buffAura = { global: true, only: 'hoot', rateMul: 1.33, damageAdd: 2 };
           ability(s, 'supplyDrop').params.cash = 3000;
-          ability(s, 'supplyDrop').desc = 'Drops a crate worth $3,000.';
+          ability(s, 'supplyDrop').desc = 'Drops a crate worth 3,000 coins.';
         },
       },
     ],
@@ -1014,7 +1014,7 @@ const zap: TowerDef = {
       {
         name: 'Power Grid',
         cost: 25000,
-        desc: 'Powers nearby towers: +30% attack speed. Traps hit much harder.',
+        desc: 'Powers nearby bandits: +30% attack speed. Traps hit much harder.',
         apply: (s) => {
           s.buffAura = { ...(s.buffAura ?? {}), range: 200, rateMul: 1.3 };
           atk(s, 'zap', 'chain').chains += 10;
@@ -1190,26 +1190,26 @@ const acorn: TowerDef = {
   paths: [
     [
       { name: 'More Loot', cost: 500, desc: '6 shinies per round.', apply: (s) => { s.income!.drops += 2; } },
-      { name: 'Golden Loot', cost: 700, desc: 'Shinies are worth $30.', apply: (s) => { s.income!.perDrop = 30; } },
+      { name: 'Golden Loot', cost: 700, desc: 'Shinies are worth 30 coins.', apply: (s) => { s.income!.perDrop = 30; } },
       { name: 'Treasure Pile', cost: 3000, desc: '10 shinies per round.', apply: (s) => { s.income!.drops += 4; } },
-      { name: 'Treasure Mountain', cost: 7500, desc: 'Shinies are worth $60.', apply: (s) => { s.income!.perDrop = 60; } },
-      { name: "Dragon's Hoard", cost: 50000, desc: '12 dazzling shinies worth $250 each.', apply: (s) => { s.income!.perDrop = 250; s.income!.drops += 2; } },
+      { name: 'Treasure Mountain', cost: 7500, desc: 'Shinies are worth 60 coins.', apply: (s) => { s.income!.perDrop = 60; } },
+      { name: "Dragon's Hoard", cost: 50000, desc: '12 dazzling shinies worth 250 coins each.', apply: (s) => { s.income!.perDrop = 250; s.income!.drops += 2; } },
     ],
     [
       { name: 'Piggy Bank', cost: 400, desc: 'Shinies go into a stash that earns 15% interest each round. Withdraw any time.', apply: (s) => { s.bank = { capacity: 7000, interest: 0.15 }; } },
-      { name: 'Deep Vault', cost: 800, desc: 'Stash holds up to $10,000.', apply: (s) => { s.bank!.capacity = 10000; } },
-      { name: 'Bandit Bank', cost: 3500, desc: '$15,000 capacity and 20% interest.', apply: (s) => { s.bank!.capacity = 15000; s.bank!.interest = 0.2; } },
-      { name: 'Golden Hoard', cost: 7000, desc: '+$250 per round and $25,000 capacity.', apply: (s) => { s.income!.bonusPerRound += 250; s.bank!.capacity = 25000; } },
-      { name: 'Loot Empire', cost: 30000, desc: '$60,000 capacity, 25% interest, +$1,500 per round.', apply: (s) => { s.bank!.capacity = 60000; s.bank!.interest = 0.25; s.income!.bonusPerRound += 1500; } },
+      { name: 'Deep Vault', cost: 800, desc: 'Stash holds up to 10,000 coins.', apply: (s) => { s.bank!.capacity = 10000; } },
+      { name: 'Bandit Bank', cost: 3500, desc: 'Holds 15,000 coins and pays 20% interest.', apply: (s) => { s.bank!.capacity = 15000; s.bank!.interest = 0.2; } },
+      { name: 'Golden Hoard', cost: 7000, desc: '+250 coins per round, holds 25,000 coins.', apply: (s) => { s.income!.bonusPerRound += 250; s.bank!.capacity = 25000; } },
+      { name: 'Loot Empire', cost: 30000, desc: 'Holds 60,000 coins, 25% interest, +1,500 coins per round.', apply: (s) => { s.bank!.capacity = 60000; s.bank!.interest = 0.25; s.income!.bonusPerRound += 1500; } },
     ],
     [
       { name: 'Long Arms', cost: 250, desc: 'Shinies are collected automatically.', apply: (s) => { s.income!.autoCollect = true; } },
       { name: 'Haggler', cost: 600, desc: '+2 shinies per round.', apply: (s) => { s.income!.drops += 2; } },
-      { name: 'Flea Market', cost: 2700, desc: 'Sells the loot directly for +$5 each.', apply: (s) => { s.income!.direct = true; s.income!.perDrop += 5; } },
+      { name: 'Flea Market', cost: 2700, desc: 'Sells the loot directly for +5 coins each.', apply: (s) => { s.income!.direct = true; s.income!.perDrop += 5; } },
       {
         name: 'Trade Hub',
         cost: 15000,
-        desc: '+$1,000 per round. Towers nearby get 10% off.',
+        desc: '+1,000 coins per round. Bandits nearby get 10% off.',
         apply: (s) => {
           s.income!.bonusPerRound += 1000;
           s.range = 180;
@@ -1219,10 +1219,10 @@ const acorn: TowerDef = {
       {
         name: 'Stock Exchange',
         cost: 60000,
-        desc: '+$5,000 per round. Ability: Jackpot pays $5,000.',
+        desc: '+5,000 coins per round. Ability: Jackpot pays 5,000 coins.',
         apply: (s) => {
           s.income!.bonusPerRound += 5000;
-          setAbility(s, { id: 'jackpot', name: 'Jackpot', icon: '💰', desc: 'Instantly earn $5,000.', cooldown: 60, params: { cash: 5000 } });
+          setAbility(s, { id: 'jackpot', name: 'Jackpot', icon: '💰', desc: 'Instantly earn 5,000 coins.', cooldown: 60, params: { cash: 5000 } });
         },
       },
     ],
@@ -1237,7 +1237,7 @@ const dojo: TowerDef = {
   name: 'Sensei',
   species: 'Raccoon Master',
   role: 'Support',
-  desc: 'A wise old raccoon who trains every tower nearby. Gets stronger with upgrades.',
+  desc: 'A wise old raccoon who trains every bandit nearby. Gets stronger with upgrades.',
   cost: 1100,
   radius: 26,
   unlock: 6,
@@ -1251,23 +1251,23 @@ const dojo: TowerDef = {
   pathNames: ['Training', 'Wisdom', 'Commerce'],
   paths: [
     [
-      { name: 'Focus Training', cost: 250, desc: 'Nearby towers get +10% range.', apply: (s) => { s.buffAura!.rangeMul = 1.1; } },
-      { name: 'Swift Strikes', cost: 1200, desc: 'Nearby towers attack 15% faster.', apply: (s) => { s.buffAura!.rateMul = 1.15; } },
-      { name: 'Master Dojo', cost: 3500, desc: 'Nearby towers: +1 pierce, 20% faster.', apply: (s) => { s.buffAura!.pierceAdd = 1; s.buffAura!.rateMul = 1.2; } },
+      { name: 'Focus Training', cost: 250, desc: 'Nearby bandits get +10% range.', apply: (s) => { s.buffAura!.rangeMul = 1.1; } },
+      { name: 'Swift Strikes', cost: 1200, desc: 'Nearby bandits attack 15% faster.', apply: (s) => { s.buffAura!.rateMul = 1.15; } },
+      { name: 'Master Dojo', cost: 3500, desc: 'Nearby bandits: +1 pierce, 20% faster.', apply: (s) => { s.buffAura!.pierceAdd = 1; s.buffAura!.rateMul = 1.2; } },
       {
         name: 'Grandmaster',
         cost: 15000,
-        desc: 'Nearby towers: +1 damage. Ability: Focus doubles their speed.',
+        desc: 'Nearby bandits: +1 damage. Ability: Focus doubles their speed.',
         apply: (s) => {
           s.buffAura!.damageAdd = 1;
           s.buffAura!.rateMul = 1.25;
-          setAbility(s, { id: 'focus', name: 'Inner Focus', icon: '☯️', desc: 'Towers in range attack 2x faster for 10s.', cooldown: 50, params: { duration: 10, mul: 2 } });
+          setAbility(s, { id: 'focus', name: 'Inner Focus', icon: '☯️', desc: 'Bandits in range attack 2x faster for 10s.', cooldown: 50, params: { duration: 10, mul: 2 } });
         },
       },
       {
         name: 'Legendary Dojo',
         cost: 25000,
-        desc: 'Nearby towers: +2 damage, +2 pierce, 35% faster. +40 range.',
+        desc: 'Nearby bandits: +2 damage, +2 pierce, 35% faster. +40 range.',
         apply: (s) => {
           const b = s.buffAura!;
           b.damageAdd = 2;
@@ -1278,8 +1278,8 @@ const dojo: TowerDef = {
       },
     ],
     [
-      { name: 'Lantern Watch', cost: 300, desc: 'Nearby towers detect Camo.', apply: (s) => { s.buffAura!.camo = true; } },
-      { name: 'Iron Fists', cost: 1500, desc: 'Nearby towers can damage every star type.', apply: (s) => { s.buffAura!.canHitAll = true; } },
+      { name: 'Lantern Watch', cost: 300, desc: 'Nearby bandits detect Camo.', apply: (s) => { s.buffAura!.camo = true; } },
+      { name: 'Iron Fists', cost: 1500, desc: 'Nearby bandits can damage every star type.', apply: (s) => { s.buffAura!.canHitAll = true; } },
       {
         name: 'Pressure Points',
         cost: 5000,
@@ -1302,7 +1302,7 @@ const dojo: TowerDef = {
       {
         name: 'Zen Master',
         cost: 20000,
-        desc: 'Enlightenment: +60 range, towers gain +2 pierce, stars take +3 damage.',
+        desc: 'Enlightenment: +60 range, bandits gain +2 pierce, stars take +3 damage.',
         apply: (s) => {
           s.range += 60;
           s.buffAura!.pierceAdd = (s.buffAura!.pierceAdd ?? 0) + 2;
@@ -1312,14 +1312,14 @@ const dojo: TowerDef = {
       },
     ],
     [
-      { name: 'Bulk Deals', cost: 300, desc: 'Towers and upgrades in range cost 5% less.', apply: (s) => { s.buffAura!.discount = 0.05; } },
+      { name: 'Bulk Deals', cost: 300, desc: 'Bandits and upgrades in range cost 5% less.', apply: (s) => { s.buffAura!.discount = 0.05; } },
       { name: 'Barter', cost: 700, desc: '10% discount in range.', apply: (s) => { s.buffAura!.discount = 0.1; } },
-      { name: 'Tea House', cost: 3500, desc: 'Earns +$300 every round.', apply: (s) => { s.income = { perDrop: 0, drops: 0, autoCollect: true, direct: true, bonusPerRound: 300 }; } },
-      { name: 'Lucky Charm', cost: 8000, desc: 'Pops by nearby towers earn 25% more cash.', apply: (s) => { s.buffAura!.cashMul = 1.25; } },
+      { name: 'Tea House', cost: 3500, desc: 'Earns +300 coins every round.', apply: (s) => { s.income = { perDrop: 0, drops: 0, autoCollect: true, direct: true, bonusPerRound: 300 }; } },
+      { name: 'Lucky Charm', cost: 8000, desc: 'Stars shattered by nearby bandits give 25% more cash.', apply: (s) => { s.buffAura!.cashMul = 1.25; } },
       {
         name: 'Raccoon Republic',
         cost: 25000,
-        desc: '20% discount, +$2,500 per round, +40% pop cash nearby.',
+        desc: '20% discount, +2,500 coins per round, stars shattered nearby give 40% more cash.',
         apply: (s) => {
           s.buffAura!.discount = 0.2;
           s.buffAura!.cashMul = 1.4;

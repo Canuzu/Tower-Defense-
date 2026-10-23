@@ -1034,7 +1034,7 @@ export class Renderer {
     ctx.lineWidth = r * 0.08;
     ctx.strokeStyle = 'rgba(150,90,10,0.7)';
     ctx.stroke();
-    ctx.font = `900 ${r * 1.15}px "Baloo 2", system-ui, sans-serif`;
+    ctx.font = `800 ${r * 1.15}px "Baloo 2", system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
@@ -1831,7 +1831,7 @@ export class Renderer {
 
   /** Comic-book onomatopoeia burst. */
   comic(x: number, y: number, big = false) {
-    const words = big ? ['KA-BLAM!', 'MEGA POP!', 'SHATTER-TASTIC!'] : ['POP!', 'CRACK!', 'SMASH!', 'CLINK!', 'ZING!'];
+    const words = big ? ['KA-BLAM!', 'MEGA SHATTER!', 'SHATTER-TASTIC!'] : ['BAM!', 'CRACK!', 'SMASH!', 'CLINK!', 'ZING!'];
     const cols = ['#ffe066', '#ff8fab', '#7bdff2', '#b5e48c', '#ffffff', '#ffb347'];
     const w = t(words[Math.floor(Math.random() * words.length)]);
     this.particles.spawn(PK.Text, x + rand(-8, 8), y, { vy: -55, drag: 2.5, life: big ? 1.4 : 0.75, text: w, color: cols[Math.floor(Math.random() * cols.length)], font: big ? 30 : 15 });
@@ -1841,14 +1841,15 @@ export class Renderer {
   private lastTextT = -1;
   private lastTextX = 0;
   private lastTextY = 0;
-  floatText(x: number, y: number, text: string, color: string, size = 16) {
+  /** `coin`: a cash amount, drawn with the paw coin in front of the number. */
+  floatText(x: number, y: number, text: string, color: string, size = 16, coin = false) {
     // the same words stacking up on one spot read as spam: keep the first
     if (text === this.lastText && this.time - this.lastTextT < 0.35 && Math.abs(x - this.lastTextX) < 90 && Math.abs(y - this.lastTextY) < 60) return;
     this.lastText = text;
     this.lastTextT = this.time;
     this.lastTextX = x;
     this.lastTextY = y;
-    this.particles.spawn(PK.Text, x, y, { vy: -38, drag: 1.5, life: 1.1, text, color, font: size });
+    this.particles.spawn(PK.Text, x, y, { vy: -38, drag: 1.5, life: 1.1, text, color, font: size, variant: coin ? 1 : 0 });
   }
 
   coins(x: number, y: number, n: number) {

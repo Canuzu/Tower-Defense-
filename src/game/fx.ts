@@ -42,7 +42,8 @@ export interface FxSink {
   pulse(x: number, y: number, radius: number, visual: 'frost' | 'slam' | 'shock' | 'nova' | 'quake'): void;
   fire(t: Tower, angle: number): void;
   beam(kind: BeamKind, pts: number[], color: string, width: number): void;
-  text(x: number, y: number, str: string, color: string, size?: number): void;
+  /** `coin`: the text is a cash amount (drawn with the paw coin, never a "$"). */
+  text(x: number, y: number, str: string, color: string, size?: number, coin?: boolean): void;
   cash(x: number, y: number, amount: number): void;
   leak(e: Enemy, lives: number): void;
   bossDeath(e: Enemy): void;

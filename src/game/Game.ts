@@ -709,7 +709,7 @@ export class Game {
     const v = this.dropValue(t);
     if (t.stats.bank) {
       t.stash = Math.min(t.stats.bank.capacity, t.stash + v);
-      this.fx.text(t.x, t.y - 34, '+$' + Math.round(v), '#ffe066', 14);
+      this.fx.text(t.x, t.y - 34, '+' + Math.round(v), '#ffe066', 14, true);
       return;
     }
     if (direct) {
@@ -1058,7 +1058,7 @@ export class Game {
       this.earn(bonus);
       this.stats.goldenPopped++;
       this.fx.cash(e.x, e.y - 20, bonus);
-      this.fx.text(e.x, e.y - 48, 'LUCKY POP!', '#fff3a8', 24);
+      this.fx.text(e.x, e.y - 48, 'LUCKY HIT!', '#fff3a8', 24);
       this.fx.sound('levelup', 0.7);
       this.fx.shake(4);
     }

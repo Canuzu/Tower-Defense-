@@ -32,11 +32,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'champ', name: 'Champion', desc: 'Win a game in Champion mode.', icon: '💎', xp: 1500, progress: (p) => (Object.values(p.medals).some((m) => m.champion) ? 1 : 0) },
   { id: 'explorer', name: 'Explorer', desc: 'Win on every map.', icon: '🗺️', xp: 1000, progress: (p) => ratio(MAPS.filter((m) => Object.values(p.medals[m.id] ?? {}).some(Boolean)).length, MAPS.length) },
   { id: 'combo500', name: 'Combo Master', desc: 'Reach a 500x combo.', icon: '🎰', xp: 300, progress: (p) => ratio(p.stats.bestCombo ?? 0, 500) },
-  { id: 'frenzy10', name: 'Frenzied', desc: 'Unleash FRENZY 10 times.', icon: '😤', xp: 200, progress: (p) => ratio(p.stats.frenzies ?? 0, 10) },
+  { id: 'frenzy10', name: 'Frenzied', desc: 'Unleash {frenzy} 10 times.', icon: '😤', xp: 200, progress: (p) => ratio(p.stats.frenzies ?? 0, 10) },
   { id: 'hero20', name: 'Living Legend', desc: 'Get a hero to level 20.', icon: '🦸', xp: 500, progress: (p, g) => Math.max(ratio(p.stats.heroMax ?? 1, 20), live(g, (x) => (x.hero?.heroLevel ?? 0) >= 20)) },
   { id: 'round120', name: 'Endless', desc: 'Reach round 120 in freeplay.', icon: '♾️', xp: 1500, progress: (p) => ratio(p.stats.bestRound, 120) },
   { id: 'flawless', name: 'Flawless', desc: 'Win a game without losing a single life.', icon: '🛡️', xp: 600, progress: (p) => ratio(p.stats.flawless ?? 0, 1) },
-  { id: 'tycoon', name: 'Tycoon', desc: 'Hold $50,000 at once (not in Sandbox).', icon: '💰', xp: 300, progress: (p, g) => Math.max(ratio(p.stats.maxCash ?? 0, 50000), live(g, (x) => !x.sandbox && x.cash >= 50000)) },
+  { id: 'tycoon', name: 'Tycoon', desc: 'Hold 50,000 coins at once (not in Sandbox).', icon: '💰', xp: 300, progress: (p, g) => Math.max(ratio(p.stats.maxCash ?? 0, 50000), live(g, (x) => !x.sandbox && x.cash >= 50000)) },
   { id: 'daily1', name: 'Daily Duty', desc: 'Complete a daily challenge.', icon: '📅', xp: 200, progress: (p) => ratio(p.stats.dailies ?? 0, 1) },
   { id: 'daily7', name: 'Dedicated', desc: 'Complete 7 daily challenges.', icon: '🗓️', xp: 800, progress: (p) => ratio(p.stats.dailies ?? 0, 7) },
 ];

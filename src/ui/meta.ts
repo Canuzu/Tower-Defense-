@@ -250,7 +250,7 @@ export function dailyPage(p: Profile, start: () => void, close: () => void): HTM
     { class: 'rules' },
     rule(uiIcon(MEDAL[d.difficulty] ?? 'medal2', MEDAL_EMOJI[d.difficulty] ?? '🥈'), t('Difficulty'), t(diff.name)),
     rule(uiIcon('target', '🎯'), t('Survive to round'), String(d.challenge.lastRound)),
-    rule(uiIcon('coin', '🪙'), t('Starting cash'), '$' + fmt(d.challenge.cash ?? 650)),
+    rule(uiIcon('coin', '🪙'), t('Starting cash'), fmt(d.challenge.cash ?? 650)),
     rule(uiIcon('mask', '🦝'), t('Hero'), d.challenge.noHero ? t('Not allowed') : t('Allowed')),
     rule(done ? uiIcon('check', '✔') : uiIcon('xp', '⭐'), t('Reward'), done ? t('Completed') : '+500 XP', 'reward-rule'),
   );
