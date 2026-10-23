@@ -40,11 +40,17 @@ export interface SfxDef {
   duck?: number;
   /** level of the other gameplay sounds meanwhile */
   duckWorld?: number;
+  /**
+   * answers the player (or a lost life): never dropped for the shared gameplay voice budget, and
+   * at its own cap the oldest voice makes room (UI sounds do that too)
+   */
+  key?: boolean;
 }
 
 const w = (gain: number, gap: number, cap: number, jitter = 0.03, duck?: number): SfxDef => ({ gain, group: 'world', gap, cap, jitter, duck });
+const key = (d: SfxDef): SfxDef => ({ ...d, key: true });
 const ui = (gain: number, prio: number, gap = 0.04, jitter = 0.02): SfxDef => ({ gain, group: 'ui', gap, cap: 2, jitter, prio });
-const jingle = (gain: number, prio: number, duck: number, duckWorld = 1): SfxDef => ({ gain, group: 'jingle', gap: 0.3, cap: 1, jitter: 0, prio, duck, duckWorld });
+const jingle = (gain: number, prio: number, duck: number, duckWorld = 1, gap = 0.3): SfxDef => ({ gain, group: 'jingle', gap, cap: 1, jitter: 0, prio, duck, duckWorld });
 
 /** Mix table. Call sites pass their own volume on top (pops 0.5, tower shots 0.32, ...). */
 export const SFX: Record<Sfx, SfxDef> = {
@@ -67,16 +73,19 @@ export const SFX: Record<Sfx, SfxDef> = {
   acorn: w(0.6, 0.05, 3),
   // economy and building
   cash: w(0.42, 0.05, 3),
-  place: w(0.62, 0.05, 2),
-  upgrade: w(0.55, 0.05, 2, 0),
-  sell: w(0.62, 0.05, 2),
-  leak: w(0.85, 0.08, 2, 0.02),
-  ability: w(0.55, 0.1, 2, 0, 0.75),
+  place: key(w(0.62, 0.05, 2)),
+  upgrade: key(w(0.55, 0.05, 2, 0)),
+  sell: key(w(0.62, 0.05, 2)),
+  // a crowd breaking through is a few bongs a second, not a machine gun
+  leak: key(w(0.85, 0.2, 2, 0.02)),
+  ability: key(w(0.55, 0.1, 2, 0, 0.75)),
   // stings
   roundStart: jingle(0.55, 2, 0.6),
   roundEnd: jingle(0.55, 2, 0.6),
-  boss: jingle(0.8, 4, 0.35, 0.7),
-  bossDie: jingle(0.72, 3, 0.5),
+  // a train of comets is announced once (every 8 s at most), a row of them shattering gets one sting
+  // per 3 s (each boss still has its own bigpop)
+  boss: jingle(0.8, 4, 0.35, 0.7, 8),
+  bossDie: jingle(0.72, 3, 0.5, 1, 3),
   frenzy: jingle(0.7, 3, 0.5),
   levelup: jingle(0.62, 3, 0.5),
   victory: jingle(0.8, 5, 0.2, 0.5),

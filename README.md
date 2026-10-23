@@ -74,6 +74,19 @@ App-Icon und Splashscreen liegen in `resources/` und in den nativen Projekten. `
 | Karten | `scripts/art/guide.py` zeichnet einen Layout-Plan aus den echten Wegdaten, die KI malt ihn aus, `scripts/art/overlay.py` prüft, ob der gemalte Weg auf dem echten liegt |
 | Erweiterte Karten (Tablets) | `scripts/art/compose_mapext.py` setzt gemaltes Gelände über und unter die Karte → `art/raw/mx_<karte>.webp`; `process_art.py` macht daraus `public/sprites/mx_*.webp` (nur bei Bedarf geladen) |
 
+### Sound
+
+- **Effekte:** 42 Sounds (71 Varianten) in `public/audio/`, jeweils als AAC (`.m4a`, für iOS, Safari, Chrome) und Ogg Vorbis (`.ogg`, Ersatz), etwa 0,6–0,7 MB pro Format. Gebaut aus den CC0-Paketen von **Kenney** ([kenney.nl](https://www.kenney.nl)): Impact Sounds, Interface Sounds, Casino Audio, RPG Audio, Sci-fi Sounds und Music Jingles. CC0 heißt gemeinfrei, auch kommerziell nutzbar; eine Nennung ist freiwillig, aber nett (z. B. „Sounds: Kenney (kenney.nl), CC0“ in den Credits). Details in `public/audio/LICENSES.md`.
+- **Laden:** erst nach dem ersten Tippen und im Hintergrund, der Start wartet nicht darauf. Bis ein Sample da ist (oder wenn die Dateien fehlen, etwa beim Ein-Datei-Build direkt von der Festplatte) spielt ein WebAudio-Synthesizer einen Ersatz.
+- **Musik:** keine Dateien, sie wird live erzeugt (`src/audio/music.ts`): ein ruhiges Menü-Thema und ein Kampf-Track aus drei Ebenen, die mit dem Spielgeschehen ein- und ausblenden.
+- **Was wann spielt** und die Mischregeln (Abstände, Stimmen-Limits, Ducking): `src/audio/SOUNDS.md`; die Lautstärken stehen in `src/audio/bank.ts`.
+- **Bank neu bauen** (z. B. nach Änderungen an den Rezepten in `scripts/build_sound_bank.py`): die sechs Pakete von kenney.nl laden und jedes nach `<ordner>/kenney_<name>/` entpacken (`kenney_impact-sounds`, `kenney_interface-sounds`, `kenney_casino-audio`, `kenney_rpg-audio`, `kenney_sci-fi-sounds`, `kenney_music-jingles`). Dann (braucht `numpy` und `ffmpeg`, dauert etwa 30 s):
+
+```bash
+python3 -I scripts/build_sound_bank.py <ordner> public/audio src/audio/sampleFiles.ts
+npx vitest run tests/audio.test.ts   # prüft Dateien, beide Formate und das Größenbudget
+```
+
 
 ## Projektstruktur
 

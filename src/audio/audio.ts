@@ -12,8 +12,10 @@ export { shatterSound } from './bank';
  * build) the WebAudio synthesizer below plays a stand-in. The music is generated live (music.ts).
  *
  * Mixing rules (bank.ts): every sound has a minimum gap and a voice cap, gameplay sounds share a
- * voice budget, one UI sound per tap (the most specific wins), one jingle at a time, and big
- * moments (boss, victory, level-up) duck the music and the other gameplay sounds for a moment.
+ * voice budget (the answers to the player's own actions and lost lives are never dropped for it),
+ * a crowded sound gets quieter instead of louder, one UI sound per tap (the most specific wins),
+ * one jingle at a time, and big moments (boss, victory, level-up) duck the music and the other
+ * gameplay sounds for a moment.
  */
 
 /** sounds without files of their own play another sound's samples */
@@ -24,6 +26,13 @@ const WORLD_VOICES_LOW = 12;
 /** star shatters of all sizes together */
 const SHATTER_VOICES = 7;
 const LOAD_WORKERS = 4;
+/**
+ * Crowd control for gameplay sounds: each start adds 1 to a sound's "heat", which leaks away with
+ * CROWD_TAU. Above CROWD_FREE the sound gets quieter (1/sqrt), so a big wave sounds denser instead
+ * of louder (and the master compressor does not pump the music down). The shatters share one heat.
+ */
+const CROWD_TAU = 0.4;
+const CROWD_FREE = 3;
 
 interface Voice {
   name: Sfx;
@@ -34,10 +43,17 @@ interface Voice {
   prio: number;
 }
 
-interface SfxState {
+interface Heat {
+  heat: number;
+  at: number;
+}
+
+interface SfxState extends Heat {
   last: number;
   voices: number;
   variant: number;
+  /** its voices still playing, oldest first */
+  live: Voice[];
 }
 
 interface Duck {
@@ -62,6 +78,7 @@ export class AudioEngine {
   private state = new Map<Sfx, SfxState>();
   private worldVoices = 0;
   private shatterVoices = 0;
+  private shatterHeat: Heat = { heat: 0, at: 0 };
   private buffers = new Map<Sfx, AudioBuffer[]>();
   private loadStarted = false;
   private ext: 'm4a' | 'ogg' = 'm4a';
@@ -83,7 +100,7 @@ export class AudioEngine {
   log: string[] | null = null;
 
   constructor() {
-    for (const k of Object.keys(SFX) as Sfx[]) this.state.set(k, { last: -1, voices: 0, variant: -1 });
+    for (const k of Object.keys(SFX) as Sfx[]) this.state.set(k, { last: -1, voices: 0, variant: -1, heat: 0, at: 0, live: [] });
   }
 
   unlock() {
@@ -144,6 +161,8 @@ export class AudioEngine {
       this.resume();
     };
     for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(ev, retry, true);
+    // some browsers (older iOS) create it suspended even inside a gesture: ask right away
+    if (ctx.state !== 'running') this.resume();
     this.loadSamples();
   }
 
@@ -234,10 +253,16 @@ export class AudioEngine {
     const ctx = this.ctx!;
     const now = ctx.currentTime;
     const st = this.state.get(name)!;
-    if (now - st.last < def.gap || st.voices >= def.cap) return null;
+    if (now - st.last < def.gap) return null;
+    if (st.voices >= def.cap) {
+      // the answer to a tap (or a lost life) is never dropped: its oldest voice makes room
+      const old = def.key || def.group === 'ui' ? st.live.find((x) => x.end > now) : undefined;
+      if (!old) return null;
+      this.fadeOut(old);
+    }
     const world = def.group === 'world';
     const shatter = name === 'pop' || name === 'popMid' || name === 'popBig';
-    if (world && this.worldVoices >= (this.lowPowerOn ? WORLD_VOICES_LOW : WORLD_VOICES)) return null;
+    if (world && !def.key && this.worldVoices >= (this.lowPowerOn ? WORLD_VOICES_LOW : WORLD_VOICES)) return null;
     if (shatter && this.shatterVoices >= (this.lowPowerOn ? 4 : SHATTER_VOICES)) return null;
     const prio = def.prio ?? 0;
     if (def.group === 'jingle') {
@@ -248,6 +273,7 @@ export class AudioEngine {
       }
     }
     const bus = world ? this.world : this.sfx;
+    if (world) vol *= crowd(shatter ? this.shatterHeat : st, now);
     const bufs = this.buffers.get(ALIAS[name] ?? name);
     let v: Voice | null = null;
     if (bufs) {
@@ -286,6 +312,7 @@ export class AudioEngine {
     }
     st.last = now;
     st.voices++;
+    st.live.push(v);
     if (world) this.worldVoices++;
     if (shatter) this.shatterVoices++;
     if (def.group === 'jingle') this.jingleVoice = v;
@@ -297,7 +324,11 @@ export class AudioEngine {
 
   private release(v: Voice, world: boolean, shatter: boolean) {
     const st = this.state.get(v.name);
-    if (st) st.voices = Math.max(0, st.voices - 1);
+    if (st) {
+      st.voices = Math.max(0, st.voices - 1);
+      const i = st.live.indexOf(v);
+      if (i >= 0) st.live.splice(i, 1);
+    }
     if (world) this.worldVoices = Math.max(0, this.worldVoices - 1);
     if (shatter) this.shatterVoices = Math.max(0, this.shatterVoices - 1);
     if (this.uiVoice === v) this.uiVoice = null;
@@ -638,6 +669,13 @@ export class AudioEngine {
     s.start(now);
     s.stop(now + dur + 0.02);
   }
+}
+
+/** Adds a start to `h` and returns the level for it (1 until the sound gets crowded). */
+function crowd(h: Heat, now: number): number {
+  h.heat = h.heat * Math.exp(-Math.max(0, now - h.at) / CROWD_TAU) + 1;
+  h.at = now;
+  return h.heat > CROWD_FREE ? Math.sqrt(CROWD_FREE / h.heat) : 1;
 }
 
 const BASE: string = (import.meta.env?.BASE_URL as string | undefined) || './';
