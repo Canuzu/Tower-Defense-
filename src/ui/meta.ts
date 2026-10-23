@@ -169,7 +169,7 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
         );
         b.addEventListener('click', () => {
           if (!can) {
-            audio.play(owned ? 'click' : 'error');
+            audio.play(owned ? 'click' : reqOk ? 'error' : 'locked');
             return;
           }
           p.perks.push(perk.id);
@@ -177,7 +177,7 @@ export function perksPage(p: Profile, close: () => void, onChange: () => void): 
           dropUndo?.();
           dropUndo = null;
           saveProfile(p);
-          audio.play('upgrade');
+          audio.play('unlock');
           onChange();
           render(false);
         });

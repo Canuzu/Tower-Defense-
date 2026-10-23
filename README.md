@@ -2,7 +2,7 @@
 
 Ein farbenfrohes Tower-Defense-Spiel für iPhone, iPad, Android und den Browser. Es ist inspiriert von Bloons TD 6, hat aber eine **komplett eigene Welt**: Grummelige, lebendige Sterne sind vom Himmel ins Waschbärtal gefallen und marschieren auf das Schatzlager der Waschbären zu. Eine Bande tüftelnder Waschbären (die „Bandits“) baut aus Schrott Gadgets – Schleudern, Mülltonnen-Mörser, Tesla-Rucksäcke, Drohnen – und zerschmettert die Sterne zu Sternenstaub. Jeder Stern zerbricht dabei in kleinere Sterne (das Schichtsystem).
 
-Sounds und Musik werden live synthetisiert. Alle Grafiken (Türme, Helden, Sterne, Bosse, Karten, Icons, Logo, App-Icon) sind gemalte Sprites im glänzenden 3D-Cartoon-Look, erstellt mit KI-Bildgenerierung (Higgsfield, GPT Image) nach einer festen Stil-Vorlage. Rollen, Namen und Look sind in `art/ART_BIBLE.md` beschrieben. Fehlt einmal ein Sprite, zeichnet der Renderer automatisch die alte Code-Grafik als Ersatz.
+Die Soundeffekte sind kleine Samples aus den freien CC0-Paketen von Kenney (kenney.nl), die Musik wird live generiert (siehe `public/audio/LICENSES.md` und `src/audio/SOUNDS.md`). Alle Grafiken (Türme, Helden, Sterne, Bosse, Karten, Icons, Logo, App-Icon) sind gemalte Sprites im glänzenden 3D-Cartoon-Look, erstellt mit KI-Bildgenerierung (Higgsfield, GPT Image) nach einer festen Stil-Vorlage. Rollen, Namen und Look sind in `art/ART_BIBLE.md` beschrieben. Fehlt einmal ein Sprite, zeichnet der Renderer automatisch die alte Code-Grafik als Ersatz.
 
 ## Was schon drin ist
 
@@ -82,7 +82,7 @@ src/
   game/      Simulation (unabhängig von der Grafik, testbar): Game, Türme, Sterne (gloops.ts), Runden, Karten, Synergien, Helden
   render/    Canvas-Renderer, Sprite-Zuordnung (art.ts), Partikel/Effekte, Ersatz-Grafik im Code
   assets/    Sprite-Index und Lader
-  audio/     Synthetisierte Soundeffekte und Musik (WebAudio)
+  audio/     Sound-Engine (Samples + Synthesizer als Ersatz) und generative Musik (WebAudio)
   ui/        Menüs, HUD, Shop, Upgrade-Panel, Tutorial
   save/      Fortschritt & Spielstände (localStorage)
 tests/       Vitest: Simulation & Balance-Bot
@@ -91,4 +91,4 @@ scripts/     Screenshot-, QA-, Performance- und Icon-Skripte (Playwright)
 
 ## Rechtliches
 
-„Star Bandits“ ist ein Arbeitstitel. Vor dem Release kurz prüfen, ob Name und Marke frei sind. Das Spiel verwendet keine Namen, Figuren oder Grafiken aus Bloons TD 6. Die Spielmechanik eines Tower-Defense-Spiels ist nicht geschützt, Namen und Grafiken dagegen schon. Die Schrift „Baloo 2“ steht unter der SIL Open Font License und darf in Apps verwendet werden.
+„Star Bandits“ ist ein Arbeitstitel. Vor dem Release kurz prüfen, ob Name und Marke frei sind. Das Spiel verwendet keine Namen, Figuren oder Grafiken aus Bloons TD 6. Die Spielmechanik eines Tower-Defense-Spiels ist nicht geschützt, Namen und Grafiken dagegen schon. Die Schrift „Baloo 2“ steht unter der SIL Open Font License und darf in Apps verwendet werden. Die Soundeffekte stammen aus Kenneys Sound-Paketen unter CC0 (gemeinfrei, auch kommerziell nutzbar, Nennung freiwillig); Details in `public/audio/LICENSES.md`.

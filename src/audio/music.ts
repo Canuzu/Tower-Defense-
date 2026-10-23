@@ -67,6 +67,8 @@ export class Music {
   private step = 0;
   private nextTime = 0;
   private out: GainNode;
+  /** each track has its own 3 layer gains, so a track change cross-fades (old pad tails fade with their track) */
+  private sets: Record<Track, GainNode[]> = { menu: [], game: [] };
   private layers: GainNode[] = [];
   private sends: GainNode[] = [];
   private verb: ConvolverNode;
@@ -74,8 +76,11 @@ export class Music {
   private targets = [0, 0, 0];
   private levels = [0, 0, 0];
   private lastTick = 0;
-  private noise: AudioBuffer;
+  private shakerNoise: AudioBuffer;
+  private clapNoise: AudioBuffer;
   private loop = 0;
+  private on_ = true;
+  private wanted: Track | null = null;
 
   constructor(
     private ctx: BaseAudioContext,
@@ -85,24 +90,25 @@ export class Music {
     this.out.gain.value = 1;
     this.out.connect(bus);
     this.verb = ctx.createConvolver();
-    this.verb.buffer = makeImpulse(ctx, 2.0, 0.5);
+    this.verb.buffer = makeImpulse(ctx, 1.6, 0.45);
     this.verbOut = ctx.createGain();
     this.verbOut.gain.value = 0.9;
     this.verb.connect(this.verbOut).connect(this.out);
-    for (let i = 0; i < 3; i++) {
-      const g = ctx.createGain();
-      g.gain.value = 0;
-      g.connect(this.out);
-      const s = ctx.createGain();
-      s.gain.value = SEND[i];
-      g.connect(s).connect(this.verb);
-      this.layers.push(g);
-      this.sends.push(s);
+    for (const tr of ['menu', 'game'] as Track[]) {
+      for (let i = 0; i < 3; i++) {
+        const g = ctx.createGain();
+        g.gain.value = 0;
+        g.connect(this.out);
+        const s = ctx.createGain();
+        s.gain.value = SEND[i];
+        g.connect(s).connect(this.verb);
+        this.sets[tr].push(g);
+        this.sends.push(s);
+      }
     }
-    const len = ctx.sampleRate;
-    this.noise = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = this.noise.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    this.layers = this.sets.menu;
+    this.shakerNoise = filteredNoise(ctx, 'hp', 6500, 0.7);
+    this.clapNoise = filteredNoise(ctx, 'bp', 1500, 0.8);
   }
 
   /** Battery saver: one oscillator per note, no overtone partials, no reverb. */
@@ -118,39 +124,63 @@ export class Music {
     return this.lowPowerOn;
   }
 
+  /** Off (music volume 0, muted): nothing is scheduled; the track asked for starts when it is back on. */
+  set enabled(on: boolean) {
+    if (on === this.on_) return;
+    this.on_ = on;
+    if (!on) {
+      const w = this.playing ? this.track : this.wanted;
+      this.stop();
+      this.wanted = w;
+    } else if (this.wanted) this.start(this.wanted);
+  }
+  get enabled() {
+    return this.on_;
+  }
+
   start(track: Track) {
+    this.wanted = track;
+    if (!this.on_) return;
     if (this.playing && this.track === track) return;
     const switching = this.playing && this.track !== track;
+    const now = this.ctx.currentTime;
+    // the old track's layers fade out on their own gains while the new one comes in
+    this.fadeSet(this.track, switching ? 0.35 : 0.05);
     this.track = track;
+    this.layers = this.sets[track];
+    for (let i = 0; i < 3; i++) {
+      this.layers[i].gain.cancelScheduledValues(now);
+      this.layers[i].gain.setTargetAtTime(0, now, 0.04);
+      this.levels[i] = 0;
+      this.targets[i] = -1;
+    }
     this.step = 0;
     this.loop = 0;
-    this.nextTime = this.ctx.currentTime + (switching ? 0.35 : 0.1);
+    this.lastTick = now;
+    this.nextTime = now + (switching ? 0.4 : 0.1);
     this.playing = true;
-    if (switching) {
-      // the old track's layers fade before the new one comes in
-      const now = this.ctx.currentTime;
-      for (let i = 0; i < 3; i++) {
-        this.layers[i].gain.cancelScheduledValues(now);
-        this.layers[i].gain.setTargetAtTime(0, now, 0.12);
-        this.levels[i] = 0;
-        this.targets[i] = -1;
-      }
-    }
     if (this.timer === null && typeof window !== 'undefined') this.timer = window.setInterval(() => this.schedule(), 50);
   }
 
   stop() {
     this.playing = false;
+    this.wanted = null;
     if (this.timer !== null) {
       clearInterval(this.timer);
       this.timer = null;
     }
-    const now = this.ctx.currentTime;
+    this.fadeSet(this.track, 0.25);
     for (let i = 0; i < 3; i++) {
-      this.layers[i].gain.cancelScheduledValues(now);
-      this.layers[i].gain.setTargetAtTime(0, now, 0.25);
       this.levels[i] = 0;
       this.targets[i] = -1;
+    }
+  }
+
+  private fadeSet(track: Track, tc: number) {
+    const now = this.ctx.currentTime;
+    for (const g of this.sets[track]) {
+      g.gain.cancelScheduledValues(now);
+      g.gain.setTargetAtTime(0, now, tc);
     }
   }
 
@@ -231,7 +261,7 @@ export class Music {
       if (i >= 0) this.marimba(ts, c.arp[i], s % 4 === 0 ? 0.15 : 0.11, L1);
       if (s === 0 || s === 8) this.kick(t, 0.42, L1);
       if (s === 10 && bar % 2 === 1) this.kick(t, 0.22, L1);
-      if (s === 4 || s === 12) this.clap(t, 0.13, L1);
+      if (s === 4 || s === 12) this.clap(t, 0.2, L1);
       if (s % 2 === 0 && s % 4 !== 2) this.shaker(t, 0.018, L1);
       if (s === 6) this.bass(t, c.root, spb * 2, 0.16, L1);
       if (s === 14) this.bass(t, c.root + 7, spb * 2, 0.14, L1);
@@ -267,7 +297,7 @@ export class Music {
       // the bell sings on alternate loops, first half and second half switching
       const ph = BELL[(bar >> 1) % BELL.length];
       const local = (bar % 2) * 16 + s;
-      if ((this.loop + (bar >> 2)) % 2 === 0) for (const [st, n, len] of ph) if (st === local && Math.random() < 0.9) this.bell(t, 74 + n, spb * len, 0.05, L2);
+      if ((this.loop + (bar >> 2)) % 2 === 0) for (const [st, n, len] of ph) if (st === local && Math.random() < 0.9) this.bell(t, 74 + n, spb * len, 0.085, L2);
     }
   }
 
@@ -319,10 +349,10 @@ export class Music {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.004);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
     o.connect(g).connect(dest);
     o.start(t);
-    o.stop(t + 0.8);
+    o.stop(t + 0.64);
     if (this.lowPowerOn) return;
     const o2 = ctx.createOscillator();
     o2.frequency.value = fr * 3.93;
@@ -334,13 +364,18 @@ export class Music {
     o2.stop(t + 0.09);
   }
 
-  /** Round bass: a triangle and a sine an octave down through a low-pass. */
+  /**
+   * Round bass: a triangle with a quiet saw on top through a low-pass. The saw's low harmonics are
+   * what a phone speaker (nothing below ~250 Hz) actually plays; there is no sub-octave, it would
+   * only push the master compressor.
+   */
   private bass(t: number, n: number, len: number, vol: number, dest: AudioNode) {
     const ctx = this.ctx;
     const fr = NOTE(n);
+    vol *= 0.6;
     const f = ctx.createBiquadFilter();
     f.type = 'lowpass';
-    f.frequency.value = 650;
+    f.frequency.value = 700;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
@@ -354,11 +389,15 @@ export class Music {
     o.start(t);
     o.stop(t + len + 0.4);
     if (this.lowPowerOn) return;
-    const sub = ctx.createOscillator();
-    sub.frequency.value = fr / 2;
-    sub.connect(f);
-    sub.start(t);
-    sub.stop(t + len + 0.4);
+    const saw = ctx.createOscillator();
+    saw.type = 'sawtooth';
+    saw.frequency.value = fr;
+    saw.detune.value = 4;
+    const sg = ctx.createGain();
+    sg.gain.value = 0.32;
+    saw.connect(sg).connect(f);
+    saw.start(t);
+    saw.stop(t + len + 0.4);
   }
 
   /** Whistled lead: a sine that slides into the note, vibrato once it is held. */
@@ -426,30 +465,27 @@ export class Music {
     o.stop(t + 0.32);
   }
 
-  private noiseHit(t: number, type: BiquadFilterType, freq: number, q: number, vol: number, attack: number, decay: number, dest: AudioNode) {
+  /** A burst of pre-filtered noise (no filter node per hit: the percussion is the busiest voice). */
+  private noiseHit(t: number, buf: AudioBuffer, vol: number, attack: number, decay: number, dest: AudioNode) {
     const ctx = this.ctx;
     const s = ctx.createBufferSource();
-    s.buffer = this.noise;
-    const f = ctx.createBiquadFilter();
-    f.type = type;
-    f.frequency.value = freq;
-    f.Q.value = q;
+    s.buffer = buf;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
-    s.connect(f).connect(g).connect(dest);
-    s.start(t, Math.random() * 0.8);
+    s.connect(g).connect(dest);
+    s.start(t, Math.random() * (buf.duration - attack - decay - 0.05));
     s.stop(t + attack + decay + 0.02);
   }
 
   /** Brushed clap: band-passed noise with a soft body. */
   private clap(t: number, vol: number, dest: AudioNode) {
-    this.noiseHit(t, 'bandpass', 1500, 0.8, vol, 0.003, 0.16, dest);
+    this.noiseHit(t, this.clapNoise, vol, 0.003, 0.16, dest);
   }
 
   private shaker(t: number, vol: number, dest: AudioNode) {
-    this.noiseHit(t, 'highpass', 6500, 0.7, vol, 0.008, 0.06, dest);
+    this.noiseHit(t, this.shakerNoise, vol, 0.008, 0.06, dest);
   }
 
   /** Woodblock "tok". */
@@ -506,6 +542,37 @@ function makeImpulse(ctx: BaseAudioContext, dur: number, decay: number): AudioBu
       const i = Math.floor((s + ch * 0.0023) * sr);
       if (i < n) d[i] += a * (ch ? -1 : 1);
     }
+    // a short IR is cheaper to convolve: fade its end instead of cutting the tail off
+    const fade = Math.floor(n * 0.3);
+    for (let i = n - fade; i < n; i++) d[i] *= 0.5 + 0.5 * Math.cos((Math.PI * (i - (n - fade))) / fade);
   }
   return ir;
+}
+
+/** One second of white noise through a high-pass ('hp') or band-pass ('bp') biquad, computed once. */
+function filteredNoise(ctx: BaseAudioContext, kind: 'hp' | 'bp', f0: number, q: number): AudioBuffer {
+  const sr = ctx.sampleRate;
+  const buf = ctx.createBuffer(1, sr, sr);
+  const d = buf.getChannelData(0);
+  const w = (2 * Math.PI * f0) / sr;
+  const cw = Math.cos(w);
+  const al = Math.sin(w) / (2 * q);
+  const b = kind === 'hp' ? [(1 + cw) / 2, -(1 + cw), (1 + cw) / 2] : [al, 0, -al];
+  const a0 = 1 + al;
+  const a1 = -2 * cw;
+  const a2 = 1 - al;
+  let x1 = 0;
+  let x2 = 0;
+  let y1 = 0;
+  let y2 = 0;
+  for (let i = 0; i < sr; i++) {
+    const x = Math.random() * 2 - 1;
+    const y = (b[0] * x + b[1] * x1 + b[2] * x2 - a1 * y1 - a2 * y2) / a0;
+    x2 = x1;
+    x1 = x;
+    y2 = y1;
+    y1 = y;
+    d[i] = y;
+  }
+  return buf;
 }

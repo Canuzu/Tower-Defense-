@@ -501,7 +501,7 @@ export class Hud {
     tab.addEventListener('pointerdown', (e) => e.stopPropagation());
     tab.addEventListener('click', () => {
       audio.unlock();
-      audio.play('click');
+      audio.play('tab');
       this.dockOpen = !this.dockOpen;
       saveDockOpen(this.dockOpen);
       tab.setAttribute('aria-expanded', String(this.dockOpen));
@@ -585,7 +585,7 @@ export class Hud {
       g.events.on('frenzyReady', () => {
         // the meter pulses every time; the tip only the first couple of times
         if (this.frenzyTips++ < 2) this.tips.show({ text: tr('FRENZY is ready! Tap the meter!'), ms: 2200 });
-        audio.play('levelup', 0.5);
+        audio.play('ready');
       }),
       g.events.on('frenzyStart', () => this.stage.show({ kind: 'action', text: tr('FRENZY!'), sub: tr('+50% attack speed'), color: 'red' })),
       g.events.on('victory', () => this.host.onVictory()),
@@ -1089,7 +1089,7 @@ export class Hud {
         h('div', { class: 'u-portrait' }, img(look)),
         h('div', { class: 'u-title' }, h('div', { class: 'name t-outline' }, tr(t.name)), meta, statsLine),
         closeBtn(() => {
-          audio.play('click');
+          audio.play('close');
           this.select(null);
         }),
       ),
@@ -1471,7 +1471,7 @@ export class Hud {
   private buyUpgrade(t: Tower, p: number) {
     if (!t.def) return;
     if (!canTier(t.tiers, p) || t.tiers[p] >= 5) {
-      audio.play('error');
+      audio.play('locked');
       return;
     }
     if (this.game.upgradeLocked(t, p)) {
@@ -1530,13 +1530,13 @@ export class Hud {
   private cycleSpeed() {
     const g = this.game;
     g.speed = g.speed === 1 ? 2 : g.speed === 2 ? 3 : 1;
-    audio.play('click');
+    audio.play('tab');
   }
 
   private toggleAuto() {
     this.game.autoStart = !this.game.autoStart;
     toggle(this.autoToggle, 'on', this.game.autoStart);
-    audio.play('click');
+    audio.play('tab');
   }
 
   private tryFrenzy() {
@@ -2048,12 +2048,16 @@ export class Hud {
     this.root.append(wrap);
     this.modalOpen = true;
     if (pause) this.game.paused = true;
+    if (!opts.locked) audio.play('open');
     return wrap;
   }
 
   closeModal() {
     const w = this.root.querySelector('.modal-wrap');
-    if (w) w.remove();
+    if (w) {
+      w.remove();
+      audio.play('close');
+    }
     this.modalOpen = false;
     this.modalDismiss = null;
     this.game.paused = false;

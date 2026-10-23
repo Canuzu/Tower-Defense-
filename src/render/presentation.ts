@@ -1,8 +1,8 @@
-import type { FxSink, SoundName } from '../game/fx';
+import type { FxSink } from '../game/fx';
 import type { Enemy } from '../game/entities';
 import type { Tower } from '../game/Tower';
 import type { Renderer } from './Renderer';
-import { audio } from '../audio/audio';
+import { audio, shatterSound, type Sfx } from '../audio/audio';
 import { formatNum } from '../core/math';
 import { haptic } from '../ui/haptics';
 import { t, getLang } from '../i18n';
@@ -48,13 +48,13 @@ export function makePresentation(r: Renderer): FxSink {
   // comic words and "tink"s are fun once in a while, noise when a crowd pops
   let nextComic = 0;
   let nextTink = 0;
-  const fireSound = (t: Tower): SoundName | null => {
+  const fireSound = (t: Tower): Sfx | null => {
     switch (t.typeId) {
       case 'spike':
       case 'buzz':
         return 'shoot';
       case 'boomer':
-        return 'bomb';
+        return 'lob';
       case 'frost':
         return 'freeze';
       case 'hoot':
@@ -90,7 +90,8 @@ export function makePresentation(r: Renderer): FxSink {
         nextComic = now + 450;
         r.comic(e.x, e.y - e.radius);
       }
-      audio.play('pop', 0.5, 1 + (5 - Math.min(5, e.def.tier)) * 0.06);
+      // glass in three sizes (small, medium, big stars); the bank adds the pitch jitter
+      audio.play(shatterSound(e.def.tier), 0.5);
     },
     immune(x, y) {
       const now = performance.now();

@@ -1,125 +1,422 @@
 import type { SoundName } from '../game/fx';
+import { SFX, LOAD_ORDER, SYNTH_STANDIN, type Sfx, type SfxDef } from './bank';
+import { SAMPLE_FILES } from './sampleFiles';
+import { Music } from './music';
+
+export type { Sfx, UiSound } from './bank';
+export { shatterSound } from './bank';
 
 /**
- * Fully synthesized audio: every sound effect and the music are generated with WebAudio,
- * so the game ships without any audio files.
+ * Game audio. Sound effects are small CC0 samples (public/audio, see LICENSES.md) that load in the
+ * background after the first tap; until a sample is there (or if it cannot load, e.g. the one-file
+ * build) the WebAudio synthesizer below plays a stand-in. The music is generated live (music.ts).
+ *
+ * Mixing rules (bank.ts): every sound has a minimum gap and a voice cap, gameplay sounds share a
+ * voice budget, one UI sound per tap (the most specific wins), one jingle at a time, and big
+ * moments (boss, victory, level-up) duck the music and the other gameplay sounds for a moment.
  */
+
+/** sounds without files of their own play another sound's samples */
+const ALIAS: Partial<Record<Sfx, Sfx>> = { click: 'tap' };
+/** gameplay voices at once (battery saver: fewer) */
+const WORLD_VOICES = 22;
+const WORLD_VOICES_LOW = 12;
+/** star shatters of all sizes together */
+const SHATTER_VOICES = 7;
+const LOAD_WORKERS = 4;
+
+interface Voice {
+  name: Sfx;
+  out: GainNode;
+  src: AudioBufferSourceNode | null;
+  start: number;
+  end: number;
+  prio: number;
+}
+
+interface SfxState {
+  last: number;
+  voices: number;
+  variant: number;
+}
+
+interface Duck {
+  level: number;
+  end: number;
+}
+
 export class AudioEngine {
   ctx: AudioContext | null = null;
   private master!: GainNode;
+  /** the master output (after the compressor), for metering */
+  comp: DynamicsCompressorNode | null = null;
+  /** effects volume */
   private sfx!: GainNode;
+  /** gameplay sounds (ducked under jingles) */
+  private world!: GainNode;
+  /** music volume */
   private musicBus!: GainNode;
+  /** music ducking */
+  private musicDuck!: GainNode;
   private noiseBuf: AudioBuffer | null = null;
-  private last = new Map<string, number>();
-  private voices = 0;
+  private state = new Map<Sfx, SfxState>();
+  private worldVoices = 0;
+  private shatterVoices = 0;
+  private buffers = new Map<Sfx, AudioBuffer[]>();
+  private loadStarted = false;
+  private ext: 'm4a' | 'ogg' = 'm4a';
+  private uiVoice: Voice | null = null;
+  private uiPending: { name: Sfx; vol: number; pitch: number; prio: number } | null = null;
+  private jingleVoice: Voice | null = null;
+  private duckM: Duck = { level: 1, end: 0 };
+  private duckW: Duck = { level: 1, end: 0 };
+  private lowPowerOn = false;
+  /** a UI sound asked for while the context was still starting (the very first tap) */
+  private queued: { name: Sfx; vol: number; pitch: number; at: number } | null = null;
   sfxVolume = 0.8;
   musicVolume = 0.45;
   muted = false;
   music: Music | null = null;
+  /** samples decoded so far (number of sounds) */
+  loaded = 0;
+  /** set to an array to record every started sound as "name:sample" / "name:synth" (tests) */
+  log: string[] | null = null;
+
+  constructor() {
+    for (const k of Object.keys(SFX) as Sfx[]) this.state.set(k, { last: -1, voices: 0, variant: -1 });
+  }
 
   unlock() {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
+      // 'suspended', or iOS's 'interrupted' after a call or the app went to the background
+      if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.resume();
       return;
     }
     const AC = window.AudioContext || (window as any).webkitAudioContext;
     if (!AC) return;
-    this.ctx = new AC();
-    const comp = this.ctx.createDynamicsCompressor();
+    // a touch's pointerdown is not a user gesture yet (its pointerup is): a context made now would
+    // start suspended (and the browser warns), so wait for the gesture where the browser can tell
+    const ua = (navigator as any).userActivation as { isActive: boolean; hasBeenActive: boolean } | undefined;
+    if (ua && !ua.isActive && !ua.hasBeenActive) return;
+    const ctx: AudioContext = new AC();
+    this.ctx = ctx;
+    // glue + safety on the master: the samples are normalised to about -12 LUFS, the mix sits a bit
+    // below that and peaks are caught here
+    const comp = (this.comp = ctx.createDynamicsCompressor());
     comp.threshold.value = -14;
-    comp.ratio.value = 6;
-    this.master = this.ctx.createGain();
+    comp.knee.value = 10;
+    comp.ratio.value = 5;
+    comp.attack.value = 0.003;
+    comp.release.value = 0.25;
+    this.master = ctx.createGain();
     this.master.connect(comp);
-    comp.connect(this.ctx.destination);
-    this.sfx = this.ctx.createGain();
+    comp.connect(ctx.destination);
+    this.sfx = ctx.createGain();
     this.sfx.connect(this.master);
-    this.musicBus = this.ctx.createGain();
+    this.world = ctx.createGain();
+    this.world.connect(this.sfx);
+    this.musicBus = ctx.createGain();
     this.musicBus.connect(this.master);
-    this.applyVolumes();
-    const len = this.ctx.sampleRate;
-    this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    this.musicDuck = ctx.createGain();
+    this.musicDuck.connect(this.musicBus);
+    const len = ctx.sampleRate;
+    this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
     const d = this.noiseBuf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    this.music = new Music(this.ctx, this.musicBus);
+    this.music = new Music(ctx, this.musicDuck);
+    this.music.lowPower = this.lowPowerOn;
+    this.applyVolumes();
+    // older iOS only lets a context make sound after it played something inside a gesture
+    try {
+      const s = ctx.createBufferSource();
+      s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      s.connect(ctx.destination);
+      s.start(0);
+    } catch {
+      /* not needed elsewhere */
+    }
+    // still suspended (no gesture API, an odd browser): retry on the next gesture
+    const retry = () => {
+      if (!this.ctx || this.ctx.state === 'running' || this.ctx.state === 'closed') {
+        for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) window.removeEventListener(ev, retry, true);
+        return;
+      }
+      this.resume();
+    };
+    for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(ev, retry, true);
+    this.loadSamples();
+  }
+
+  private resume() {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    ctx.resume().then(
+      () => {
+        const q = this.queued;
+        this.queued = null;
+        if (q && performance.now() - q.at < 400) this.play(q.name, q.vol, q.pitch);
+      },
+      () => {},
+    );
+  }
+
+  /** Battery saver: fewer simultaneous sounds, a lighter music engine (no reverb, no partials). */
+  set lowPower(on: boolean) {
+    this.lowPowerOn = on;
+    if (this.music) this.music.lowPower = on;
+  }
+  get lowPower() {
+    return this.lowPowerOn;
   }
 
   applyVolumes() {
     if (!this.ctx) return;
     this.master.gain.value = this.muted ? 0 : 1;
-    this.sfx.gain.value = this.sfxVolume * 0.6;
-    this.musicBus.gain.value = this.musicVolume * 0.35;
+    this.sfx.gain.value = this.sfxVolume * 1.25;
+    this.musicBus.gain.value = this.musicVolume * 1.3;
+    // silent music costs nothing: it stops scheduling notes
+    if (this.music) this.music.enabled = !this.muted && this.musicVolume > 0.001;
   }
 
-  private minGap(name: SoundName): number {
-    switch (name) {
-      case 'pop':
-        return 0.028;
-      case 'shoot':
-      case 'buzz':
-        return 0.05;
-      case 'clank':
-        return 0.12;
-      case 'zap':
-      case 'freeze':
-      case 'bomb':
-      case 'snipe':
-      case 'magic':
-        return 0.06;
-      case 'cash':
-        return 0.05;
-      default:
-        return 0.02;
+  /** Is a sound's sample decoded (false while it loads or when the synthesizer stands in)? */
+  hasSample(name: Sfx) {
+    return this.buffers.has(ALIAS[name] ?? name);
+  }
+
+  // ------------------------------------------------------------------------------------ playing
+
+  play(name: Sfx, vol = 1, pitch = 1) {
+    const ctx = this.ctx;
+    if (!ctx || this.muted || this.sfxVolume <= 0) return;
+    const def = SFX[name];
+    if (!def) return;
+    if (ctx.state !== 'running') {
+      // the first tap: the context is starting, the tap's own sound plays as soon as it runs
+      if (def.group === 'ui') this.queued = { name, vol, pitch, at: performance.now() };
+      return;
+    }
+    if (def.group === 'ui') {
+      // one sound per tap: requests from the same handler are merged, the most specific wins
+      const p = def.prio ?? 1;
+      const q = this.uiPending;
+      if (q) {
+        if (p >= q.prio) {
+          q.name = name;
+          q.vol = vol;
+          q.pitch = pitch;
+          q.prio = p;
+        }
+        return;
+      }
+      this.uiPending = { name, vol, pitch, prio: p };
+      queueMicrotask(this.flushUi);
+      return;
+    }
+    this.start(name, vol, pitch, def);
+  }
+
+  private flushUi = () => {
+    const q = this.uiPending;
+    this.uiPending = null;
+    if (!q || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const cur = this.uiVoice;
+    // the same tap asked again from a later handler (pointerdown, then click): only a more specific sound replaces it
+    if (cur && now - cur.start < 0.09) {
+      if (q.prio <= cur.prio) return;
+      this.fadeOut(cur);
+    }
+    const v = this.start(q.name, q.vol, q.pitch, SFX[q.name]);
+    if (v) this.uiVoice = v;
+  };
+
+  private start(name: Sfx, vol: number, pitch: number, def: SfxDef): Voice | null {
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
+    const st = this.state.get(name)!;
+    if (now - st.last < def.gap || st.voices >= def.cap) return null;
+    const world = def.group === 'world';
+    const shatter = name === 'pop' || name === 'popMid' || name === 'popBig';
+    if (world && this.worldVoices >= (this.lowPowerOn ? WORLD_VOICES_LOW : WORLD_VOICES)) return null;
+    if (shatter && this.shatterVoices >= (this.lowPowerOn ? 4 : SHATTER_VOICES)) return null;
+    const prio = def.prio ?? 0;
+    if (def.group === 'jingle') {
+      const j = this.jingleVoice;
+      if (j && j.end > now) {
+        if (prio < j.prio) return null;
+        this.fadeOut(j);
+      }
+    }
+    const bus = world ? this.world : this.sfx;
+    const bufs = this.buffers.get(ALIAS[name] ?? name);
+    let v: Voice | null = null;
+    if (bufs) {
+      const n = bufs.length;
+      const vi = n === 1 ? 0 : (st.variant + 1 + Math.floor(Math.random() * (n - 1))) % n;
+      st.variant = vi;
+      const buf = bufs[vi];
+      const rate = Math.max(0.25, pitch * (1 + (Math.random() * 2 - 1) * def.jitter));
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = rate;
+      const out = ctx.createGain();
+      out.gain.value = vol * def.gain;
+      src.connect(out).connect(bus);
+      src.start(now);
+      v = { name, out, src, start: now, end: now + buf.duration / rate, prio };
+      const voice = v;
+      src.onended = () => {
+        out.disconnect();
+        this.release(voice, world, shatter);
+      };
+      if (this.log) this.log.push(name + ':sample');
+    } else {
+      const stand = SYNTH_STANDIN[name];
+      const out = ctx.createGain();
+      out.gain.value = vol * (stand ? stand[2] : 1);
+      out.connect(bus);
+      const dur = this.synth(stand ? stand[0] : (name as SoundName), out, pitch * (stand ? stand[1] : 1));
+      v = { name, out, src: null, start: now, end: now + dur, prio };
+      const voice = v;
+      setTimeout(() => {
+        out.disconnect();
+        this.release(voice, world, shatter);
+      }, dur * 1000 + 80);
+      if (this.log) this.log.push(name + ':synth');
+    }
+    st.last = now;
+    st.voices++;
+    if (world) this.worldVoices++;
+    if (shatter) this.shatterVoices++;
+    if (def.group === 'jingle') this.jingleVoice = v;
+    const len = v.end - now;
+    if (def.duck !== undefined && def.duck < 1) this.duck(this.musicDuck, this.duckM, def.duck, now, len);
+    if (def.duckWorld !== undefined && def.duckWorld < 1) this.duck(this.world, this.duckW, def.duckWorld, now, len);
+    return v;
+  }
+
+  private release(v: Voice, world: boolean, shatter: boolean) {
+    const st = this.state.get(v.name);
+    if (st) st.voices = Math.max(0, st.voices - 1);
+    if (world) this.worldVoices = Math.max(0, this.worldVoices - 1);
+    if (shatter) this.shatterVoices = Math.max(0, this.shatterVoices - 1);
+    if (this.uiVoice === v) this.uiVoice = null;
+    if (this.jingleVoice === v) this.jingleVoice = null;
+  }
+
+  private fadeOut(v: Voice) {
+    const now = this.ctx!.currentTime;
+    v.out.gain.cancelScheduledValues(now);
+    v.out.gain.setTargetAtTime(0, now, 0.015);
+    v.end = now;
+    if (v.src) {
+      try {
+        v.src.stop(now + 0.08);
+      } catch {
+        /* already stopped */
+      }
     }
   }
 
-  play(name: SoundName, vol = 1, pitch = 1) {
-    const ctx = this.ctx;
-    if (!ctx || this.muted || ctx.state !== 'running') return;
-    const now = ctx.currentTime;
-    const last = this.last.get(name) ?? -1;
-    if (now - last < this.minGap(name)) return;
-    if (this.voices > 28) return;
-    this.last.set(name, now);
-    const out = ctx.createGain();
-    out.gain.value = vol;
-    out.connect(this.sfx);
-    this.voices++;
-    const done = (t: number) => {
-      setTimeout(() => {
-        this.voices--;
-        out.disconnect();
-      }, t * 1000 + 50);
+  /** Lowers a bus to `level` for `len` seconds (overlapping ducks keep the deepest level and the latest end). */
+  private duck(g: GainNode, d: Duck, level: number, now: number, len: number) {
+    const active = d.end > now;
+    d.level = active ? Math.min(d.level, level) : level;
+    d.end = Math.max(active ? d.end : 0, now + len * 0.85);
+    const p = g.gain;
+    p.cancelScheduledValues(now);
+    p.setTargetAtTime(d.level, now, 0.04);
+    p.setTargetAtTime(1, d.end, 0.35);
+  }
+
+  // ------------------------------------------------------------------------------------ loading
+
+  /** Fetches and decodes the samples in the background, what a player hears first comes first. */
+  private loadSamples() {
+    if (this.loadStarted || !this.ctx) return;
+    this.loadStarted = true;
+    if (typeof fetch === 'undefined' || location.protocol === 'file:') return;
+    this.ext = pickExt();
+    const queue = LOAD_ORDER.filter((n) => SAMPLE_FILES[n]?.length);
+    let i = 0;
+    const worker = (): Promise<void> => {
+      const name = queue[i++];
+      if (!name) return Promise.resolve();
+      return this.loadSound(name).then(worker, worker);
     };
+    // after the tap that started audio has been handled; the first sound probes whether the files
+    // are there at all (the one-file build has none: the synthesizer plays everything)
+    setTimeout(() => {
+      this.loadSound(queue[i++]).then(
+        () => {
+          if (!this.loaded) return;
+          for (let k = 0; k < LOAD_WORKERS; k++) worker();
+        },
+        () => {},
+      );
+    }, 30);
+  }
+
+  private async loadSound(name: Sfx) {
+    const n = SAMPLE_FILES[name]?.length ?? 0;
+    const bufs: AudioBuffer[] = [];
+    for (let v = 0; v < n; v++) {
+      const b = await this.loadFile(`${name}_${v}`);
+      if (b) bufs.push(b);
+      else if (!bufs.length && this.loaded === 0) break;
+    }
+    if (bufs.length) {
+      this.buffers.set(name, bufs);
+      this.loaded++;
+    }
+  }
+
+  private async loadFile(base: string): Promise<AudioBuffer | null> {
+    const exts: ('m4a' | 'ogg')[] = this.ext === 'ogg' ? ['ogg', 'm4a'] : ['m4a', 'ogg'];
+    for (const ext of exts) {
+      try {
+        const r = await fetch(`${BASE}audio/${base}.${ext}`);
+        if (!r.ok) continue;
+        const buf = await decode(this.ctx!, await r.arrayBuffer());
+        // the other format works here: use it from now on
+        this.ext = ext;
+        return buf;
+      } catch {
+        /* try the other format */
+      }
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------------------- synthesizer
+
+  /** Synthesized stand-in for a sound; returns its length in seconds. */
+  private synth(name: SoundName, out: GainNode, pitch: number): number {
+    const ctx = this.ctx!;
+    const now = ctx.currentTime;
     const r = (a: number, b: number) => a + Math.random() * (b - a);
     const p = pitch * r(0.94, 1.06);
     switch (name) {
-      case 'pop': {
+      case 'pop':
         this.tone(out, 'sine', 950 * p, 260 * p, 0.07, 0.55);
         this.noise(out, 0.03, 0.18, 3000, 'highpass');
-        done(0.1);
-        break;
-      }
-      case 'bigpop': {
+        return 0.1;
+      case 'bigpop':
         this.tone(out, 'triangle', 420 * p, 90 * p, 0.25, 0.7);
         this.noise(out, 0.2, 0.4, 900, 'lowpass');
-        done(0.3);
-        break;
-      }
+        return 0.3;
       case 'shoot':
         this.noise(out, 0.05, 0.22, 2600 * p, 'bandpass');
         this.tone(out, 'triangle', 700 * p, 380 * p, 0.04, 0.12);
-        done(0.08);
-        break;
+        return 0.08;
       case 'bomb':
         this.tone(out, 'sine', 140 * p, 38, 0.32, 0.9);
         this.noise(out, 0.32, 0.55, 700, 'lowpass');
-        done(0.4);
-        break;
+        return 0.4;
       case 'freeze':
         for (const f of [2093, 2637, 3136]) this.tone(out, 'sine', f * p, f * p * 1.02, 0.25, 0.12);
         this.noise(out, 0.2, 0.15, 5000, 'highpass');
-        done(0.3);
-        break;
+        return 0.3;
       case 'zap': {
         const o = ctx.createOscillator();
         o.type = 'sawtooth';
@@ -134,70 +431,77 @@ export class AudioEngine {
         o.connect(f).connect(g).connect(out);
         o.start(now);
         o.stop(now + 0.14);
-        done(0.15);
-        break;
+        return 0.15;
       }
       case 'snipe':
         this.noise(out, 0.08, 0.6, 2500, 'highpass');
         this.tone(out, 'square', 1500 * p, 180, 0.06, 0.25);
-        done(0.12);
-        break;
+        return 0.12;
       case 'magic':
         this.tone(out, 'sine', 620 * p, 1300 * p, 0.14, 0.3);
         this.tone(out, 'triangle', 930 * p, 1950 * p, 0.12, 0.12);
-        done(0.16);
-        break;
-      case 'buzz':
-        this.tone(out, 'square', 210 * p, 230 * p, 0.09, 0.08);
-        done(0.1);
-        break;
+        return 0.16;
+      case 'buzz': {
+        // a soft wing buzz: a low-passed saw with a fast flutter
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = 190 * p;
+        const lfo = ctx.createOscillator();
+        lfo.frequency.value = 38;
+        const lg = ctx.createGain();
+        lg.gain.value = 18;
+        lfo.connect(lg).connect(o.frequency);
+        const f = ctx.createBiquadFilter();
+        f.type = 'lowpass';
+        f.frequency.value = 900;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.linearRampToValueAtTime(0.12, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        o.connect(f).connect(g).connect(out);
+        o.start(now);
+        lfo.start(now);
+        o.stop(now + 0.15);
+        lfo.stop(now + 0.15);
+        return 0.16;
+      }
       case 'tongue':
         this.sweep(out, 'sine', [280 * p, 720 * p, 200 * p], 0.18, 0.5);
-        done(0.2);
-        break;
+        return 0.2;
       case 'clank':
         this.tone(out, 'square', 1250 * p, 1200 * p, 0.07, 0.12);
         this.tone(out, 'square', 1730 * p, 1700 * p, 0.06, 0.08);
-        done(0.1);
-        break;
+        return 0.1;
       case 'cash':
         this.note(out, 'square', 988 * p, now, 0.06, 0.12);
         this.note(out, 'square', 1319 * p, now + 0.06, 0.12, 0.12);
-        done(0.2);
-        break;
+        return 0.2;
       case 'acorn':
         this.tone(out, 'triangle', 1400 * p, 1700 * p, 0.08, 0.25);
-        done(0.1);
-        break;
+        return 0.1;
       case 'place':
         this.tone(out, 'sine', 220, 90, 0.16, 0.7);
         this.note(out, 'triangle', 523, now + 0.02, 0.12, 0.25);
         this.noise(out, 0.08, 0.2, 500, 'lowpass');
-        done(0.2);
-        break;
+        return 0.2;
       case 'upgrade':
-        [523, 659, 784, 1047].forEach((f, i) => this.note(out, 'triangle', f, now + i * 0.055, 0.14, 0.32));
-        this.note(out, 'sine', 2093, now + 0.22, 0.25, 0.12);
-        done(0.5);
-        break;
+        [523, 659, 784, 1047].forEach((f, i) => this.note(out, 'triangle', f * p, now + i * 0.055, 0.14, 0.32));
+        this.note(out, 'sine', 2093 * p, now + 0.22, 0.25, 0.12);
+        return 0.5;
       case 'sell':
         [784, 659, 523].forEach((f, i) => this.note(out, 'triangle', f, now + i * 0.05, 0.1, 0.25));
-        done(0.3);
-        break;
+        return 0.3;
       case 'leak':
         this.tone(out, 'sawtooth', 180, 110, 0.28, 0.25);
-        done(0.3);
-        break;
+        return 0.3;
       case 'roundStart':
-        this.note(out, 'triangle', 392, now, 0.12, 0.3);
-        this.note(out, 'triangle', 523, now + 0.12, 0.25, 0.35);
+        this.note(out, 'triangle', 392 * p, now, 0.12, 0.3);
+        this.note(out, 'triangle', 523 * p, now + 0.12, 0.25, 0.35);
         this.noise(out, 0.1, 0.1, 6000, 'highpass');
-        done(0.4);
-        break;
+        return 0.4;
       case 'roundEnd':
         [523, 659, 784].forEach((f, i) => this.note(out, 'square', f, now + i * 0.07, 0.12, 0.12));
-        done(0.35);
-        break;
+        return 0.35;
       case 'boss': {
         const o1 = ctx.createOscillator();
         const o2 = ctx.createOscillator();
@@ -220,47 +524,39 @@ export class AudioEngine {
         o2.start(now);
         o1.stop(now + 1.45);
         o2.stop(now + 1.45);
-        done(1.5);
-        break;
+        return 1.5;
       }
       case 'bossDie':
         this.tone(out, 'sine', 160, 30, 0.6, 1);
         this.noise(out, 0.7, 0.7, 1200, 'lowpass');
         [784, 988, 1175, 1568].forEach((f, i) => this.note(out, 'triangle', f, now + 0.1 + i * 0.06, 0.18, 0.2));
-        done(0.8);
-        break;
+        return 0.8;
       case 'ability':
         this.noiseSweep(out, 0.5, 400, 6000, 0.35);
         [523, 659, 784].forEach((f) => this.note(out, 'sawtooth', f, now + 0.05, 0.4, 0.08));
-        done(0.6);
-        break;
+        return 0.6;
       case 'frenzy':
         this.noiseSweep(out, 0.6, 300, 8000, 0.4);
         [392, 523, 659, 784, 1047].forEach((f, i) => this.note(out, 'square', f, now + i * 0.05, 0.25, 0.12));
-        done(0.7);
-        break;
+        return 0.7;
       case 'levelup':
-        [523, 659, 784, 1047, 1319].forEach((f, i) => this.note(out, 'triangle', f, now + i * 0.07, 0.2, 0.3));
-        done(0.6);
-        break;
+        [523, 659, 784, 1047, 1319].forEach((f, i) => this.note(out, 'triangle', f * p, now + i * 0.07, 0.2, 0.3));
+        return 0.6;
       case 'victory':
         [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => this.note(out, 'square', f, now + [0, 0.12, 0.24, 0.36, 0.6, 0.84, 0.96, 1.08][i], i === 7 ? 0.6 : 0.12, 0.16));
-        done(1.8);
-        break;
+        return 1.8;
       case 'defeat':
         [392, 370, 349, 262].forEach((f, i) => this.note(out, 'triangle', f, now + i * 0.25, i === 3 ? 0.8 : 0.22, 0.3));
-        done(1.6);
-        break;
+        return 1.6;
       case 'click':
-        this.tone(out, 'sine', 1200, 900, 0.03, 0.2);
-        done(0.05);
-        break;
+        this.tone(out, 'sine', 1200 * p, 900 * p, 0.03, 0.2);
+        return 0.05;
       case 'error':
-        this.note(out, 'square', 180, now, 0.08, 0.15);
-        this.note(out, 'square', 150, now + 0.1, 0.12, 0.15);
-        done(0.25);
-        break;
+        this.note(out, 'square', 180 * p, now, 0.08, 0.15);
+        this.note(out, 'square', 150 * p, now + 0.1, 0.12, 0.15);
+        return 0.25;
     }
+    return 0.05;
   }
 
   private tone(out: AudioNode, type: OscillatorType, f0: number, f1: number, dur: number, vol: number) {
@@ -344,190 +640,31 @@ export class AudioEngine {
   }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Procedural music
-// ---------------------------------------------------------------------------------------------
+const BASE: string = (import.meta.env?.BASE_URL as string | undefined) || './';
 
-type Track = 'menu' | 'game';
-
-const NOTE = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
-
-/** Chord progressions as MIDI roots + quality */
-const PROGRESSIONS: Record<Track, [number, 'maj' | 'min'][]> = {
-  menu: [
-    [60, 'maj'],
-    [57, 'min'],
-    [53, 'maj'],
-    [55, 'maj'],
-  ],
-  game: [
-    [53, 'maj'],
-    [55, 'maj'],
-    [52, 'min'],
-    [57, 'min'],
-    [53, 'maj'],
-    [55, 'maj'],
-    [60, 'maj'],
-    [55, 'maj'],
-  ],
-};
-
-const MELODY: Record<Track, number[]> = {
-  // semitones above C5 (C major pentatonic), -1 = rest; 16 steps per bar
-  menu: [0, -1, 2, -1, 4, -1, 2, 4, 7, -1, 4, -1, 2, -1, -1, -1, 9, -1, 7, -1, 4, -1, 7, 9, 12, -1, 9, -1, 7, -1, -1, -1],
-  game: [7, -1, 9, 7, 4, -1, 2, -1, 4, 7, -1, 9, 12, -1, 9, -1, 7, -1, 4, -1, 2, 4, 2, 0, 2, -1, 4, -1, 7, -1, -1, -1],
-};
-
-class Music {
-  private timer: number | null = null;
-  private step = 0;
-  private nextTime = 0;
-  track: Track = 'menu';
-  intensity = 0;
-  frenzy = false;
-  private out: GainNode;
-  private noise: AudioBuffer;
-  playing = false;
-
-  constructor(
-    private ctx: AudioContext,
-    bus: GainNode,
-  ) {
-    this.out = ctx.createGain();
-    this.out.gain.value = 1;
-    this.out.connect(bus);
-    const len = ctx.sampleRate * 0.5;
-    this.noise = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = this.noise.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-  }
-
-  start(track: Track) {
-    if (this.playing && this.track === track) return;
-    this.track = track;
-    this.step = 0;
-    this.nextTime = this.ctx.currentTime + 0.1;
-    this.playing = true;
-    if (this.timer === null) this.timer = window.setInterval(() => this.schedule(), 50);
-  }
-
-  stop() {
-    this.playing = false;
-    if (this.timer !== null) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
-  }
-
-  private get bpm() {
-    return this.track === 'menu' ? 104 : this.frenzy ? 132 : 116;
-  }
-
-  private schedule() {
-    if (!this.playing) return;
-    const spb = 60 / this.bpm / 4; // 16th notes
-    while (this.nextTime < this.ctx.currentTime + 0.15) {
-      this.playStep(this.step, this.nextTime, spb);
-      this.nextTime += spb;
-      this.step++;
-    }
-  }
-
-  private playStep(step: number, t: number, spb: number) {
-    const prog = PROGRESSIONS[this.track];
-    const bar = Math.floor(step / 16) % prog.length;
-    const s = step % 16;
-    const [root, q] = prog[bar];
-    const third = q === 'maj' ? 4 : 3;
-    const lvl = this.track === 'menu' ? 1 : this.intensity;
-    // bass on 8ths
-    if (s % 2 === 0) {
-      const n = s % 8 === 6 ? root + 7 : root;
-      this.voice('triangle', NOTE(n - 24), t, spb * 1.8, 0.32);
-    }
-    // pad chord on bar start
-    if (s === 0) {
-      for (const iv of [0, third, 7]) this.voice('sine', NOTE(root + iv), t, spb * 15, 0.07, 0.4);
-    }
-    // arpeggio pluck
-    if (s % 2 === 1 || this.frenzy) {
-      const arp = [0, third, 7, 12][(s >> 1) % 4];
-      this.voice('square', NOTE(root + arp + 12), t, spb * 0.8, this.frenzy ? 0.05 : 0.035);
-    }
-    if (lvl >= 1) {
-      // drums
-      if (s % 4 === 0) this.kick(t);
-      if (s % 8 === 4) this.snare(t);
-      if (s % 2 === 0 || this.frenzy) this.hat(t, s % 4 === 2 ? 0.06 : 0.035);
-    }
-    if (lvl >= 2 || this.track === 'menu') {
-      const mel = MELODY[this.track];
-      const m = mel[(step % mel.length)];
-      if (m >= 0) this.voice('triangle', NOTE(72 + m), t, spb * 1.6, 0.09, 0.01, true);
-    }
-  }
-
-  private voice(type: OscillatorType, f: number, t: number, dur: number, vol: number, attack = 0.005, vib = false) {
-    const o = this.ctx.createOscillator();
-    o.type = type;
-    o.frequency.value = f;
-    if (vib) {
-      const lfo = this.ctx.createOscillator();
-      const lg = this.ctx.createGain();
-      lfo.frequency.value = 5.5;
-      lg.gain.value = f * 0.006;
-      lfo.connect(lg).connect(o.frequency);
-      lfo.start(t);
-      lfo.stop(t + dur + 0.05);
-    }
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(vol, t + attack);
-    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-    o.connect(g).connect(this.out);
-    o.start(t);
-    o.stop(t + dur + 0.05);
-  }
-
-  private kick(t: number) {
-    const o = this.ctx.createOscillator();
-    o.frequency.setValueAtTime(140, t);
-    o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.5, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    o.connect(g).connect(this.out);
-    o.start(t);
-    o.stop(t + 0.2);
-  }
-
-  private snare(t: number) {
-    const s = this.ctx.createBufferSource();
-    s.buffer = this.noise;
-    const f = this.ctx.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = 1800;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.22, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-    s.connect(f).connect(g).connect(this.out);
-    s.start(t);
-    s.stop(t + 0.15);
-  }
-
-  private hat(t: number, vol: number) {
-    const s = this.ctx.createBufferSource();
-    s.buffer = this.noise;
-    const f = this.ctx.createBiquadFilter();
-    f.type = 'highpass';
-    f.frequency.value = 7000;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-    s.connect(f).connect(g).connect(this.out);
-    s.start(t, Math.random() * 0.3);
-    s.stop(t + 0.05);
+/** AAC (iOS, Safari, Chrome, Edge) where it plays, Ogg Vorbis otherwise (Chromium without AAC, some Firefox builds). */
+function pickExt(): 'm4a' | 'ogg' {
+  try {
+    const a = document.createElement('audio');
+    const aac = a.canPlayType('audio/mp4; codecs="mp4a.40.2"');
+    const ogg = a.canPlayType('audio/ogg; codecs="vorbis"');
+    if (aac === 'probably') return 'm4a';
+    if (ogg === 'probably') return 'ogg';
+    return aac ? 'm4a' : ogg ? 'ogg' : 'm4a';
+  } catch {
+    return 'm4a';
   }
 }
 
+/** decodeAudioData in its callback form (older Safari has no promise version). */
+function decode(ctx: BaseAudioContext, data: ArrayBuffer): Promise<AudioBuffer> {
+  return new Promise((res, rej) => {
+    const p = ctx.decodeAudioData(data, res, rej);
+    if (p && typeof (p as Promise<AudioBuffer>).then === 'function') (p as Promise<AudioBuffer>).then(res, rej);
+  });
+}
+
 export const audio = new AudioEngine();
+
+// dev builds: the console and the QA scripts reach the engine as window.__audio
+if (import.meta.env?.DEV && typeof window !== 'undefined') (window as any).__audio = audio;

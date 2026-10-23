@@ -328,7 +328,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
 
   const select = (s: BanditSel) => {
     if (s.kind === sel.kind && s.id === sel.id) return;
-    audio.play('click');
+    audio.play('tab');
     sel = s;
     heroLook = 1;
     see(s);
@@ -392,7 +392,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
       h('div', { class: 'bd-xp-main', title: t('XP to spend') }, uiIcon('xp', '⭐'), xpNum, h('small', null, t('XP to spend'))),
     );
     if (fresh) {
-      countUp(xpNum, xp, { from: fresh.xpFrom, dur: 650, delay: 120 });
+      countUp(xpNum, xp, { from: fresh.xpFrom, dur: 650, delay: 120, tick: 'xpTick' });
       countUp(xpPillNum, xp, { from: fresh.xpFrom, dur: 650, delay: 120 });
     }
     const head = h('div', { class: 'bd-head' }, portrait, info, xpBox);
@@ -428,7 +428,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
       );
       tab.addEventListener('click', () => {
         if (pathSel.get(id) === pi) return;
-        audio.play('click');
+        audio.play('tab');
         pathSel.set(id, pi);
         tabEls.forEach((el, i) => {
           el.classList.toggle('on', i === pi);
@@ -532,8 +532,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
     }
     saveProfile(p);
     ctx.onUnlock?.(id, path, tier);
-    audio.play('upgrade');
-    if (tier >= 5) audio.play('levelup', 0.9);
+    audio.play(tier >= 5 ? 'levelup' : 'unlock');
     haptic(tier >= 5 ? 'heavy' : 'medium');
     renderRoster(false);
     const item = rosterItems.get('t:' + id);
@@ -566,7 +565,7 @@ export function banditsPage(ctx: BanditsCtx, opts: BanditsOpts = {}): HTMLElemen
       );
       b.addEventListener('click', () => {
         if (heroLook === lv) return;
-        audio.play('click');
+        audio.play('tab');
         heroLook = lv;
         bigImg.src = heroPortraitUrl(id, lv);
         portrait.classList.remove('bd-newlook');

@@ -17,7 +17,7 @@ import { HEROES, HERO_ORDER } from '../game/heroes';
 import { MAPS, MAP_BY_ID } from '../game/maps';
 import { PERKS } from '../game/perks';
 import { towerRoleCls } from './roles';
-import { audio } from '../audio/audio';
+import { audio, type Sfx } from '../audio/audio';
 import { haptic } from './haptics';
 
 type Child = Node | string | null | undefined | false;
@@ -123,7 +123,7 @@ export function reducedMotion(): boolean {
 }
 
 /** Animated number count-up with a little bump at the end. */
-export function countUp(el: HTMLElement, to: number, opts: { from?: number; dur?: number; delay?: number; format?: (n: number) => string } = {}) {
+export function countUp(el: HTMLElement, to: number, opts: { from?: number; dur?: number; delay?: number; format?: (n: number) => string; tick?: Sfx } = {}) {
   const f = opts.format ?? fmt;
   const from = opts.from ?? 0;
   if (reducedMotion() || to === from) {
@@ -133,11 +133,17 @@ export function countUp(el: HTMLElement, to: number, opts: { from?: number; dur?
   const dur = opts.dur ?? Math.min(1400, 500 + Math.log10(Math.abs(to - from) + 1) * 260);
   el.textContent = f(from);
   const begin = performance.now() + (opts.delay ?? 0);
+  let tickAt = 0;
   const step = (now: number) => {
     if (!el.isConnected && now - begin > 50) return;
     const k = Math.min(1, Math.max(0, (now - begin) / dur));
     const e = 1 - Math.pow(1 - k, 3);
     el.textContent = f(from + (to - from) * e);
+    // `tick`: a rolling sound while the number counts (coins, XP)
+    if (opts.tick && k > 0 && k < 1 && now - tickAt > 80) {
+      tickAt = now;
+      audio.play(opts.tick, 0.7, 1 + e * 0.35);
+    }
     if (k < 1) requestAnimationFrame(step);
     else bump(el);
   };
@@ -506,7 +512,7 @@ export function confirmBox(host: HTMLElement, o: ConfirmOpts): () => void {
     if (done) return;
     done = true;
     dropOverlay(cancel);
-    audio.play('click');
+    audio.play(ok ? 'tap' : 'close');
     fadeOut(wrap);
     if (ok) o.onOk();
     else o.onCancel?.();
@@ -679,7 +685,7 @@ export function rewardReveal(host: HTMLElement, fromLv: number, toLv: number, o:
     then?.();
   };
   const dismiss = () => {
-    audio.play('click');
+    audio.play('close');
     close();
   };
   const toBandits = (r: LevelReward) => {

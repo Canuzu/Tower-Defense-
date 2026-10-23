@@ -137,8 +137,9 @@ export class App {
       audio.applyVolumes();
       if (audio.music && !audio.music.playing) audio.music.start(this.scene === 'game' ? 'game' : 'menu');
     };
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
+    // a touch only counts as a user gesture (audio may start) from its pointerup / touchend / click;
+    // capture phase, so the tap's own sound already finds the context (and stopPropagation can't hide it)
+    for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(ev, unlock, true);
     // Escape walks back through menus (the HUD handles it in game)
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.scene !== 'game') this.back();
@@ -201,6 +202,7 @@ export class App {
     setLang(s.lang ?? 'auto');
     audio.sfxVolume = s.sfx;
     audio.musicVolume = s.music;
+    audio.lowPower = s.reducedEffects;
     audio.applyVolumes();
     setHaptics(s.haptics);
     this.renderer.reducedEffects = s.reducedEffects;
@@ -233,6 +235,7 @@ export class App {
         } else {
           this.renderer.reducedEffects = true;
           this.renderer.particles.reduced = true;
+          audio.lowPower = true;
           this.hud?.toast(t('Effects reduced to keep the game smooth'), 2200);
         }
       }
@@ -496,7 +499,7 @@ export class App {
 
   showMaps() {
     this.scene = 'maps';
-    audio.play('click');
+    audio.play('transition');
     this.setBackdrop('dim');
     const grid = h('div', { class: 'map-grid' });
     let medalCount = 0;
@@ -547,7 +550,7 @@ export class App {
       );
       card.addEventListener('click', () => {
         if (!unlocked) {
-          audio.play('error');
+          audio.play('locked');
           card.classList.remove('shake');
           void card.offsetWidth;
           card.classList.add('shake');
@@ -573,7 +576,7 @@ export class App {
     // screens taller than 16:9 (tablets) show terrain above / below the world: fetch the map's
     // extended painting now, so it is ready when the game starts
     if (window.innerHeight > window.innerWidth * 0.6) mapExtArt(m.id);
-    audio.play('click');
+    audio.play('transition');
     this.setBackdrop('dim');
     const level = this.level;
 
@@ -628,7 +631,7 @@ export class App {
         tile.addEventListener('click', () => {
           if (this.setupDiff === d) return;
           this.setupDiff = d;
-          audio.play('click');
+          audio.play('tab');
           render(false);
         });
         return tile;
@@ -656,7 +659,7 @@ export class App {
         );
         c.addEventListener('click', () => {
           if (locked) {
-            audio.play('error');
+            audio.play('locked');
             return;
           }
           this.markSeen('hero', id);
@@ -666,7 +669,7 @@ export class App {
           }
           this.profile.heroId = id;
           saveProfile(this.profile);
-          audio.play('click');
+          audio.play('tab');
           render(false);
         });
         const info = h('button', { class: 'hero-info', type: 'button', title: t('About {name}', { name: t(def.name) }), 'aria-label': t('About {name}', { name: t(def.name) }) }, uiIcon('info', 'ℹ️'));
@@ -869,7 +872,7 @@ export class App {
           : t('{n} achievements unlocked: {list} (+{xp} XP)', { n: fresh.length, list: fresh.map((a) => t(a.name)).join(', '), xp });
       this.hud.toast(msg, 3600);
     }
-    audio.play('levelup', 0.8);
+    audio.play('reward');
     saveProfile(this.profile);
   }
 
@@ -907,6 +910,7 @@ export class App {
 
   private enterGame(g: Game, carry = false) {
     audio.unlock();
+    audio.play('start');
     this.endGame();
     this.game = g;
     // restored towers carry their lifetime `pops`: only stars shattered from here on earn bandit XP
@@ -972,7 +976,7 @@ export class App {
             const lim = g.config.upgradeLimits?.[id];
             if (lim) lim[path] = Math.max(lim[path], tier);
             saveProfile(this.profile);
-            audio.play('upgrade');
+            audio.play('unlock');
             return true;
           },
         },
@@ -1105,6 +1109,8 @@ export class App {
     const wrap = hud.openModal(m, true, { locked: true });
     confetti(wrap, 90);
     this.renderer.confetti(800, 300, 120);
+    // the medal pops in at 0.75 s
+    if (medal) setTimeout(() => this.hud === hud && audio.play('medal'), 800);
   }
 
   private onDefeat(g: Game) {
@@ -1153,7 +1159,7 @@ export class App {
     const tiles = items.map(([icon, label, value, format, counts], i) => {
       // small numbers and the round/lives are shown as they are; the rest counts up while its tile rises in
       const val = h('b', { class: 't-num' }, format(counts && value > 12 ? 0 : value));
-      if (counts && value > 12) countUp(val, value, { delay: 160 + i * 50, format });
+      if (counts && value > 12) countUp(val, value, { delay: 160 + i * 50, format, tick: label === t('Cash earned') ? 'coin' : undefined });
       return h('div', { class: 'stat well' }, icon, h('div', { class: 'stat-text' }, h('small', null, label), val));
     });
     stagger(tiles, 'anim-rise', 2);
@@ -1211,10 +1217,16 @@ export class App {
     }
     const begin = performance.now() + 1000;
     const dur = 1300;
+    let tickAt = 0;
     const step = (now: number) => {
       if (!el.isConnected && now > begin + 50) return finish();
       const k = Math.min(1, Math.max(0, (now - begin) / dur));
       paint(startXp + gained * (1 - Math.pow(1 - k, 3)));
+      // the bar ticks while it fills, a little higher as it goes
+      if (k > 0 && k < 1 && now - tickAt > 85) {
+        tickAt = now;
+        audio.play('xpTick', 0.8, 1 + k * 0.45);
+      }
       if (k < 1) requestAnimationFrame(step);
       else finish();
     };
@@ -1278,6 +1290,7 @@ export class App {
       };
     }
     const close = () => {
+      if (this.screen.querySelector('.modal-wrap')) audio.play('close');
       this.screen.querySelectorAll('.modal-wrap').forEach((w) => w.remove());
       this.menuDismiss = null;
       this.coverMenu(false);
@@ -1300,6 +1313,7 @@ export class App {
             }
           });
         this.menuDismiss = onDismiss ?? null;
+        audio.play(swap ? 'transition' : 'open');
         this.screen.append(wrap);
         this.coverMenu(isPage);
       },
@@ -1309,6 +1323,7 @@ export class App {
         this.menuDismiss = null;
         this.coverMenu(false);
         if (!wrap) return then?.();
+        audio.play('close');
         leavePage(wrap, () => {
           wrap.remove();
           then?.();
@@ -1359,7 +1374,7 @@ export class App {
         b.setAttribute('aria-checked', String(nv));
         on(nv);
         save();
-        audio.play('click');
+        audio.play('tab');
       });
       return b;
     };
@@ -1439,7 +1454,7 @@ export class App {
       const b = h('button', { class: 'tab', type: 'button', role: 'tab' }, name, h('span', { class: 'tab-n' }, String(n)));
       b.addEventListener('click', () => {
         if (b.classList.contains('on')) return;
-        audio.play('click');
+        audio.play('tab');
         select(id);
       });
       return b;
